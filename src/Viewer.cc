@@ -19,6 +19,8 @@
 */
 
 #include "Viewer.h"
+#include "Sleep.h"
+
 #include <pangolin/pangolin.h>
 
 #include <mutex>
@@ -157,7 +159,7 @@ void Viewer::Run()
         {
             while(isStopped())
             {
-                usleep(3000);
+                sleep(3000);
             }
         }
 

@@ -32,6 +32,7 @@
 
 #include"Optimizer.h"
 #include"PnPsolver.h"
+#include "Sleep.h"
 
 #include<iostream>
 
@@ -1509,7 +1510,7 @@ void Tracking::Reset()
     {
         mpViewer->RequestStop();
         while(!mpViewer->isStopped())
-            usleep(3000);
+            sleep(3000);
     }
 
     // Reset Local Mapping

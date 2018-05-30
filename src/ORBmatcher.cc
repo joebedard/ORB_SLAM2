@@ -27,7 +27,12 @@
 
 #include "Thirdparty/DBoW2/DBoW2/FeatureVector.h"
 
+#ifdef LINUX
 #include<stdint-gcc.h>
+#endif
+#ifdef _WIN32
+#include<stdint.h>
+#endif
 
 using namespace std;
 

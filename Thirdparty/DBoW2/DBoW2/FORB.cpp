@@ -13,7 +13,12 @@
 #include <vector>
 #include <string>
 #include <sstream>
-#include <stdint-gcc.h>
+
+#ifdef _WIN32
+#  include <stdint.h>
+#else
+#  include <stdint-gcc.h>
+#endif
 
 #include "FORB.h"
 

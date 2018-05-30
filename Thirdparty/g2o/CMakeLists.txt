@@ -22,16 +22,6 @@ if(MSVC90)
   message(STATUS "Disabling memory alignment for MSVC8")
 endif(MSVC90)
 
-# Set the output directory for the build executables and libraries
-IF(WIN32)
-  SET(g2o_LIBRARY_OUTPUT_DIRECTORY ${g2o_SOURCE_DIR}/bin CACHE PATH "Target for the libraries")
-ELSE(WIN32)
-  SET(g2o_LIBRARY_OUTPUT_DIRECTORY ${g2o_SOURCE_DIR}/lib CACHE PATH "Target for the libraries")
-ENDIF(WIN32)
-SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${g2o_LIBRARY_OUTPUT_DIRECTORY})
-SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${g2o_LIBRARY_OUTPUT_DIRECTORY})
-SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${g2o_RUNTIME_OUTPUT_DIRECTORY})
-
 # Set search directory for looking for our custom CMake scripts to
 # look for SuiteSparse, QGLViewer, and Eigen3.
 LIST(APPEND CMAKE_MODULE_PATH ${g2o_SOURCE_DIR}/cmake_modules)
@@ -41,6 +31,10 @@ IF(UNIX)
   ADD_DEFINITIONS(-DUNIX)
   MESSAGE(STATUS "Compiling on Unix")
 ENDIF(UNIX)
+
+# For building the CHOLMOD / CSPARSE solvers
+# FIND_PACKAGE(BLAS REQUIRED)
+# FIND_PACKAGE(LAPACK REQUIRED)
 
 # Eigen library parallelise itself, though, presumably due to performance issues
 # OPENMP is experimental. We experienced some slowdown with it
@@ -53,28 +47,49 @@ IF(OPENMP_FOUND AND G2O_USE_OPENMP)
   MESSAGE(STATUS "Compiling with OpenMP support")
 ENDIF(OPENMP_FOUND AND G2O_USE_OPENMP)
 
-# Compiler specific options for gcc
-SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native") 
-SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -march=native") 
+IF(WIN32)
+  #ADD_DEFINITIONS(-DG2O_SHARED_LIBS)
+  SET (G2O_LIB_TYPE STATIC)
+  ADD_DEFINITIONS(-DWINDOWS)
+  MESSAGE(STATUS "Compiling on Windows")
+  IF(MSVC)
+    MESSAGE(STATUS "Compiling with MSVC")
+    ADD_DEFINITIONS(-DNOMINMAX)
+    ADD_DEFINITIONS(-D_USE_MATH_DEFINES)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS=1)  # Avoid deprecated fprintf(), etc.
+    add_definitions("/nologo")
+    add_definitions("/wd4244") # Conversion from double -> int
+    add_definitions("/wd4267") # Conversion during return
+    add_definitions("/wd4522") # Duplicated operator=() in Eigen headers
+    add_definitions("/wd4514") # unreferenced inline function has been removed
+    add_definitions("/wd4625") # copy constructor was implicitly defined as deleted
+    add_definitions("/wd4365") # conversion from 'int' to '::size_t'
+    add_definitions("/wd5026") # move constructor was implicitly defined as deleted
+    add_definitions("/wd4626") # assignment operator was implicitly defined as deleted
+    add_definitions("/wd5027") # move assignment operator was implicitly defined as deleted
+    add_definitions("/wd4820") # '4' bytes padding added after data member
+  ENDIF(MSVC)
+ENDIF(WIN32)
 
-# activate warnings !!!
-SET(g2o_C_FLAGS "${g2o_C_FLAGS} -Wall -W")
-SET(g2o_CXX_FLAGS "${g2o_CXX_FLAGS} -Wall -W")
+IF(CMAKE_COMPILER_IS_GNUCXX)
+  # Compiler specific options for gcc
+  SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native") 
+  SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -march=native") 
+
+  # activate warnings !!!
+  SET(g2o_C_FLAGS "${g2o_C_FLAGS} -Wall -W")
+  SET(g2o_CXX_FLAGS "${g2o_CXX_FLAGS} -Wall -W")
+ENDIF(CMAKE_COMPILER_IS_GNUCXX)
 
 # specifying compiler flags
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${g2o_CXX_FLAGS}")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${g2o_C_FLAGS}")
 
 # Find Eigen3
-SET(EIGEN3_INCLUDE_DIR ${G2O_EIGEN3_INCLUDE})
 FIND_PACKAGE(Eigen3 3.1.0 REQUIRED)
-IF(EIGEN3_FOUND)
-  SET(G2O_EIGEN3_INCLUDE ${EIGEN3_INCLUDE_DIR} CACHE PATH "Directory of Eigen3")
-ELSE(EIGEN3_FOUND)
-  SET(G2O_EIGEN3_INCLUDE "" CACHE PATH "Directory of Eigen3")
-ENDIF(EIGEN3_FOUND)
 
 # Generate config.h
+SET(G2O_SHARED_LIBS ${BUILD_SHARED_LIBS})
 SET(G2O_CXX_COMPILER "${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER}")
 configure_file(config.h.in ${g2o_SOURCE_DIR}/config.h)
 
@@ -83,7 +98,7 @@ INCLUDE_DIRECTORIES(
 ${g2o_SOURCE_DIR}/core
 ${g2o_SOURCE_DIR}/types
 ${g2o_SOURCE_DIR}/stuff 
-${G2O_EIGEN3_INCLUDE})
+${EIGEN3_INCLUDE_DIR})
 
 # Include the subdirectories
 ADD_LIBRARY(g2o ${G2O_LIB_TYPE}
@@ -138,6 +153,8 @@ g2o/core/factory.cpp
 g2o/core/optimization_algorithm_property.h
 g2o/core/factory.h                   
 g2o/core/sparse_block_matrix.h
+g2o/core/sparse_block_matrix_ccs.h
+g2o/core/sparse_block_matrix_diagonal.h
 g2o/core/sparse_optimizer.cpp  
 g2o/core/sparse_block_matrix.hpp
 g2o/core/sparse_optimizer.h
