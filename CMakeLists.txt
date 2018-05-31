@@ -53,6 +53,7 @@ endif()
 
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
+find_package(RealSense2 REQUIRED)
 
 add_subdirectory("Thirdparty/DBoW2" ${PROJECT_BINARY_DIR}/Thirdparty/DBoW2)
 add_subdirectory("Thirdparty/g2o" ${PROJECT_BINARY_DIR}/Thirdparty/g2o)
@@ -62,6 +63,7 @@ ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
+${RealSense2_INCLUDE_DIRS}
 )
 
 add_library(${PROJECT_NAME} STATIC
@@ -128,3 +130,17 @@ target_link_libraries(mono_kitti ${PROJECT_NAME})
 add_executable(mono_euroc
 Examples/Monocular/mono_euroc.cc)
 target_link_libraries(mono_euroc ${PROJECT_NAME})
+
+add_executable(realsense2
+Examples/RealSense2/realsense2.cc)
+target_link_libraries(realsense2 ${PROJECT_NAME} ${RealSense2_LIBS})
+
+# build client and server
+
+add_executable(client
+src-client/client.cc)
+target_link_libraries(client ${PROJECT_NAME} ${RealSense2_LIBS})
+
+add_executable(server
+src-server/server.cc)
+target_link_libraries(server ${PROJECT_NAME} ${RealSense2_LIBS})
