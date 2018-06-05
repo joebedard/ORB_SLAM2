@@ -48,6 +48,21 @@ void parseArgs(int argc, char * argv[])
    strSettingsFile = argv[2];
 }
 
+cv::Mat depth_frame_to_meters(const rs2::pipeline& pipe, const cv::Mat depthMat)
+{
+   using namespace cv;
+   using namespace rs2;
+
+   Mat dm;
+   depthMat.convertTo(dm, CV_64F);
+   auto depth_scale = pipe.get_active_profile()
+      .get_device()
+      .first<depth_sensor>()
+      .get_depth_scale();
+   dm = dm * depth_scale;
+   return dm;
+}
+
 int main(int argc, char * argv[]) try
 {
    parseArgs(argc, argv);
@@ -61,34 +76,42 @@ int main(int argc, char * argv[]) try
    vTimesTrack.resize(10000);
    std::chrono::steady_clock::time_point tStart = std::chrono::steady_clock::now();
 
-   cout << endl << "-------" << endl;
-   cout << "Start processing sequence ..." << endl;
-
    // Declare RealSense pipeline, encapsulating the actual device and sensors
    rs2::pipeline pipe;
 
-   // Start streaming with default recommended configuration
-   pipe.start();
+   // Start streaming with custom configuration
+   rs2::config customConfig;
+   customConfig.enable_stream(RS2_STREAM_INFRARED, 0, 640, 480, RS2_FORMAT_Y8, 30);
+   customConfig.enable_stream(RS2_STREAM_DEPTH, -1, 640, 480, RS2_FORMAT_Z16, 30);
+   if (!customConfig.can_resolve(pipe))
+   {
+      cout << "can not resolve config" << endl;
+      return EXIT_FAILURE;
+   }
+   pipe.start(customConfig);
+
+   cout << endl << "-------" << endl;
+   cout << "Start processing sequence ..." << endl;
 
    using namespace cv;
-   const auto window_name = "Display Image";
-   namedWindow(window_name, WINDOW_AUTOSIZE);
-
-   while (waitKey(1) < 0 && cvGetWindowHandle(window_name))
+   //const auto window_name = "Display Image";
+   //namedWindow(window_name, WINDOW_AUTOSIZE);
+   while (waitKey(1)) // < 0 && cvGetWindowHandle(window_name))
    {
       rs2::frameset data = pipe.wait_for_frames(); // Wait for next set of frames from the camera
-      rs2::video_frame irFrame0 = data.get_infrared_frame(0);
-      rs2::video_frame irFrame1 = data.get_infrared_frame(1);
+      rs2::video_frame irFrame = data.get_infrared_frame(0);
+      rs2::depth_frame depthFrame = data.get_depth_frame();
 
       // Query frame size (width and height)
-      const int w0 = irFrame0.get_width();
-      const int h0 = irFrame0.get_height();
-      const int w1 = irFrame1.get_width();
-      const int h1 = irFrame1.get_height();
+      const int irWidth = irFrame.get_width();
+      const int irHeight = irFrame.get_height();
+      const int depthWidth = depthFrame.as<rs2::video_frame>().get_width();
+      const int depthHeight = depthFrame.as<rs2::video_frame>().get_height();
 
       // Create OpenCV matrix of size (w,h) from the colorized depth data
-      Mat image0(Size(w0, h0), CV_8UC3, (void*)irFrame0.get_data(), Mat::AUTO_STEP);
-      Mat image1(Size(w1, h1), CV_8UC3, (void*)irFrame1.get_data(), Mat::AUTO_STEP);
+      Mat irMat(Size(irWidth, irHeight), CV_8UC1, (void*)irFrame.get_data(), Mat::AUTO_STEP);
+      Mat depthMat(Size(depthWidth, depthHeight), CV_16UC1, (void*)depthFrame.get_data(), Mat::AUTO_STEP);
+      depthMat = depth_frame_to_meters(pipe, depthMat);
 
       // Update the window with new data
       //imshow(window_name, image);
@@ -101,7 +124,7 @@ int main(int argc, char * argv[]) try
 
       double tframe = std::chrono::duration_cast<std::chrono::duration<double> >(t1 - tStart).count();
       // Pass the images to the SLAM system
-      SLAM.TrackStereo(image0, image1, tframe);
+      SLAM.TrackRGBD(irMat, depthMat, tframe);
 
 #ifdef COMPILEDWITHC11
       std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
