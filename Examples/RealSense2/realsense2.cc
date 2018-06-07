@@ -67,8 +67,21 @@ int main(int argc, char * argv[]) try
 {
    parseArgs(argc, argv);
 
+   // Declare RealSense pipeline, encapsulating the actual device and sensors
+   rs2::pipeline pipe;
+
+   // create and resolve custom configuration for RealSense
+   rs2::config customConfig;
+   customConfig.enable_stream(RS2_STREAM_DEPTH, -1, 640, 480, RS2_FORMAT_Z16, 30);
+   customConfig.enable_stream(RS2_STREAM_INFRARED, 1, 640, 480, RS2_FORMAT_Y8, 30);
+   if (!customConfig.can_resolve(pipe))
+   {
+      cout << "can not resolve RealSense config" << endl;
+      return EXIT_FAILURE;
+   }
+
    // Create SLAM system. It initializes all system threads and gets ready to process frames.
-   ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::STEREO, true);
+   ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::RGBD, true);
 
    // Vector for tracking time statistics
    vector<float> vTimesTrack;
@@ -76,22 +89,11 @@ int main(int argc, char * argv[]) try
    vTimesTrack.resize(10000);
    std::chrono::steady_clock::time_point tStart = std::chrono::steady_clock::now();
 
-   // Declare RealSense pipeline, encapsulating the actual device and sensors
-   rs2::pipeline pipe;
-
-   // Start streaming with custom configuration
-   rs2::config customConfig;
-   customConfig.enable_stream(RS2_STREAM_INFRARED, 0, 640, 480, RS2_FORMAT_Y8, 30);
-   customConfig.enable_stream(RS2_STREAM_DEPTH, -1, 640, 480, RS2_FORMAT_Z16, 30);
-   if (!customConfig.can_resolve(pipe))
-   {
-      cout << "can not resolve config" << endl;
-      return EXIT_FAILURE;
-   }
-   pipe.start(customConfig);
-
    cout << endl << "-------" << endl;
-   cout << "Start processing sequence ..." << endl;
+   cout << "Start processing streams ..." << endl;
+
+   // start RealSense streaming
+   pipe.start(customConfig);
 
    using namespace cv;
    //const auto window_name = "Display Image";
