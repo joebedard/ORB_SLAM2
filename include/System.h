@@ -89,6 +89,10 @@ public:
     // Reset the system (clear map)
     void Reset();
 
+    // Returns true if the user clicked the Viewer's Quit button
+    // This should be checked after each call to Track*()
+    bool IsQuitting();
+
     // All threads will be requested to finish.
     // It waits until all threads have finished.
     // This function must be called before saving the trajectory.

@@ -492,4 +492,9 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
     return mTrackedKeyPointsUn;
 }
 
+bool System::IsQuitting()
+{
+   return mpViewer->CheckFinish();
+}
+
 } //namespace ORB_SLAM

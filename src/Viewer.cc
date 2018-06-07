@@ -28,6 +28,8 @@
 namespace ORB_SLAM2
 {
 
+const char * Viewer::CURRENT_FRAME_WINDOW_NAME = "ORB-SLAM2: Current Frame";
+
 Viewer::Viewer(System* pSystem, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, const string &strSettingPath):
     mpSystem(pSystem), mpFrameDrawer(pFrameDrawer),mpMapDrawer(pMapDrawer), mpTracker(pTracking),
     mbFinishRequested(false), mbFinished(true), mbStopped(true), mbStopRequested(false)
@@ -74,6 +76,7 @@ void Viewer::Run()
     pangolin::Var<bool> menuShowGraph("menu.Show Graph",true,true);
     pangolin::Var<bool> menuLocalizationMode("menu.Localization Mode",false,true);
     pangolin::Var<bool> menuReset("menu.Reset",false,false);
+    pangolin::Var<bool> menuQuit("menu.Quit",false,false);
 
     // Define Camera Render Object (for view / scene browsing)
     pangolin::OpenGlRenderState s_cam(
@@ -89,7 +92,7 @@ void Viewer::Run()
     pangolin::OpenGlMatrix Twc;
     Twc.SetIdentity();
 
-    cv::namedWindow("ORB-SLAM2: Current Frame");
+    cv::namedWindow(CURRENT_FRAME_WINDOW_NAME);
 
     bool bFollow = true;
     bool bLocalizationMode = false;
@@ -137,8 +140,13 @@ void Viewer::Run()
         pangolin::FinishFrame();
 
         cv::Mat im = mpFrameDrawer->DrawFrame();
-        cv::imshow("ORB-SLAM2: Current Frame",im);
+        cv::imshow(CURRENT_FRAME_WINDOW_NAME,im);
         cv::waitKey(mT);
+
+        if (menuQuit || !cvGetWindowHandle(CURRENT_FRAME_WINDOW_NAME))
+        {
+           RequestFinish();
+        }
 
         if(menuReset)
         {

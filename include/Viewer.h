@@ -48,6 +48,8 @@ public:
 
     void RequestFinish();
 
+    bool CheckFinish();
+
     void RequestStop();
 
     bool isFinished();
@@ -71,7 +73,6 @@ private:
 
     float mViewpointX, mViewpointY, mViewpointZ, mViewpointF;
 
-    bool CheckFinish();
     void SetFinish();
     bool mbFinishRequested;
     bool mbFinished;
@@ -80,7 +81,7 @@ private:
     bool mbStopped;
     bool mbStopRequested;
     std::mutex mMutexStop;
-
+    static const char * CURRENT_FRAME_WINDOW_NAME;
 };
 
 }
