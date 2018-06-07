@@ -40,9 +40,9 @@ void parseArgs(int argc, char * argv[])
 {
    if (argc != 3)
    {
-      //cerr << endl << "Usage: ./realsense2 path_to_vocabulary_file path_to_settings_file" << endl;
-      const char * usage = "Usage: ./realsense2 path_to_vocabulary_file path_to_settings_file";
+      const char * usage = "Usage: ./realsense2 vocabulary_file_and_path settings_file_and_path";
       std::exception e(usage);
+      throw e;
    }
    strVocFile = argv[1];
    strSettingsFile = argv[2];
@@ -67,13 +67,24 @@ int main(int argc, char * argv[]) try
 {
    parseArgs(argc, argv);
 
+   //Check settings file
+   cv::FileStorage fsSettings(argv[2], cv::FileStorage::READ);
+   if (!fsSettings.isOpened())
+   {
+      cerr << "Failed to open settings file at: " << strSettingsFile << endl;
+      return EXIT_FAILURE;
+   }
+
+   int width = fsSettings["Camera.width"];
+   int height = fsSettings["Camera.height"];
+
    // Declare RealSense pipeline, encapsulating the actual device and sensors
    rs2::pipeline pipe;
 
    // create and resolve custom configuration for RealSense
    rs2::config customConfig;
-   customConfig.enable_stream(RS2_STREAM_DEPTH, -1, 640, 480, RS2_FORMAT_Z16, 30);
-   customConfig.enable_stream(RS2_STREAM_INFRARED, 1, 640, 480, RS2_FORMAT_Y8, 30);
+   customConfig.enable_stream(RS2_STREAM_INFRARED, 1, width, height, RS2_FORMAT_Y8, 30);
+   customConfig.enable_stream(RS2_STREAM_INFRARED, 2, width, height, RS2_FORMAT_Y8, 30);
    if (!customConfig.can_resolve(pipe))
    {
       cout << "can not resolve RealSense config" << endl;
@@ -81,42 +92,35 @@ int main(int argc, char * argv[]) try
    }
 
    // Create SLAM system. It initializes all system threads and gets ready to process frames.
-   ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::RGBD, true);
+   ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::STEREO, true);
 
    // Vector for tracking time statistics
    vector<float> vTimesTrack;
-   int ni = 0;
-   vTimesTrack.resize(10000);
    std::chrono::steady_clock::time_point tStart = std::chrono::steady_clock::now();
 
    cout << endl << "-------" << endl;
    cout << "Start processing streams ..." << endl;
 
    // start RealSense streaming
-   pipe.start(customConfig);
+   rs2::pipeline_profile profile = pipe.start(customConfig);
+
+   // disable the projected IR pattern when using stereo IR images
+   rs2::depth_sensor sensor = profile.get_device().first<rs2::depth_sensor>();
+   sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 0);
 
    using namespace cv;
-   //const auto window_name = "Display Image";
-   //namedWindow(window_name, WINDOW_AUTOSIZE);
-   while (waitKey(1)) // < 0 && cvGetWindowHandle(window_name))
+   while (!SLAM.IsQuitting())
    {
       rs2::frameset data = pipe.wait_for_frames(); // Wait for next set of frames from the camera
-      rs2::video_frame irFrame = data.get_infrared_frame(0);
-      rs2::depth_frame depthFrame = data.get_depth_frame();
-
-      // Query frame size (width and height)
-      const int irWidth = irFrame.get_width();
-      const int irHeight = irFrame.get_height();
-      const int depthWidth = depthFrame.as<rs2::video_frame>().get_width();
-      const int depthHeight = depthFrame.as<rs2::video_frame>().get_height();
+      rs2::video_frame irFrame1 = data.get_infrared_frame(1);
+      rs2::video_frame irFrame2 = data.get_infrared_frame(2);
+      //rs2::depth_frame depthFrame = data.get_depth_frame();
 
       // Create OpenCV matrix of size (w,h) from the colorized depth data
-      Mat irMat(Size(irWidth, irHeight), CV_8UC1, (void*)irFrame.get_data(), Mat::AUTO_STEP);
-      Mat depthMat(Size(depthWidth, depthHeight), CV_16UC1, (void*)depthFrame.get_data(), Mat::AUTO_STEP);
-      depthMat = depth_frame_to_meters(pipe, depthMat);
-
-      // Update the window with new data
-      //imshow(window_name, image);
+      Mat irMat1(Size(width, height), CV_8UC1, (void*)irFrame1.get_data(), Mat::AUTO_STEP);
+      Mat irMat2(Size(width, height), CV_8UC1, (void*)irFrame2.get_data(), Mat::AUTO_STEP);
+      //Mat depthMat(Size(width, height), CV_16UC1, (void*)irFrame2.get_data(), Mat::AUTO_STEP);
+      //depthMat = depth_frame_to_meters(pipe, depthMat);
 
 #ifdef COMPILEDWITHC11
       std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
@@ -125,8 +129,10 @@ int main(int argc, char * argv[]) try
 #endif
 
       double tframe = std::chrono::duration_cast<std::chrono::duration<double> >(t1 - tStart).count();
+
       // Pass the images to the SLAM system
-      SLAM.TrackRGBD(irMat, depthMat, tframe);
+      //SLAM.TrackRGBD(colorMat, depthMat, tframe);
+      SLAM.TrackStereo(irMat1, irMat2, tframe);
 
 #ifdef COMPILEDWITHC11
       std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
@@ -136,7 +142,7 @@ int main(int argc, char * argv[]) try
 
       double ttrack = std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
 
-      vTimesTrack[ni++] = ttrack;
+      vTimesTrack.push_back(ttrack);
 
       // Wait to load the next frame
       /*double T = 0;
@@ -155,13 +161,13 @@ int main(int argc, char * argv[]) try
    // Tracking time statistics
    sort(vTimesTrack.begin(), vTimesTrack.end());
    float totaltime = 0;
-   for (int i = 0; i<ni; i++)
+   for (int i = 0; i<vTimesTrack.size(); i++)
    {
       totaltime += vTimesTrack[i];
    }
    cout << "-------" << endl << endl;
-   cout << "median tracking time: " << vTimesTrack[ni / 2] << endl;
-   cout << "mean tracking time: " << totaltime / ni << endl;
+   cout << "median tracking time: " << vTimesTrack[vTimesTrack.size() / 2] << endl;
+   cout << "mean tracking time: " << totaltime / vTimesTrack.size() << endl;
 
    // Save camera trajectory
    SLAM.SaveTrajectoryKITTI("RealSense2CameraTrajectory.txt");
