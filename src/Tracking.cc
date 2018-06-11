@@ -44,10 +44,11 @@ using namespace std;
 namespace ORB_SLAM2
 {
 
-Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor):
+Tracking::Tracking(ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(false), mbVO(false), mpORBVocabulary(pVoc),
-    mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
-    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0)
+    mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpViewer(NULL),
+    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0),
+    mbActivateLocalizationMode(false), mbDeactivateLocalizationMode(false)
 {
     // Load camera parameters from settings file
 
@@ -167,7 +168,41 @@ void Tracking::SetViewer(Viewer *pViewer)
 
 cv::Mat Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRectRight, const double &timestamp)
 {
-    mImGray = imRectLeft;
+   // Check mode change
+   {
+      unique_lock<mutex> lock(mMutexMode);
+      if (mbActivateLocalizationMode)
+      {
+         mpLocalMapper->RequestStop();
+
+         // Wait until Local Mapping has effectively stopped
+         while (!mpLocalMapper->isStopped())
+         {
+            sleep(1000);
+         }
+
+         InformOnlyTracking(true);
+         mbActivateLocalizationMode = false;
+      }
+      if (mbDeactivateLocalizationMode)
+      {
+         InformOnlyTracking(false);
+         mpLocalMapper->Release();
+         mbDeactivateLocalizationMode = false;
+      }
+   }
+
+   // Check reset
+   {
+      unique_lock<mutex> lock(mMutexReset);
+      if (mbReset)
+      {
+         Reset();
+         mbReset = false;
+      }
+   }
+
+   mImGray = imRectLeft;
     cv::Mat imGrayRight = imRectRight;
 
     if(mImGray.channels()==3)
@@ -207,7 +242,41 @@ cv::Mat Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRe
 
 cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const double &timestamp)
 {
-    mImGray = imRGB;
+   // Check mode change
+   {
+      unique_lock<mutex> lock(mMutexMode);
+      if (mbActivateLocalizationMode)
+      {
+         mpLocalMapper->RequestStop();
+
+         // Wait until Local Mapping has effectively stopped
+         while (!mpLocalMapper->isStopped())
+         {
+            sleep(1000);
+         }
+
+         InformOnlyTracking(true);
+         mbActivateLocalizationMode = false;
+      }
+      if (mbDeactivateLocalizationMode)
+      {
+         InformOnlyTracking(false);
+         mpLocalMapper->Release();
+         mbDeactivateLocalizationMode = false;
+      }
+   }
+
+   // Check reset
+   {
+      unique_lock<mutex> lock(mMutexReset);
+      if (mbReset)
+      {
+         Reset();
+         mbReset = false;
+      }
+   }
+
+   mImGray = imRGB;
     cv::Mat imDepth = imD;
 
     if(mImGray.channels()==3)
@@ -238,7 +307,41 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
 
 cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
 {
-    mImGray = im;
+   // Check mode change
+   {
+      unique_lock<mutex> lock(mMutexMode);
+      if (mbActivateLocalizationMode)
+      {
+         mpLocalMapper->RequestStop();
+
+         // Wait until Local Mapping has effectively stopped
+         while (!mpLocalMapper->isStopped())
+         {
+            sleep(1000);
+         }
+
+         InformOnlyTracking(true);
+         mbActivateLocalizationMode = false;
+      }
+      if (mbDeactivateLocalizationMode)
+      {
+         InformOnlyTracking(false);
+         mpLocalMapper->Release();
+         mbDeactivateLocalizationMode = false;
+      }
+   }
+
+   // Check reset
+   {
+      unique_lock<mutex> lock(mMutexReset);
+      if (mbReset)
+      {
+         Reset();
+         mbReset = false;
+      }
+   }
+
+   mImGray = im;
 
     if(mImGray.channels()==3)
     {
@@ -475,7 +578,8 @@ void Tracking::Track()
             if(mpMap->KeyFramesInMap()<=5)
             {
                 cout << "Track lost soon after initialisation, reseting..." << endl;
-                mpSystem->Reset();
+                unique_lock<mutex> lock(mMutexReset);
+                mbReset = true;
                 return;
             }
         }
@@ -1588,6 +1692,17 @@ void Tracking::InformOnlyTracking(const bool &flag)
     mbOnlyTracking = flag;
 }
 
+void Tracking::ActivateLocalizationMode()
+{
+   unique_lock<mutex> lock(mMutexMode);
+   mbActivateLocalizationMode = true;
+}
+
+void Tracking::DeactivateLocalizationMode()
+{
+   unique_lock<mutex> lock(mMutexMode);
+   mbDeactivateLocalizationMode = true;
+}
 
 
 } //namespace ORB_SLAM

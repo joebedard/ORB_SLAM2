@@ -54,7 +54,7 @@ class Tracking
 {  
 
 public:
-    Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
+    Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
              KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor);
 
     // Preprocess the input and call Track(). Extract features and performs stereo matching.
@@ -73,6 +73,12 @@ public:
 
     // Use this function if you have deactivated local mapping and you only want to localize the camera.
     void InformOnlyTracking(const bool &flag);
+
+    // This stops local mapping thread (map building) and performs only camera tracking.
+    void ActivateLocalizationMode();
+
+    // This resumes local mapping thread and performs SLAM again.
+    void DeactivateLocalizationMode();
 
 
 public:
@@ -113,6 +119,7 @@ public:
     // True if local mapping is deactivated and we are performing only localization
     bool mbOnlyTracking;
 
+    // Reset the map
     void Reset();
 
 protected:
@@ -170,9 +177,6 @@ protected:
     std::vector<KeyFrame*> mvpLocalKeyFrames;
     std::vector<MapPoint*> mvpLocalMapPoints;
     
-    // System
-    System* mpSystem;
-    
     //Drawers
     Viewer* mpViewer;
     FrameDrawer* mpFrameDrawer;
@@ -214,6 +218,16 @@ protected:
     bool mbRGB;
 
     list<MapPoint*> mlpTemporalPoints;
+
+private:
+   // Change mode flags
+   std::mutex mMutexMode;
+   bool mbActivateLocalizationMode;
+   bool mbDeactivateLocalizationMode;
+
+   // Reset flag
+   std::mutex mMutexReset;
+   bool mbReset;
 };
 
 } //namespace ORB_SLAM

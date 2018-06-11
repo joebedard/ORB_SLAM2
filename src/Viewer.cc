@@ -30,9 +30,9 @@ namespace ORB_SLAM2
 
 const char * Viewer::CURRENT_FRAME_WINDOW_NAME = "ORB-SLAM2: Current Frame";
 
-Viewer::Viewer(System* pSystem, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, const string &strSettingPath):
-    mpSystem(pSystem), mpFrameDrawer(pFrameDrawer),mpMapDrawer(pMapDrawer), mpTracker(pTracking),
-    mbFinishRequested(false), mbFinished(true), mbStopped(true), mbStopRequested(false)
+Viewer::Viewer(FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, const string &strSettingPath):
+    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpTracker(pTracking),
+    mbFinishRequested(false), mbFinished(true), mbStopped(true), mbStopRequested(false), mbResetting(false)
 {
     cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
 
@@ -120,12 +120,12 @@ void Viewer::Run()
 
         if(menuLocalizationMode && !bLocalizationMode)
         {
-            mpSystem->ActivateLocalizationMode();
+            mpTracker->ActivateLocalizationMode();
             bLocalizationMode = true;
         }
         else if(!menuLocalizationMode && bLocalizationMode)
         {
-            mpSystem->DeactivateLocalizationMode();
+            mpTracker->DeactivateLocalizationMode();
             bLocalizationMode = false;
         }
 
@@ -148,18 +148,20 @@ void Viewer::Run()
            RequestFinish();
         }
 
-        if(menuReset)
+        if(menuReset && !mbResetting)
         {
+            mbResetting = true;
             menuShowGraph = true;
             menuShowKeyFrames = true;
             menuShowPoints = true;
             menuLocalizationMode = false;
             if(bLocalizationMode)
-                mpSystem->DeactivateLocalizationMode();
+                mpTracker->DeactivateLocalizationMode();
             bLocalizationMode = false;
             bFollow = true;
             menuFollowCamera = true;
-            mpSystem->Reset();
+            mpTracker->Reset();
+            mbResetting = false;
             menuReset = false;
         }
 
