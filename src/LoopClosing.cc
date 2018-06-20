@@ -45,10 +45,10 @@ LoopClosing::LoopClosing(Map *pMap, KeyFrameDatabase *pDB, ORBVocabulary *pVoc, 
     mnCovisibilityConsistencyTh = 3;
 }
 
-void LoopClosing::SetTracker(Tracking *pTracker)
+/*void LoopClosing::SetTracker(Tracking *pTracker)
 {
     mpTracker=pTracker;
-}
+}*/
 
 void LoopClosing::SetLocalMapper(LocalMapping *pLocalMapper)
 {
@@ -92,7 +92,7 @@ void LoopClosing::Run()
 void LoopClosing::InsertKeyFrame(KeyFrame *pKF)
 {
     unique_lock<mutex> lock(mMutexLoopQueue);
-    if(pKF->mnId!=0)
+    if(pKF->GetId()!=0)
         mlpLoopKeyFrameQueue.push_back(pKF);
 }
 
@@ -113,10 +113,10 @@ bool LoopClosing::DetectLoop()
     }
 
     //If the map contains less than 10 KF or less than 10 KF have passed from last loop detection
-    if(mpCurrentKF->mnId<mLastLoopKFid+10)
+    if(mpCurrentKF->GetId()<mLastLoopKFid+10)
     {
         mpKeyFrameDB->add(mpCurrentKF);
-        mpCurrentKF->SetErase();
+        mpCurrentKF->SetErase(mpMap, mpKeyFrameDB);
         return false;
     }
 
@@ -147,7 +147,7 @@ bool LoopClosing::DetectLoop()
     {
         mpKeyFrameDB->add(mpCurrentKF);
         mvConsistentGroups.clear();
-        mpCurrentKF->SetErase();
+        mpCurrentKF->SetErase(mpMap, mpKeyFrameDB);
         return false;
     }
 
@@ -218,7 +218,7 @@ bool LoopClosing::DetectLoop()
 
     if(mvpEnoughConsistentCandidates.empty())
     {
-        mpCurrentKF->SetErase();
+        mpCurrentKF->SetErase(mpMap, mpKeyFrameDB);
         return false;
     }
     else
@@ -226,7 +226,7 @@ bool LoopClosing::DetectLoop()
         return true;
     }
 
-    mpCurrentKF->SetErase();
+    mpCurrentKF->SetErase(mpMap, mpKeyFrameDB);
     return false;
 }
 
@@ -346,8 +346,8 @@ bool LoopClosing::ComputeSim3()
     if(!bMatch)
     {
         for(int i=0; i<nInitialCandidates; i++)
-             mvpEnoughConsistentCandidates[i]->SetErase();
-        mpCurrentKF->SetErase();
+             mvpEnoughConsistentCandidates[i]->SetErase(mpMap, mpKeyFrameDB);
+        mpCurrentKF->SetErase(mpMap, mpKeyFrameDB);
         return false;
     }
 
@@ -364,10 +364,10 @@ bool LoopClosing::ComputeSim3()
             MapPoint* pMP = vpMapPoints[i];
             if(pMP)
             {
-                if(!pMP->isBad() && pMP->mnLoopPointForKF!=mpCurrentKF->mnId)
+                if(!pMP->isBad() && pMP->mnLoopPointForKF!=mpCurrentKF->GetId())
                 {
                     mvpLoopMapPoints.push_back(pMP);
-                    pMP->mnLoopPointForKF=mpCurrentKF->mnId;
+                    pMP->mnLoopPointForKF=mpCurrentKF->GetId();
                 }
             }
         }
@@ -388,14 +388,14 @@ bool LoopClosing::ComputeSim3()
     {
         for(int i=0; i<nInitialCandidates; i++)
             if(mvpEnoughConsistentCandidates[i]!=mpMatchedKF)
-                mvpEnoughConsistentCandidates[i]->SetErase();
+                mvpEnoughConsistentCandidates[i]->SetErase(mpMap, mpKeyFrameDB);
         return true;
     }
     else
     {
         for(int i=0; i<nInitialCandidates; i++)
-            mvpEnoughConsistentCandidates[i]->SetErase();
-        mpCurrentKF->SetErase();
+            mvpEnoughConsistentCandidates[i]->SetErase(mpMap, mpKeyFrameDB);
+        mpCurrentKF->SetErase(mpMap, mpKeyFrameDB);
         return false;
     }
 
@@ -487,7 +487,7 @@ void LoopClosing::CorrectLoop()
                     continue;
                 if(pMPi->isBad())
                     continue;
-                if(pMPi->mnCorrectedByKF==mpCurrentKF->mnId)
+                if(pMPi->mnCorrectedByKF==mpCurrentKF->GetId())
                     continue;
 
                 // Project with non-corrected pose and project back with corrected pose
@@ -497,8 +497,8 @@ void LoopClosing::CorrectLoop()
 
                 cv::Mat cvCorrectedP3Dw = Converter::toCvMat(eigCorrectedP3Dw);
                 pMPi->SetWorldPos(cvCorrectedP3Dw);
-                pMPi->mnCorrectedByKF = mpCurrentKF->mnId;
-                pMPi->mnCorrectedReference = pKFi->mnId;
+                pMPi->mnCorrectedByKF = mpCurrentKF->GetId();
+                pMPi->mnCorrectedReference = pKFi->GetId();
                 pMPi->UpdateNormalAndDepth();
             }
 
@@ -578,12 +578,12 @@ void LoopClosing::CorrectLoop()
     mbRunningGBA = true;
     mbFinishedGBA = false;
     mbStopGBA = false;
-    mpThreadGBA = new thread(&LoopClosing::RunGlobalBundleAdjustment,this,mpCurrentKF->mnId);
+    mpThreadGBA = new thread(&LoopClosing::RunGlobalBundleAdjustment,this,mpCurrentKF->GetId());
 
     // Loop closed. Release Local Mapping.
     mpLocalMapper->Release();    
 
-    mLastLoopKFid = mpCurrentKF->mnId;   
+    mLastLoopKFid = mpCurrentKF->GetId();   
 }
 
 void LoopClosing::SearchAndFuse(const KeyFrameAndPose &CorrectedPosesMap)

@@ -25,7 +25,6 @@
 #include "FrameDrawer.h"
 #include "MapDrawer.h"
 #include "Tracking.h"
-#include "System.h"
 
 #include <mutex>
 
@@ -35,7 +34,6 @@ namespace ORB_SLAM2
 class Tracking;
 class FrameDrawer;
 class MapDrawer;
-class System;
 
 class Viewer
 {

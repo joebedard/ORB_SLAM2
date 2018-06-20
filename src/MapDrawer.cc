@@ -19,9 +19,6 @@
 */
 
 #include "MapDrawer.h"
-#include "MapPoint.h"
-#include "KeyFrame.h"
-#include <pangolin/pangolin.h>
 #include <mutex>
 
 namespace ORB_SLAM2
@@ -143,7 +140,7 @@ void MapDrawer::DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph)
             {
                 for(vector<KeyFrame*>::const_iterator vit=vCovKFs.begin(), vend=vCovKFs.end(); vit!=vend; vit++)
                 {
-                    if((*vit)->mnId<vpKFs[i]->mnId)
+                    if((*vit)->GetId()<vpKFs[i]->GetId())
                         continue;
                     cv::Mat Ow2 = (*vit)->GetCameraCenter();
                     glVertex3f(Ow.at<float>(0),Ow.at<float>(1),Ow.at<float>(2));
@@ -164,7 +161,7 @@ void MapDrawer::DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph)
             set<KeyFrame*> sLoopKFs = vpKFs[i]->GetLoopEdges();
             for(set<KeyFrame*>::iterator sit=sLoopKFs.begin(), send=sLoopKFs.end(); sit!=send; sit++)
             {
-                if((*sit)->mnId<vpKFs[i]->mnId)
+                if((*sit)->GetId()<vpKFs[i]->GetId())
                     continue;
                 cv::Mat Owl = (*sit)->GetCameraCenter();
                 glVertex3f(Ow.at<float>(0),Ow.at<float>(1),Ow.at<float>(2));

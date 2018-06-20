@@ -25,19 +25,16 @@
 #include<opencv2/core/core.hpp>
 #include<opencv2/features2d/features2d.hpp>
 
-#include"Viewer.h"
-#include"FrameDrawer.h"
-#include"Map.h"
-#include"LocalMapping.h"
-#include"LoopClosing.h"
-#include"Frame.h"
+#include "Viewer.h"
+#include "FrameDrawer.h"
+#include "Frame.h"
 #include "ORBVocabulary.h"
-#include"KeyFrameDatabase.h"
-#include"ORBextractor.h"
+#include "ORBextractor.h"
 #include "Initializer.h"
+#include "Map.h"
 #include "MapDrawer.h"
-#include "System.h"
-
+#include "Mapper.h"
+#include "Enums.h"
 #include <mutex>
 
 namespace ORB_SLAM2
@@ -45,25 +42,21 @@ namespace ORB_SLAM2
 
 class Viewer;
 class FrameDrawer;
-class Map;
-class LocalMapping;
-class LoopClosing;
-class System;
 
 class Tracking
 {  
 
 public:
     Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
-             KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor);
+       Mapper* pMapper, const string &strSettingPath, eSensor sensor);
 
     // Preprocess the input and call Track(). Extract features and performs stereo matching.
     cv::Mat GrabImageStereo(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp);
     cv::Mat GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const double &timestamp);
     cv::Mat GrabImageMonocular(const cv::Mat &im, const double &timestamp);
 
-    void SetLocalMapper(LocalMapping* pLocalMapper);
-    void SetLoopClosing(LoopClosing* pLoopClosing);
+    //void SetLocalMapper(LocalMapping* pLocalMapper);
+    //void SetLoopClosing(LoopClosing* pLoopClosing);
     void SetViewer(Viewer* pViewer);
 
     // Load new settings
@@ -83,16 +76,6 @@ public:
 
 public:
 
-    // Tracking states
-    enum eTrackingState{
-        SYSTEM_NOT_READY=-1,
-        NO_IMAGES_YET=0,
-        NOT_INITIALIZED=1,
-        OK=2,
-        LOST=3
-    };
-
-    eTrackingState mState;
     eTrackingState mLastProcessedState;
 
     // Input sensor
@@ -142,7 +125,11 @@ protected:
     bool Relocalization();
 
     void UpdateLocalMap();
+
+    // Reset mvpLocalMapPoints to all map points from mvpLocalKeyFrames
     void UpdateLocalPoints();
+
+    // Reset mvpLocalKeyFrames to KeyFrames that share map points with the current frame
     void UpdateLocalKeyFrames();
 
     bool TrackLocalMap();
@@ -157,17 +144,13 @@ protected:
     // "zero-drift" localization to the map.
     bool mbVO;
 
-    //Other Thread Pointers
-    LocalMapping* mpLocalMapper;
-    LoopClosing* mpLoopClosing;
-
     //ORB
     ORBextractor* mpORBextractorLeft, *mpORBextractorRight;
     ORBextractor* mpIniORBextractor;
 
     //BoW
     ORBVocabulary* mpORBVocabulary;
-    KeyFrameDatabase* mpKeyFrameDB;
+    //KeyFrameDatabase* mpKeyFrameDB;
 
     // Initalization (only for monocular)
     Initializer* mpInitializer;
@@ -228,6 +211,13 @@ private:
    // Reset flag
    std::mutex mMutexReset;
    bool mbReset;
+
+   // Mapper
+   Mapper * mpMapper;
+
+   void CheckModeChange();
+
+   void CheckReset();
 };
 
 } //namespace ORB_SLAM

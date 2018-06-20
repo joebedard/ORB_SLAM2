@@ -33,8 +33,8 @@ void Map::AddKeyFrame(KeyFrame *pKF)
 {
     unique_lock<mutex> lock(mMutexMap);
     mspKeyFrames.insert(pKF);
-    if(pKF->mnId>mnMaxKFid)
-        mnMaxKFid=pKF->mnId;
+    if(pKF->GetId()>mnMaxKFid)
+        mnMaxKFid=pKF->GetId();
 }
 
 void Map::AddMapPoint(MapPoint *pMP)

@@ -24,7 +24,6 @@
 #include "KeyFrame.h"
 #include "Map.h"
 #include "LoopClosing.h"
-#include "Tracking.h"
 #include "KeyFrameDatabase.h"
 
 #include <mutex>
@@ -36,15 +35,16 @@ namespace ORB_SLAM2
 class Tracking;
 class LoopClosing;
 class Map;
+class Mapper;
 
 class LocalMapping
 {
 public:
-    LocalMapping(Map* pMap, const float bMonocular);
+    LocalMapping(Map* pMap, KeyFrameDatabase* pDB, const float bMonocular);
 
     void SetLoopCloser(LoopClosing* pLoopCloser);
 
-    void SetTracker(Tracking* pTracker);
+    //void SetTracker(Tracking* pTracker);
 
     // Main function
     void Run();
@@ -100,9 +100,10 @@ protected:
     std::mutex mMutexFinish;
 
     Map* mpMap;
+    KeyFrameDatabase* mpKeyFrameDB;
 
     LoopClosing* mpLoopCloser;
-    Tracking* mpTracker;
+    //Tracking* mpTracker;
 
     std::list<KeyFrame*> mlNewKeyFrames;
 

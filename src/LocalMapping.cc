@@ -19,7 +19,6 @@
 */
 
 #include "LocalMapping.h"
-#include "LoopClosing.h"
 #include "ORBmatcher.h"
 #include "Optimizer.h"
 #include "Sleep.h"
@@ -29,8 +28,8 @@
 namespace ORB_SLAM2
 {
 
-LocalMapping::LocalMapping(Map *pMap, const float bMonocular):
-    mbMonocular(bMonocular), mbResetRequested(false), mbFinishRequested(false), mbFinished(true), mpMap(pMap),
+LocalMapping::LocalMapping(Map *pMap, KeyFrameDatabase* pDB, const float bMonocular) :
+    mbMonocular(bMonocular), mbResetRequested(false), mbFinishRequested(false), mbFinished(true), mpMap(pMap), mpKeyFrameDB(pDB),
     mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbNotStop(false), mbAcceptKeyFrames(true)
 {
 }
@@ -40,10 +39,10 @@ void LocalMapping::SetLoopCloser(LoopClosing* pLoopCloser)
     mpLoopCloser = pLoopCloser;
 }
 
-void LocalMapping::SetTracker(Tracking *pTracker)
+/*void LocalMapping::SetTracker(Tracking *pTracker)
 {
     mpTracker=pTracker;
-}
+}*/
 
 void LocalMapping::Run()
 {
@@ -100,7 +99,7 @@ void LocalMapping::Run()
 
         ResetIfRequested();
 
-        // Tracking will see that Local Mapping is busy
+        // Tracking will see that Local Mapping is not busy
         SetAcceptKeyFrames(true);
 
         if(CheckFinish())
@@ -172,7 +171,7 @@ void LocalMapping::MapPointCulling()
 {
     // Check Recent Added MapPoints
     list<MapPoint*>::iterator lit = mlpRecentAddedMapPoints.begin();
-    const unsigned long int nCurrentKFid = mpCurrentKeyFrame->mnId;
+    const unsigned long int nCurrentKFid = mpCurrentKeyFrame->GetId();
 
     int nThObs;
     if(mbMonocular)
@@ -463,17 +462,19 @@ void LocalMapping::SearchInNeighbors()
     for(vector<KeyFrame*>::const_iterator vit=vpNeighKFs.begin(), vend=vpNeighKFs.end(); vit!=vend; vit++)
     {
         KeyFrame* pKFi = *vit;
-        if(pKFi->isBad() || pKFi->mnFuseTargetForKF == mpCurrentKeyFrame->mnId)
+        if(pKFi->isBad() || pKFi->mnFuseTargetForKF == mpCurrentKeyFrame->GetId())
             continue;
         vpTargetKFs.push_back(pKFi);
-        pKFi->mnFuseTargetForKF = mpCurrentKeyFrame->mnId;
+        pKFi->mnFuseTargetForKF = mpCurrentKeyFrame->GetId();
 
         // Extend to some second neighbors
         const vector<KeyFrame*> vpSecondNeighKFs = pKFi->GetBestCovisibilityKeyFrames(5);
         for(vector<KeyFrame*>::const_iterator vit2=vpSecondNeighKFs.begin(), vend2=vpSecondNeighKFs.end(); vit2!=vend2; vit2++)
         {
             KeyFrame* pKFi2 = *vit2;
-            if(pKFi2->isBad() || pKFi2->mnFuseTargetForKF==mpCurrentKeyFrame->mnId || pKFi2->mnId==mpCurrentKeyFrame->mnId)
+            if(pKFi2->isBad() 
+            || pKFi2->mnFuseTargetForKF == mpCurrentKeyFrame->GetId() 
+            || pKFi2->GetId() == mpCurrentKeyFrame->GetId())
                 continue;
             vpTargetKFs.push_back(pKFi2);
         }
@@ -505,9 +506,9 @@ void LocalMapping::SearchInNeighbors()
             MapPoint* pMP = *vitMP;
             if(!pMP)
                 continue;
-            if(pMP->isBad() || pMP->mnFuseCandidateForKF == mpCurrentKeyFrame->mnId)
+            if(pMP->isBad() || pMP->mnFuseCandidateForKF == mpCurrentKeyFrame->GetId())
                 continue;
-            pMP->mnFuseCandidateForKF = mpCurrentKeyFrame->mnId;
+            pMP->mnFuseCandidateForKF = mpCurrentKeyFrame->GetId();
             vpFuseCandidates.push_back(pMP);
         }
     }
@@ -641,7 +642,7 @@ void LocalMapping::KeyFrameCulling()
     for(vector<KeyFrame*>::iterator vit=vpLocalKeyFrames.begin(), vend=vpLocalKeyFrames.end(); vit!=vend; vit++)
     {
         KeyFrame* pKF = *vit;
-        if(pKF->mnId==0)
+        if(pKF->GetId() == 0)
             continue;
         const vector<MapPoint*> vpMapPoints = pKF->GetMapPointMatches();
 
@@ -692,7 +693,9 @@ void LocalMapping::KeyFrameCulling()
         }  
 
         if(nRedundantObservations>0.9*nMPs)
-            pKF->SetBadFlag();
+        {
+            pKF->SetBadFlag(mpMap, mpKeyFrameDB);
+        }
     }
 }
 

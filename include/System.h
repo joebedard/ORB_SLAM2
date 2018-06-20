@@ -30,11 +30,11 @@
 #include "FrameDrawer.h"
 #include "MapDrawer.h"
 #include "Map.h"
-#include "LocalMapping.h"
-#include "LoopClosing.h"
 #include "KeyFrameDatabase.h"
 #include "ORBVocabulary.h"
 #include "Viewer.h"
+#include "Mapper.h"
+#include "Enums.h"
 
 namespace ORB_SLAM2
 {
@@ -43,19 +43,10 @@ class Viewer;
 class FrameDrawer;
 class Map;
 class Tracking;
-class LocalMapping;
-class LoopClosing;
+class Mapper;
 
 class System
 {
-public:
-    // Input sensor
-    enum eSensor{
-        MONOCULAR=0,
-        STEREO=1,
-        RGBD=2
-    };
-
 public:
 
     // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
@@ -112,15 +103,16 @@ public:
     // SaveMap(const string &filename);
     // LoadMap(const string &filename);
 
-    // Information from most recent processed frame
-    // You can call this right after TrackMonocular (or stereo or RGBD)
-    int GetTrackingState();
-    std::vector<MapPoint*> GetTrackedMapPoints();
-    std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
-
 private:
 
-    // Input sensor
+   // Temporarily make these 3 functions private until they are really needed publicly
+   // Information from most recent processed frame
+   // You can call this right after TrackMonocular (or stereo or RGBD)
+   int GetTrackingState();
+   std::vector<MapPoint*> GetTrackedMapPoints();
+   std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
+
+   // Input sensor
     eSensor mSensor;
 
     // ORB vocabulary used for place recognition and feature matching.
@@ -132,17 +124,13 @@ private:
     // Map structure that stores the pointers to all KeyFrames and MapPoints.
     Map* mpMap;
 
+    // The Mapper encapsulates all mapping functionality of the system
+    Mapper* mpMapper;
+
     // Tracker. It receives a frame and computes the associated camera pose.
     // It also decides when to insert a new keyframe, create some new MapPoints and
     // performs relocalization if tracking fails.
     Tracking* mpTracker;
-
-    // Local Mapper. It manages the local map and performs local bundle adjustment.
-    LocalMapping* mpLocalMapper;
-
-    // Loop Closer. It searches loops with every new keyframe. If there is a loop it performs
-    // a pose graph optimization and full bundle adjustment (in a new thread) afterwards.
-    LoopClosing* mpLoopCloser;
 
     // The viewer draws the map and the current camera pose. It uses Pangolin.
     Viewer* mpViewer;
@@ -150,10 +138,7 @@ private:
     FrameDrawer* mpFrameDrawer;
     MapDrawer* mpMapDrawer;
 
-    // System threads: Local Mapping, Loop Closing, Viewer.
     // The Tracking thread "lives" in the main execution thread that creates the System object.
-    std::thread* mptLocalMapping;
-    std::thread* mptLoopClosing;
     std::thread* mptViewer;
 
     // Tracking state

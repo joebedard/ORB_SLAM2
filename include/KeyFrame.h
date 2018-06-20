@@ -25,7 +25,6 @@
 #include "Thirdparty/DBoW2/DBoW2/BowVector.h"
 #include "Thirdparty/DBoW2/DBoW2/FeatureVector.h"
 #include "ORBVocabulary.h"
-#include "ORBextractor.h"
 #include "Frame.h"
 #include "KeyFrameDatabase.h"
 
@@ -43,7 +42,12 @@ class KeyFrameDatabase;
 class KeyFrame
 {
 public:
-    KeyFrame(Frame &F, Map* pMap, KeyFrameDatabase* pKFDB);
+    KeyFrame(Frame &F);
+
+    long unsigned int GetId() 
+    {
+      return mnId;
+    }
 
     // Pose functions
     void SetPose(const cv::Mat &Tcw);
@@ -99,10 +103,10 @@ public:
 
     // Enable/Disable bad flag changes
     void SetNotErase();
-    void SetErase();
+    void SetErase(Map* pMap, KeyFrameDatabase* pKeyFrameDB);
 
     // Set/check bad flag
-    void SetBadFlag();
+    void SetBadFlag(Map* pMap, KeyFrameDatabase* pKeyFrameDB);
     bool isBad();
 
     // Compute Scene Depth (q=2 median). Used in monocular.
@@ -121,7 +125,6 @@ public:
 public:
 
     static long unsigned int nNextId;
-    long unsigned int mnId;
     const long unsigned int mnFrameId;
 
     const double mTimeStamp;
@@ -203,7 +206,7 @@ protected:
     std::vector<MapPoint*> mvpMapPoints;
 
     // BoW
-    KeyFrameDatabase* mpKeyFrameDB;
+    //KeyFrameDatabase* mpKeyFrameDB;
     ORBVocabulary* mpORBvocabulary;
 
     // Grid over the image to speed up feature matching
@@ -226,11 +229,14 @@ protected:
 
     float mHalfBaseline; // Only for visualization
 
-    Map* mpMap;
+    //Map* mpMap;
 
     std::mutex mMutexPose;
     std::mutex mMutexConnections;
     std::mutex mMutexFeatures;
+
+private:
+   long unsigned int mnId;
 };
 
 } //namespace ORB_SLAM

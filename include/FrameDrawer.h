@@ -22,7 +22,6 @@
 #define FRAMEDRAWER_H
 
 #include "Tracking.h"
-#include "MapPoint.h"
 #include "Map.h"
 
 #include<opencv2/core/core.hpp>
@@ -35,7 +34,6 @@ namespace ORB_SLAM2
 {
 
 class Tracking;
-class Viewer;
 
 class FrameDrawer
 {
