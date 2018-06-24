@@ -91,6 +91,8 @@ namespace ORB_SLAM2
 
       virtual void Shutdown();
 
+      virtual KeyFrame * CreateNewKeyFrame(Frame & currentFrame, int sensorType);
+
    private:
       KeyFrameDatabase * mpKeyFrameDB;
       Map* mpMap;

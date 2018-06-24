@@ -92,13 +92,6 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         mpTracker->SetViewer(mpViewer);
     }
 
-    //Set pointers between threads
-    //mpTracker->SetLocalMapper(mpLocalMapper);
-    //mpTracker->SetLoopClosing(mpLoopCloser);
-
-    //mpLocalMapper->SetTracker(mpTracker);
-
-    //mpLoopCloser->SetTracker(mpTracker);
 }
 
 cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp)

@@ -115,13 +115,10 @@ int main(int argc, char * argv[]) try
       rs2::frameset data = pipe.wait_for_frames(); // Wait for next set of frames from the camera
       rs2::video_frame irFrame1 = data.get_infrared_frame(1);
       rs2::video_frame irFrame2 = data.get_infrared_frame(2);
-      //rs2::depth_frame depthFrame = data.get_depth_frame();
 
-      // Create OpenCV matrix of size (w,h) from the colorized depth data
+      // Create OpenCV matrix of size (width, height)
       Mat irMat1(Size(width, height), CV_8UC1, (void*)irFrame1.get_data(), Mat::AUTO_STEP);
       Mat irMat2(Size(width, height), CV_8UC1, (void*)irFrame2.get_data(), Mat::AUTO_STEP);
-      //Mat depthMat(Size(width, height), CV_16UC1, (void*)irFrame2.get_data(), Mat::AUTO_STEP);
-      //depthMat = depth_frame_to_meters(pipe, depthMat);
 
 #ifdef COMPILEDWITHC11
       std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
@@ -132,7 +129,6 @@ int main(int argc, char * argv[]) try
       double tframe = std::chrono::duration_cast<std::chrono::duration<double> >(t1 - tStart).count();
 
       // Pass the images to the SLAM system
-      //SLAM.TrackRGBD(colorMat, depthMat, tframe);
       SLAM.TrackStereo(irMat1, irMat2, tframe);
 
 #ifdef COMPILEDWITHC11
@@ -144,16 +140,6 @@ int main(int argc, char * argv[]) try
       double ttrack = std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
 
       vTimesTrack.push_back(ttrack);
-
-      // Wait to load the next frame
-      /*double T = 0;
-      if (ni<nImages - 1)
-         T = vTimestamps[ni + 1] - tframe;
-      else if (ni>0)
-         T = tframe - vTimestamps[ni - 1];
-
-      if (ttrack<T)
-         sleep((T - ttrack)*1e6);*/
    }
 
    // Stop all threads

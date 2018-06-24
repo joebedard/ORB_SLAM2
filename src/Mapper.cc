@@ -205,4 +205,81 @@ namespace ORB_SLAM2
          sleep(5000);
       }
    }
+
+   KeyFrame * Mapper::CreateNewKeyFrame(Frame & currentFrame, int sensorType)
+   {
+      if (!SetNotStop(true))
+         return NULL;
+
+      KeyFrame* pKF = new KeyFrame(currentFrame);
+
+      if (sensorType != MONOCULAR)
+      {
+         currentFrame.UpdatePoseMatrices();
+
+         // We sort points by the measured depth by the stereo/RGBD sensor.
+         // We create all those MapPoints whose depth < mThDepth.
+         // If there are less than 100 close points we create the 100 closest.
+         vector<pair<float, int> > vDepthIdx;
+         vDepthIdx.reserve(currentFrame.N);
+         for (int i = 0; i < currentFrame.N; i++)
+         {
+            float z = currentFrame.mvDepth[i];
+            if (z>0)
+            {
+               vDepthIdx.push_back(make_pair(z, i));
+            }
+         }
+
+         if (!vDepthIdx.empty())
+         {
+            sort(vDepthIdx.begin(), vDepthIdx.end());
+
+            int nPoints = 0;
+            for (size_t j = 0; j<vDepthIdx.size();j++)
+            {
+               int i = vDepthIdx[j].second;
+
+               bool bCreateNew = false;
+
+               MapPoint* pMP = currentFrame.mvpMapPoints[i];
+               if (!pMP)
+                  bCreateNew = true;
+               else if (pMP->Observations()<1)
+               {
+                  bCreateNew = true;
+                  currentFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL);
+               }
+
+               if (bCreateNew)
+               {
+                  cv::Mat x3D = currentFrame.UnprojectStereo(i);
+                  MapPoint* pNewMP = new MapPoint(x3D, pKF, mpMap);
+                  pNewMP->AddObservation(pKF, i);
+                  pKF->AddMapPoint(pNewMP, i);
+                  pNewMP->ComputeDistinctiveDescriptors();
+                  pNewMP->UpdateNormalAndDepth();
+                  AddMapPoint(pNewMP);
+
+                  currentFrame.mvpMapPoints[i] = pNewMP;
+                  nPoints++;
+               }
+               else
+               {
+                  nPoints++;
+               }
+
+               if (vDepthIdx[j].first > currentFrame.mThDepth && nPoints > 100)
+                  break;
+            }
+         }
+      }
+
+      InsertKeyFrame(pKF);
+
+      SetNotStop(false);
+
+      return pKF;
+   }
+
 }
