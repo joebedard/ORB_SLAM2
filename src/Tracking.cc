@@ -269,7 +269,7 @@ void Tracking::Track()
     mLastProcessedState=mpMapper->GetState();
 
     // Get Map Mutex -> Map cannot be changed
-    unique_lock<mutex> lock(mpMapper->mMutexMapUpdate);
+    unique_lock<mutex> lock(mpMapper->getMutexMapUpdate());
 
     if(mpMapper->GetState()==NOT_INITIALIZED)
     {

@@ -35,9 +35,10 @@ namespace ORB_SLAM2
    class Mapper
    {
    public:
-      std::mutex & mMutexMapUpdate;
 
       Mapper(Map* pMap, ORBVocabulary* pVocab, const bool bMonocular);
+
+      virtual std::mutex & getMutexMapUpdate();
 
       virtual long unsigned  KeyFramesInMap();
 

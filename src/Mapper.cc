@@ -25,7 +25,7 @@ namespace ORB_SLAM2
    long unsigned int Mapper::nNextMapPointId = 0;
 
    Mapper::Mapper(Map* pMap, ORBVocabulary* pVocab, const bool bMonocular)
-      : mpMap(pMap), mState(NO_IMAGES_YET), mMutexMapUpdate(pMap->mMutexMapUpdate)
+      : mpMap(pMap), mState(NO_IMAGES_YET)
    {
       if (pMap == NULL)
          throw std::exception("pMap must not be NULL");
@@ -43,6 +43,11 @@ namespace ORB_SLAM2
 
       mpLocalMapper->SetLoopCloser(mpLoopCloser);
       mpLoopCloser->SetLocalMapper(mpLocalMapper);
+   }
+
+   std::mutex & Mapper::getMutexMapUpdate()
+   {
+      return mpMap->mMutexMapUpdate;
    }
 
    long unsigned Mapper::KeyFramesInMap()
