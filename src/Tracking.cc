@@ -853,7 +853,7 @@ void Tracking::UpdateLastFrame()
         if(bCreateNew)
         {
             cv::Mat x3D = mLastFrame.UnprojectStereo(i);
-            MapPoint* pNewMP = new MapPoint(x3D, mpMap, &mLastFrame, i);
+            MapPoint* pNewMP = new MapPoint(x3D, &mLastFrame, i);
 
             mLastFrame.mvpMapPoints[i]=pNewMP;
 

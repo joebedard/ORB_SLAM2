@@ -39,8 +39,11 @@ class Frame;
 class MapPoint
 {
 public:
+   // constructor for map points
     MapPoint(const cv::Mat &Pos, KeyFrame* pRefKF, Map* pMap);
-    MapPoint(const cv::Mat &Pos,  Map* pMap, Frame* pFrame, const int &idxF);
+
+    // constructor for odometry points (never added to the map)
+    MapPoint(const cv::Mat &Pos, Frame* pFrame, const int &idxF);
 
     void SetWorldPos(const cv::Mat &Pos);
     cv::Mat GetWorldPos();
