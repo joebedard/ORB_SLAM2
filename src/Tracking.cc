@@ -507,7 +507,6 @@ void Tracking::Track()
         mlFrameTimes.push_back(mlFrameTimes.back());
         mlbLost.push_back(mpMapper->GetState()==LOST);
     }
-
 }
 
 
@@ -515,6 +514,8 @@ void Tracking::StereoInitialization()
 {
     if(mCurrentFrame.N>500)
     {
+        Map initMap;
+
         // Set Frame pose to the origin
         mCurrentFrame.SetPose(cv::Mat::eye(4,4,CV_32F));
 
@@ -522,7 +523,7 @@ void Tracking::StereoInitialization()
         KeyFrame* pKFini = new KeyFrame(mCurrentFrame);
 
         // Insert KeyFrame in the map
-        mpMapper->AddKeyFrame(pKFini);
+        initMap.AddKeyFrame(pKFini);
 
         // Create MapPoints and asscoiate to KeyFrame
         for(int i=0; i<mCurrentFrame.N;i++)
@@ -536,15 +537,12 @@ void Tracking::StereoInitialization()
                 pKFini->AddMapPoint(pNewMP,i);
                 pNewMP->ComputeDistinctiveDescriptors();
                 pNewMP->UpdateNormalAndDepth();
-                mpMapper->AddMapPoint(pNewMP);
-
+                initMap.AddMapPoint(pNewMP);
                 mCurrentFrame.mvpMapPoints[i]=pNewMP;
             }
         }
 
-        cout << "New map created with " << mpMapper->MapPointsInMap() << " points" << endl;
-
-        mpMapper->InsertKeyFrame(pKFini);
+        cout << "New map created with " << initMap.MapPointsInMap() << " points" << endl;
 
         mLastFrame = Frame(mCurrentFrame);
         mnLastKeyFrameId=mCurrentFrame.mnId;
@@ -555,13 +553,14 @@ void Tracking::StereoInitialization()
         mpReferenceKF = pKFini;
         mCurrentFrame.mpReferenceKF = pKFini;
 
-        mpMapper->SetReferenceMapPoints(mvpLocalMapPoints);
+        initMap.SetReferenceMapPoints(mvpLocalMapPoints);
+        initMap.mvpKeyFrameOrigins.push_back(pKFini);
 
-        mpMapper->AddOriginKeyFrame(pKFini);
+        mpMapper->Initialize(initMap);
+        mpMapper->InsertKeyFrame(pKFini);        
+        mpMapper->SetState(OK);
 
         mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
-
-        mpMapper->SetState(OK);
     }
 }
 

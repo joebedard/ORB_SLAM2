@@ -59,6 +59,8 @@ public:
 
     void clear();
 
+    Map & operator=(const Map & map);
+    
     vector<KeyFrame*> mvpKeyFrameOrigins;
 
     std::mutex mMutexMapUpdate;

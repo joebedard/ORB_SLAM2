@@ -130,4 +130,18 @@ void Map::clear()
     mvpKeyFrameOrigins.clear();
 }
 
+Map & Map::operator=(const Map & map)
+{
+   if (this != _STD addressof(map))
+   {
+      this->mvpKeyFrameOrigins = map.mvpKeyFrameOrigins;
+      this->mspMapPoints = map.mspMapPoints;
+      this->mspKeyFrames = map.mspKeyFrames;
+      this->mvpReferenceMapPoints = map.mvpReferenceMapPoints;
+      this->mnMaxKFid = map.mnMaxKFid;
+      this->mnBigChangeIdx = map.mnBigChangeIdx;
+   }
+   return (*this);
+}
+
 } //namespace ORB_SLAM

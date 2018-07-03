@@ -36,7 +36,7 @@ namespace ORB_SLAM2
    {
    public:
 
-      Mapper(Map* pMap, ORBVocabulary* pVocab, const bool bMonocular);
+      Mapper(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular);
 
       virtual std::mutex & getMutexMapUpdate();
 
@@ -93,13 +93,18 @@ namespace ORB_SLAM2
 
       virtual KeyFrame * CreateNewKeyFrame(Frame & currentFrame, int sensorType);
 
+      virtual void Initialize(Map & pMap);
+
    private:
+      ORBVocabulary * mpVocab;
+      bool mbMonocular;
       KeyFrameDatabase * mpKeyFrameDB;
       Map* mpMap;
       static long unsigned int nNextMapPointId;
       eTrackingState mState;
 
       // initialization variables
+      bool mInitialized;
       LocalMapping* mpLocalMapper;
       LoopClosing* mpLoopCloser;
 

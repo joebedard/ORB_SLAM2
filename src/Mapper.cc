@@ -24,25 +24,13 @@ namespace ORB_SLAM2
 {
    long unsigned int Mapper::nNextMapPointId = 0;
 
-   Mapper::Mapper(Map* pMap, ORBVocabulary* pVocab, const bool bMonocular)
-      : mpMap(pMap), mState(NO_IMAGES_YET)
+   Mapper::Mapper(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular)
+      : mpMap(pMap), mpVocab(pVocab), mbMonocular(bMonocular), mState(NO_IMAGES_YET), mInitialized(false)
    {
       if (pMap == NULL)
          throw std::exception("pMap must not be NULL");
 
-      //Create KeyFrame Database
       mpKeyFrameDB = new KeyFrameDatabase(*pVocab);
-
-      //Initialize the Local Mapping thread and launch
-      mpLocalMapper = new LocalMapping(mpMap, mpKeyFrameDB, bMonocular);
-      mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run, mpLocalMapper);
-
-      //Initialize the Loop Closing thread and launch
-      mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDB, pVocab, !bMonocular);
-      mptLoopClosing = new thread(&ORB_SLAM2::LoopClosing::Run, mpLoopCloser);
-
-      mpLocalMapper->SetLoopCloser(mpLoopCloser);
-      mpLoopCloser->SetLocalMapper(mpLocalMapper);
    }
 
    std::mutex & Mapper::getMutexMapUpdate()
@@ -280,6 +268,27 @@ namespace ORB_SLAM2
       SetNotStop(false);
 
       return pKF;
+   }
+
+   void Mapper::Initialize(Map & pMap)
+   {
+      if (mInitialized)
+         throw std::exception("The mapper may only be initialized once.");
+
+      *mpMap = pMap;
+
+      //Initialize the Local Mapping thread and launch
+      mpLocalMapper = new LocalMapping(mpMap, mpKeyFrameDB, mbMonocular);
+      mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run, mpLocalMapper);
+
+      //Initialize the Loop Closing thread and launch
+      mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDB, mpVocab, !mbMonocular);
+      mptLoopClosing = new thread(&ORB_SLAM2::LoopClosing::Run, mpLoopCloser);
+
+      mpLocalMapper->SetLoopCloser(mpLoopCloser);
+      mpLoopCloser->SetLocalMapper(mpLocalMapper);
+
+      mInitialized = true;
    }
 
 }
