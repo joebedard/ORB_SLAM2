@@ -525,7 +525,7 @@ void Tracking::StereoInitialization()
         // Insert KeyFrame in the map
         initMap.AddKeyFrame(pKFini);
 
-        // Create MapPoints and asscoiate to KeyFrame
+        // Create MapPoints and associate to KeyFrame
         for(int i=0; i<mCurrentFrame.N;i++)
         {
             float z = mCurrentFrame.mvDepth[i];
@@ -549,7 +549,7 @@ void Tracking::StereoInitialization()
         mpLastKeyFrame = pKFini;
 
         mvpLocalKeyFrames.push_back(pKFini);
-        mvpLocalMapPoints=mpMapper->GetAllMapPoints();
+        mvpLocalMapPoints = initMap.GetAllMapPoints();
         mpReferenceKF = pKFini;
         mCurrentFrame.mpReferenceKF = pKFini;
 
@@ -644,13 +644,14 @@ void Tracking::CreateInitialMapMonocular()
     KeyFrame* pKFini = new KeyFrame(mInitialFrame);
     KeyFrame* pKFcur = new KeyFrame(mCurrentFrame);
 
-
     pKFini->ComputeBoW();
     pKFcur->ComputeBoW();
 
+    Map initMap;
+
     // Insert KFs in the map
-    mpMapper->AddKeyFrame(pKFini);
-    mpMapper->AddKeyFrame(pKFcur);
+    initMap.AddKeyFrame(pKFini);
+    initMap.AddKeyFrame(pKFcur);
 
     // Create MapPoints and asscoiate to keyframes
     for(size_t i=0; i<mvIniMatches.size();i++)
@@ -677,7 +678,7 @@ void Tracking::CreateInitialMapMonocular()
         mCurrentFrame.mvbOutlier[mvIniMatches[i]] = false;
 
         //Add to Map
-        mpMapper->AddMapPoint(pMP);
+        initMap.AddMapPoint(pMP);
     }
 
     // Update Connections
@@ -685,10 +686,9 @@ void Tracking::CreateInitialMapMonocular()
     pKFcur->UpdateConnections();
 
     // Bundle Adjustment
-    cout << "New Map created with " << mpMapper->MapPointsInMap() << " points" << endl;
+    cout << "New Map created with " << initMap.MapPointsInMap() << " points" << endl;
 
-    
-    mpMapper->GlobalBundleAdjustemnt(20);
+        Optimizer::GlobalBundleAdjustemnt(&initMap, 20);
 
     // Set median depth to 1
     float medianDepth = pKFini->ComputeSceneMedianDepth(2);
@@ -697,7 +697,12 @@ void Tracking::CreateInitialMapMonocular()
     if(medianDepth<0 || pKFcur->TrackedMapPoints(1)<100)
     {
         cout << "Wrong initialization, reseting..." << endl;
-        Reset();
+        //Reset();
+        if (mpInitializer)
+        {
+           delete mpInitializer;
+           mpInitializer = static_cast<Initializer*>(NULL);
+        }
         return;
     }
 
@@ -717,6 +722,7 @@ void Tracking::CreateInitialMapMonocular()
         }
     }
 
+    mpMapper->Initialize(initMap);
     mpMapper->InsertKeyFrame(pKFini);
     mpMapper->InsertKeyFrame(pKFcur);
 
