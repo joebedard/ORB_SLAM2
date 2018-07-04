@@ -23,6 +23,7 @@
 
 #include "Tracking.h"
 #include "Map.h"
+#include "Enums.h"
 
 #include<opencv2/core/core.hpp>
 #include<opencv2/features2d/features2d.hpp>
@@ -59,7 +60,7 @@ protected:
     int mnTracked, mnTrackedVO;
     vector<cv::KeyPoint> mvIniKeys;
     vector<int> mvIniMatches;
-    int mState;
+    eTrackingState mState;
 
     Map* mpMap;
 

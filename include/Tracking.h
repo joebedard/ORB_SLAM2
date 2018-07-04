@@ -202,6 +202,8 @@ protected:
     list<MapPoint*> mlpTemporalPoints;
 
 private:
+   eTrackingState mState;
+
    // Change mode flags
    std::mutex mMutexMode;
    bool mbActivateLocalizationMode;

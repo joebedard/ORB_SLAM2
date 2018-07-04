@@ -25,11 +25,10 @@ namespace ORB_SLAM2
    // Tracking states
    // TODO: refactor out mapper states
    enum eTrackingState {
-      SYSTEM_NOT_READY = -1,
       NO_IMAGES_YET = 0,
       NOT_INITIALIZED = 1,
-      OK = 2,
-      LOST = 3
+      TRACKING_OK = 2,
+      TRACKING_LOST = 3
    };
 
     // Input sensor

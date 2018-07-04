@@ -25,7 +25,7 @@ namespace ORB_SLAM2
    long unsigned int Mapper::nNextMapPointId = 0;
 
    Mapper::Mapper(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular)
-      : mpMap(pMap), mpVocab(pVocab), mbMonocular(bMonocular), mState(NO_IMAGES_YET), mInitialized(false)
+      : mpMap(pMap), mpVocab(pVocab), mbMonocular(bMonocular), mInitialized(false)
    {
       if (pMap == NULL)
          throw std::exception("pMap must not be NULL");
@@ -113,24 +113,19 @@ namespace ORB_SLAM2
 
       KeyFrame::nNextId = 0;
       Frame::nNextId = 0;
-      mState = NO_IMAGES_YET;
+      mInitialized = false;
    }
 
    std::vector<KeyFrame*> Mapper::DetectRelocalizationCandidates(Frame* F)
    {
       return mpKeyFrameDB->DetectRelocalizationCandidates(F);
    }
-   
-   void Mapper::SetState(eTrackingState state)
+      
+   bool Mapper::GetInitialized()
    {
-      mState = state;
+      return mInitialized;
    }
-   
-   eTrackingState Mapper::GetState()
-   {
-      return mState;
-   }
-   
+
    void Mapper::RequestStop()
    {
       mpLocalMapper->RequestStop();

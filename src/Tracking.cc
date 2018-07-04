@@ -43,7 +43,7 @@ Tracking::Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pM
     mSensor(sensor), mbOnlyTracking(false), mbVO(false), mpORBVocabulary(pVoc),
     mpMap(pMap), mpMapper(pMapper), mpInitializer(static_cast<Initializer*>(NULL)), mpViewer(NULL),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mnLastRelocFrameId(0),
-    mbActivateLocalizationMode(false), mbDeactivateLocalizationMode(false)
+    mbActivateLocalizationMode(false), mbDeactivateLocalizationMode(false), mState(NOT_INITIALIZED)
 {
     // Load camera parameters from settings file
 
@@ -249,7 +249,7 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
             cvtColor(mImGray,mImGray,CV_BGRA2GRAY);
     }
 
-    if(mpMapper->GetState()==NOT_INITIALIZED || mpMapper->GetState()==NO_IMAGES_YET)
+    if (!mpMapper->GetInitialized())
         mCurrentFrame = Frame(mImGray,timestamp,mpIniORBextractor,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
     else
         mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
@@ -261,17 +261,12 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
 
 void Tracking::Track()
 {
-    if(mpMapper->GetState()==NO_IMAGES_YET)
-    {
-       mpMapper->SetState(NOT_INITIALIZED);
-    }
-
-    mLastProcessedState=mpMapper->GetState();
+    mLastProcessedState = mState;
 
     // Get Map Mutex -> Map cannot be changed
     unique_lock<mutex> lock(mpMapper->getMutexMapUpdate());
 
-    if(mpMapper->GetState()==NOT_INITIALIZED)
+    if (!mpMapper->GetInitialized())
     {
         if(mSensor==STEREO || mSensor==RGBD)
             StereoInitialization();
@@ -280,7 +275,7 @@ void Tracking::Track()
 
         mpFrameDrawer->Update(this);
 
-        if(mpMapper->GetState()!=OK)
+        if (!mpMapper->GetInitialized())
             return;
     }
     else
@@ -294,7 +289,7 @@ void Tracking::Track()
             // Local Mapping is activated. This is the normal behaviour, unless
             // you explicitly activate the "only tracking" mode.
 
-            if(mpMapper->GetState()==OK)
+            if (mState == TRACKING_OK)
             {
                 // Mapping might have changed some MapPoints tracked in last frame
                 CheckReplacedInLastFrame();
@@ -319,7 +314,7 @@ void Tracking::Track()
         {
             // Localization Mode: Local Mapping is deactivated
 
-            if(mpMapper->GetState()==LOST)
+           if (mState == TRACKING_LOST)
             {
                 bOK = Relocalization();
             }
@@ -405,9 +400,9 @@ void Tracking::Track()
         }
 
         if(bOK)
-           mpMapper->SetState(OK);
+           mState = TRACKING_OK;
         else
-           mpMapper->SetState(LOST);
+           mState = TRACKING_LOST;
 
         // Update drawer
         mpFrameDrawer->Update(this);
@@ -473,7 +468,7 @@ void Tracking::Track()
         }
 
         // Reset if the camera get lost soon after initialization
-        if(mpMapper->GetState()==LOST)
+        if (mState == TRACKING_LOST)
         {
             if(mpMapper->KeyFramesInMap()<=5)
             {
@@ -497,7 +492,7 @@ void Tracking::Track()
         mlRelativeFramePoses.push_back(Tcr);
         mlpReferences.push_back(mpReferenceKF);
         mlFrameTimes.push_back(mCurrentFrame.mTimeStamp);
-        mlbLost.push_back(mpMapper->GetState()==LOST);
+        mlbLost.push_back(mState == TRACKING_LOST);
     }
     else
     {
@@ -505,7 +500,7 @@ void Tracking::Track()
         mlRelativeFramePoses.push_back(mlRelativeFramePoses.back());
         mlpReferences.push_back(mlpReferences.back());
         mlFrameTimes.push_back(mlFrameTimes.back());
-        mlbLost.push_back(mpMapper->GetState()==LOST);
+        mlbLost.push_back(mState == TRACKING_LOST);
     }
 }
 
@@ -558,7 +553,7 @@ void Tracking::StereoInitialization()
 
         mpMapper->Initialize(initMap);
         mpMapper->InsertKeyFrame(pKFini);        
-        mpMapper->SetState(OK);
+        mState = TRACKING_OK;
 
         mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
     }
@@ -744,7 +739,7 @@ void Tracking::CreateInitialMapMonocular()
 
     mpMapper->AddOriginKeyFrame(pKFini);
 
-    mpMapper->SetState(OK);
+    mState = TRACKING_OK;
 }
 
 void Tracking::CheckReplacedInLastFrame()
@@ -1456,6 +1451,8 @@ void Tracking::Reset()
     mlpReferences.clear();
     mlFrameTimes.clear();
     mlbLost.clear();
+
+    mState = NOT_INITIALIZED;
 
     if(mpViewer)
         mpViewer->Release();

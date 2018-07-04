@@ -31,7 +31,7 @@ namespace ORB_SLAM2
 
 FrameDrawer::FrameDrawer(Map* pMap):mpMap(pMap)
 {
-    mState=SYSTEM_NOT_READY;
+    mState = NO_IMAGES_YET;
     mIm = cv::Mat(480,640,CV_8UC3, cv::Scalar(0,0,0));
 }
 
@@ -48,24 +48,22 @@ cv::Mat FrameDrawer::DrawFrame()
     {
         unique_lock<mutex> lock(mMutex);
         state=mState;
-        if(mState==SYSTEM_NOT_READY)
-            mState=NO_IMAGES_YET;
 
         mIm.copyTo(im);
 
-        if(mState==NOT_INITIALIZED)
+        if(mState == NOT_INITIALIZED)
         {
             vCurrentKeys = mvCurrentKeys;
             vIniKeys = mvIniKeys;
             vMatches = mvIniMatches;
         }
-        else if(mState==OK)
+        else if(mState == TRACKING_OK)
         {
             vCurrentKeys = mvCurrentKeys;
             vbVO = mvbVO;
             vbMap = mvbMap;
         }
-        else if(mState==LOST)
+        else if(mState == TRACKING_LOST)
         {
             vCurrentKeys = mvCurrentKeys;
         }
@@ -75,7 +73,7 @@ cv::Mat FrameDrawer::DrawFrame()
         cvtColor(im,im,CV_GRAY2BGR);
 
     //Draw
-    if(state==NOT_INITIALIZED) //INITIALIZING
+    if(state == NOT_INITIALIZED) //INITIALIZING
     {
         for(unsigned int i=0; i<vMatches.size(); i++)
         {
@@ -86,7 +84,7 @@ cv::Mat FrameDrawer::DrawFrame()
             }
         }        
     }
-    else if(state==OK) //TRACKING
+    else if(state == TRACKING_OK)
     {
         mnTracked=0;
         mnTrackedVO=0;
@@ -129,11 +127,11 @@ cv::Mat FrameDrawer::DrawFrame()
 void FrameDrawer::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
 {
     stringstream s;
-    if(nState==NO_IMAGES_YET)
+    if(nState == NO_IMAGES_YET)
         s << " WAITING FOR IMAGES";
-    else if(nState==NOT_INITIALIZED)
+    else if(nState == NOT_INITIALIZED)
         s << " TRYING TO INITIALIZE ";
-    else if(nState==OK)
+    else if(nState == TRACKING_OK)
     {
         if(!mbOnlyTracking)
             s << "SLAM MODE |  ";
@@ -145,13 +143,9 @@ void FrameDrawer::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
         if(mnTrackedVO>0)
             s << ", + VO matches: " << mnTrackedVO;
     }
-    else if(nState==LOST)
+    else if(nState == TRACKING_LOST)
     {
         s << " TRACK LOST. TRYING TO RELOCALIZE ";
-    }
-    else if(nState==SYSTEM_NOT_READY)
-    {
-        s << " LOADING ORB VOCABULARY. PLEASE WAIT...";
     }
 
     int baseline=0;
@@ -175,12 +169,12 @@ void FrameDrawer::Update(Tracking *pTracker)
     mbOnlyTracking = pTracker->mbOnlyTracking;
 
 
-    if(pTracker->mLastProcessedState==NOT_INITIALIZED)
+    if(pTracker->mLastProcessedState == NOT_INITIALIZED)
     {
         mvIniKeys=pTracker->mInitialFrame.mvKeys;
         mvIniMatches=pTracker->mvIniMatches;
     }
-    else if(pTracker->mLastProcessedState==OK)
+    else if(pTracker->mLastProcessedState == TRACKING_OK)
     {
         for(int i=0;i<N;i++)
         {
@@ -197,7 +191,7 @@ void FrameDrawer::Update(Tracking *pTracker)
             }
         }
     }
-    mState=static_cast<int>(pTracker->mLastProcessedState);
+    mState = pTracker->mLastProcessedState;
 }
 
 } //namespace ORB_SLAM

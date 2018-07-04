@@ -64,10 +64,6 @@ namespace ORB_SLAM2
 
       virtual std::vector<KeyFrame*> DetectRelocalizationCandidates(Frame* F);
 
-      virtual void SetState(eTrackingState state);
-
-      virtual eTrackingState GetState();
-
       virtual void RequestStop();
 
       virtual bool isStopped();
@@ -95,13 +91,14 @@ namespace ORB_SLAM2
 
       virtual void Initialize(Map & pMap);
 
+      virtual bool GetInitialized();
+
    private:
       ORBVocabulary * mpVocab;
       bool mbMonocular;
       KeyFrameDatabase * mpKeyFrameDB;
       Map* mpMap;
       static long unsigned int nNextMapPointId;
-      eTrackingState mState;
 
       // initialization variables
       bool mInitialized;
