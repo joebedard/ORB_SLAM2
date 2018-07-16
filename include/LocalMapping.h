@@ -115,13 +115,15 @@ protected:
 
     bool mbAbortBA;
 
+    bool mbAcceptKeyFrames;
+    std::mutex mMutexAccept;
+
+ private:
     bool mbStopped;
     bool mbStopRequested;
     bool mbNotStop;
     std::mutex mMutexStop;
 
-    bool mbAcceptKeyFrames;
-    std::mutex mMutexAccept;
 };
 
 } //namespace ORB_SLAM

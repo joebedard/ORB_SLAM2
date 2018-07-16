@@ -812,7 +812,7 @@ bool Tracking::NeedNewKeyFrame()
         return false;
 
     // If Local Mapping is freezed by a Loop Closure do not insert keyframes
-    if(mpMapper->isStopped() || mpMapper->stopRequested())
+    if(mpMapper->stopRequested())
         return false;
 
     const int nKFs = mpMapper->KeyFramesInMap();

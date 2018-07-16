@@ -105,11 +105,6 @@ namespace ORB_SLAM2
       return mInitialized;
    }
 
-   bool Mapper::isStopped()
-   {
-      return mpLocalMapper->isStopped();
-   }
-   
    bool Mapper::stopRequested()
    {
       return mpLocalMapper->stopRequested();
