@@ -42,9 +42,6 @@ public:
    // constructor for map points
     MapPoint(const cv::Mat &Pos, KeyFrame* pRefKF, Map* pMap);
 
-    // constructor for odometry points (never added to the map)
-    MapPoint(const cv::Mat &Pos, Frame* pFrame, const int &idxF);
-
     void SetWorldPos(const cv::Mat &Pos);
     cv::Mat GetWorldPos();
 

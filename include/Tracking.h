@@ -55,17 +55,12 @@ public:
     cv::Mat GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const double &timestamp);
     cv::Mat GrabImageMonocular(const cv::Mat &im, const double &timestamp);
 
-    //void SetLocalMapper(LocalMapping* pLocalMapper);
-    //void SetLoopClosing(LoopClosing* pLoopClosing);
     void SetViewer(Viewer* pViewer);
 
     // Load new settings
     // The focal lenght should be similar or scale prediction will fail when projecting points
     // TODO: Modify MapPoint::PredictScale to take into account focal lenght
     void ChangeCalibration(const string &strSettingPath);
-
-    // Use this function if you have deactivated local mapping and you only want to localize the camera.
-    void InformOnlyTracking(const bool &flag);
 
     // This stops local mapping thread (map building) and performs only camera tracking.
     void ActivateLocalizationMode();
@@ -99,7 +94,9 @@ public:
     list<double> mlFrameTimes;
     list<bool> mlbLost;
 
-    // True if local mapping is deactivated and we are performing only localization
+    // if true, new keyframes are not sent to the mapper
+    // if false, keyframes are sent to the mapper
+    // in both cases, the map could still be updated by loop closure or bundle adjust
     bool mbOnlyTracking;
 
     // Reset the map
@@ -137,19 +134,12 @@ protected:
 
     bool NeedNewKeyFrame();
 
-    // In case of performing only localization, this flag is true when there are no matches to
-    // points in the map. Still tracking will continue if there are enough matches with temporal points.
-    // In that case we are doing visual odometry. The system will try to do relocalization to recover
-    // "zero-drift" localization to the map.
-    bool mbVO;
-
     //ORB
     ORBextractor* mpORBextractorLeft, *mpORBextractorRight;
     ORBextractor* mpIniORBextractor;
 
     //BoW
     ORBVocabulary* mpORBVocabulary;
-    //KeyFrameDatabase* mpKeyFrameDB;
 
     // Initalization (only for monocular)
     Initializer* mpInitializer;
@@ -198,8 +188,6 @@ protected:
 
     //Color order (true RGB, false BGR, ignored if grayscale)
     bool mbRGB;
-
-    list<MapPoint*> mlpTemporalPoints;
 
 private:
    eTrackingState mState;
