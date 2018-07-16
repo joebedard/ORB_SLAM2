@@ -151,19 +151,9 @@ namespace ORB_SLAM2
       return mpLocalMapper->AcceptKeyFrames();
    }
    
-   void Mapper::InterruptBA()
-   {
-      mpLocalMapper->InterruptBA();
-   }
-   
    int Mapper::KeyframesInQueue()
    {
       return mpLocalMapper->KeyframesInQueue();
-   }
-
-   bool Mapper::SetNotStop(bool b)
-   {
-      return mpLocalMapper->SetNotStop(b);
    }
 
    void Mapper::InsertKeyFrame(KeyFrame * pKF)
@@ -191,8 +181,11 @@ namespace ORB_SLAM2
 
    KeyFrame * Mapper::CreateNewKeyFrame(Frame & currentFrame, int sensorType)
    {
-      if (!SetNotStop(true))
+      if (!mpLocalMapper->SetNotStop(true))
          return NULL;
+
+      if (!mpLocalMapper->AcceptKeyFrames())
+         mpLocalMapper->InterruptBA();
 
       KeyFrame* pKF = new KeyFrame(currentFrame);
 
@@ -260,7 +253,7 @@ namespace ORB_SLAM2
 
       InsertKeyFrame(pKF);
 
-      SetNotStop(false);
+      mpLocalMapper->SetNotStop(false);
 
       return pKF;
    }

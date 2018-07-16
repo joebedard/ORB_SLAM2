@@ -1052,7 +1052,6 @@ bool Tracking::NeedNewKeyFrame()
         }
         else
         {
-            mpMapper->InterruptBA();
             if(mSensor!=MONOCULAR)
             {
                 if(mpMapper->KeyframesInQueue()<3)

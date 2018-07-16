@@ -74,11 +74,7 @@ namespace ORB_SLAM2
 
       virtual bool AcceptKeyFrames();
 
-      virtual void InterruptBA();
-
       virtual int KeyframesInQueue();
-
-      virtual bool SetNotStop(bool b);
 
       virtual void InsertKeyFrame(KeyFrame* pKF);
 

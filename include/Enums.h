@@ -23,7 +23,6 @@ namespace ORB_SLAM2
 {
 
    // Tracking states
-   // TODO: refactor out mapper states
    enum eTrackingState {
       NO_IMAGES_YET = 0,
       NOT_INITIALIZED = 1,
