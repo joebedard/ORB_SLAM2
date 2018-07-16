@@ -667,43 +667,43 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     if(bDoMore)
     {
 
-    // Check inlier observations
-    for(size_t i=0, iend=vpEdgesMono.size(); i<iend;i++)
-    {
-        g2o::EdgeSE3ProjectXYZ* e = vpEdgesMono[i];
-        MapPoint* pMP = vpMapPointEdgeMono[i];
+       // Check inlier observations
+       for(size_t i=0, iend=vpEdgesMono.size(); i<iend;i++)
+       {
+           g2o::EdgeSE3ProjectXYZ* e = vpEdgesMono[i];
+           MapPoint* pMP = vpMapPointEdgeMono[i];
 
-        if(pMP->isBad())
-            continue;
+           if(pMP->isBad())
+               continue;
 
-        if(e->chi2()>5.991 || !e->isDepthPositive())
-        {
-            e->setLevel(1);
-        }
+           if(e->chi2()>5.991 || !e->isDepthPositive())
+           {
+               e->setLevel(1);
+           }
 
-        e->setRobustKernel(0);
-    }
+           e->setRobustKernel(0);
+       }
 
-    for(size_t i=0, iend=vpEdgesStereo.size(); i<iend;i++)
-    {
-        g2o::EdgeStereoSE3ProjectXYZ* e = vpEdgesStereo[i];
-        MapPoint* pMP = vpMapPointEdgeStereo[i];
+       for(size_t i=0, iend=vpEdgesStereo.size(); i<iend;i++)
+       {
+           g2o::EdgeStereoSE3ProjectXYZ* e = vpEdgesStereo[i];
+           MapPoint* pMP = vpMapPointEdgeStereo[i];
 
-        if(pMP->isBad())
-            continue;
+           if(pMP->isBad())
+               continue;
 
-        if(e->chi2()>7.815 || !e->isDepthPositive())
-        {
-            e->setLevel(1);
-        }
+           if(e->chi2()>7.815 || !e->isDepthPositive())
+           {
+               e->setLevel(1);
+           }
 
-        e->setRobustKernel(0);
-    }
+           e->setRobustKernel(0);
+       }
 
-    // Optimize again without the outliers
+       // Optimize again without the outliers
 
-    optimizer.initializeOptimization(0);
-    optimizer.optimize(10);
+       optimizer.initializeOptimization(0);
+       optimizer.optimize(10);
 
     }
 
