@@ -42,17 +42,9 @@ namespace ORB_SLAM2
 
       virtual long unsigned  KeyFramesInMap();
 
-      virtual void EraseKeyFrame(KeyFrame* pKF);
-
-      virtual void AddKeyFrame(KeyFrame *pKF);
-
       virtual long unsigned int NextMapPointId();
 
-      virtual void EraseMapPoint(MapPoint* pMP);
-
       virtual void AddMapPoint(MapPoint* pMP);
-
-      virtual long unsigned int MapPointsInMap();
 
       virtual std::vector<MapPoint*> GetAllMapPoints();
 
@@ -64,20 +56,13 @@ namespace ORB_SLAM2
 
       virtual std::vector<KeyFrame*> DetectRelocalizationCandidates(Frame* F);
 
-      virtual void RequestStop();
-
       virtual bool isStopped();
-
-      virtual void Release();
 
       virtual bool stopRequested();
 
       virtual bool AcceptKeyFrames();
 
       virtual void InsertKeyFrame(KeyFrame* pKF);
-
-      virtual void GlobalBundleAdjustemnt(int nIterations = 5, bool *pbStopFlag = NULL,
-         const unsigned long nLoopKF = 0, const bool bRobust = true);
 
       virtual void Shutdown();
 

@@ -43,17 +43,6 @@ namespace ORB_SLAM2
       return mpMap->KeyFramesInMap();
    }
 
-   void Mapper::EraseKeyFrame(KeyFrame * pKF)
-   {
-      mpMap->EraseKeyFrame(pKF);
-      mpKeyFrameDB->erase(pKF);
-   }
-
-   void Mapper::AddKeyFrame(KeyFrame * pKF)
-   {
-      mpMap->AddKeyFrame(pKF);
-   }
-
    long unsigned int Mapper::NextMapPointId()
    {
       // MapPoints can be created from Tracking and Local Mapping. This mutex avoid conflicts with id.
@@ -61,19 +50,9 @@ namespace ORB_SLAM2
       return nNextMapPointId++;
    }
 
-   void Mapper::EraseMapPoint(MapPoint * pMP)
-   {
-      mpMap->EraseMapPoint(pMP);
-   }
-
    void Mapper::AddMapPoint(MapPoint * pMP)
    {
       mpMap->AddMapPoint(pMP);
-   }
-
-   long unsigned int Mapper::MapPointsInMap()
-   {
-      return mpMap->MapPointsInMap();
    }
 
    std::vector<MapPoint*> Mapper::GetAllMapPoints()
@@ -126,19 +105,9 @@ namespace ORB_SLAM2
       return mInitialized;
    }
 
-   void Mapper::RequestStop()
-   {
-      mpLocalMapper->RequestStop();
-   }
-   
    bool Mapper::isStopped()
    {
       return mpLocalMapper->isStopped();
-   }
-   
-   void Mapper::Release()
-   {
-      mpLocalMapper->Release();
    }
    
    bool Mapper::stopRequested()
@@ -156,12 +125,6 @@ namespace ORB_SLAM2
       mpLocalMapper->InsertKeyFrame(pKF);
    }
    
-   void Mapper::GlobalBundleAdjustemnt(int nIterations, bool *pbStopFlag,
-      const unsigned long nLoopKF, const bool bRobust)
-   {
-      Optimizer::GlobalBundleAdjustemnt(mpMap, nIterations, pbStopFlag, nLoopKF, bRobust);
-   }
-      
    void Mapper::Shutdown()
    {
       mpLocalMapper->RequestFinish();
