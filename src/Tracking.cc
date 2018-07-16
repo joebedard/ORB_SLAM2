@@ -1003,9 +1003,6 @@ bool Tracking::NeedNewKeyFrame()
         nMinObs=2;
     int nRefMatches = mpReferenceKF->TrackedMapPoints(nMinObs);
 
-    // Local Mapping accept keyframes?
-    bool bLocalMappingIdle = mpMapper->AcceptKeyFrames();
-
     // Check how many "close" points are being tracked and how many could be potentially created.
     int nNonTrackedClose = 0;
     int nTrackedClose= 0;
@@ -1037,7 +1034,7 @@ bool Tracking::NeedNewKeyFrame()
     const bool c1a = mCurrentFrame.mnId >= (mnLastKeyFrameId + mMaxFrames);
 
     // Condition 1b: More than "MinFrames" have passed and Local Mapping is idle
-    const bool c1b = (mCurrentFrame.mnId >= (mnLastKeyFrameId + mMinFrames)) && bLocalMappingIdle;
+    const bool c1b = (mCurrentFrame.mnId >= (mnLastKeyFrameId + mMinFrames)) && mpMapper->AcceptKeyFrames();
 
     // Condition 1c: tracking is weak
     const bool c1c = (mSensor != MONOCULAR) && (mnMatchesInliers < (nRefMatches * 0.25) || bNeedToInsertClose);
