@@ -1042,10 +1042,7 @@ bool Tracking::NeedNewKeyFrame()
     // Condition 2: Few tracked points compared to reference keyframe. Lots of visual odometry compared to map matches.
     const bool c2 = ((mnMatchesInliers<nRefMatches*thRefRatio|| bNeedToInsertClose) && mnMatchesInliers>15);
 
-    if((c1a||c1b||c1c)&&c2)
-       return true;
-    else
-       return false;
+    return ((c1a || c1b || c1c) && c2);
 }
 
 void Tracking::SearchLocalPoints()
