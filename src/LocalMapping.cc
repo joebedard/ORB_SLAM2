@@ -51,13 +51,13 @@ void LocalMapping::Run()
 
     while(1)
     {
-        // Tracking will see that Local Mapping is busy
-        SetAcceptKeyFrames(false);
-
         // Check if there are keyframes in the queue
         if(CheckNewKeyFrames())
         {
-            // BoW conversion and insertion in Map
+           // Tracking will see that Local Mapping is busy
+           SetAcceptKeyFrames(false);
+
+           // BoW conversion and insertion in Map
             ProcessNewKeyFrame();
 
             // Check recent MapPoints
@@ -85,6 +85,9 @@ void LocalMapping::Run()
             }
 
             mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
+
+            // Tracking will see that Local Mapping is not busy
+            SetAcceptKeyFrames(true);
         }
         else if(Stop())
         {
@@ -97,10 +100,7 @@ void LocalMapping::Run()
                 break;
         }
 
-        ResetIfRequested();
-
-        // Tracking will see that Local Mapping is not busy
-        SetAcceptKeyFrames(true);
+        //ResetIfRequested();
 
         if(CheckFinish())
             break;
