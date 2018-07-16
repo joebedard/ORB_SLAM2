@@ -74,8 +74,6 @@ namespace ORB_SLAM2
 
       virtual bool AcceptKeyFrames();
 
-      virtual int KeyframesInQueue();
-
       virtual void InsertKeyFrame(KeyFrame* pKF);
 
       virtual void GlobalBundleAdjustemnt(int nIterations = 5, bool *pbStopFlag = NULL,

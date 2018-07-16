@@ -151,11 +151,6 @@ namespace ORB_SLAM2
       return mpLocalMapper->AcceptKeyFrames();
    }
    
-   int Mapper::KeyframesInQueue()
-   {
-      return mpLocalMapper->KeyframesInQueue();
-   }
-
    void Mapper::InsertKeyFrame(KeyFrame * pKF)
    {
       mpLocalMapper->InsertKeyFrame(pKF);
@@ -191,7 +186,7 @@ namespace ORB_SLAM2
          mpLocalMapper->InterruptBA();
          if (sensorType != MONOCULAR)
          {
-            if (KeyframesInQueue() >= 3)
+            if (mpLocalMapper->KeyframesInQueue() >= 3)
                return NULL;
          }
          else
