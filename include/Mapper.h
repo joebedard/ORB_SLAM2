@@ -83,7 +83,7 @@ namespace ORB_SLAM2
 
       virtual void Shutdown();
 
-      virtual KeyFrame * CreateNewKeyFrame(Frame & currentFrame, int sensorType);
+      virtual KeyFrame * CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor sensorType);
 
       virtual void Initialize(Map & pMap);
 

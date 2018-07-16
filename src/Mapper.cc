@@ -179,13 +179,24 @@ namespace ORB_SLAM2
       }
    }
 
-   KeyFrame * Mapper::CreateNewKeyFrame(Frame & currentFrame, int sensorType)
+   KeyFrame * Mapper::CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor sensorType)
    {
       if (!mpLocalMapper->SetNotStop(true))
          return NULL;
 
+      // If the mapping accepts keyframes, insert keyframe.
+      // Otherwise send a signal to interrupt BA
       if (!mpLocalMapper->AcceptKeyFrames())
+      {
          mpLocalMapper->InterruptBA();
+         if (sensorType != MONOCULAR)
+         {
+            if (KeyframesInQueue() >= 3)
+               return NULL;
+         }
+         else
+            return NULL;
+      }
 
       KeyFrame* pKF = new KeyFrame(currentFrame);
 

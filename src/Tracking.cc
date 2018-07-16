@@ -1043,28 +1043,9 @@ bool Tracking::NeedNewKeyFrame()
     const bool c2 = ((mnMatchesInliers<nRefMatches*thRefRatio|| bNeedToInsertClose) && mnMatchesInliers>15);
 
     if((c1a||c1b||c1c)&&c2)
-    {
-        // If the mapping accepts keyframes, insert keyframe.
-        // Otherwise send a signal to interrupt BA
-        if(bLocalMappingIdle)
-        {
-            return true;
-        }
-        else
-        {
-            if(mSensor!=MONOCULAR)
-            {
-                if(mpMapper->KeyframesInQueue()<3)
-                    return true;
-                else
-                    return false;
-            }
-            else
-                return false;
-        }
-    }
+       return true;
     else
-        return false;
+       return false;
 }
 
 void Tracking::SearchLocalPoints()

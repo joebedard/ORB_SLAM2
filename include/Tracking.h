@@ -79,7 +79,7 @@ public:
     eTrackingState mLastProcessedState;
 
     // Input sensor
-    int mSensor;
+    ORB_SLAM2::eSensor mSensor;
 
     // Current Frame
     Frame mCurrentFrame;
