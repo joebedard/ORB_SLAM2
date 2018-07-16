@@ -1030,17 +1030,20 @@ bool Tracking::NeedNewKeyFrame()
     if(nKFs<2)
         thRefRatio = 0.4f;
 
-    if(mSensor==MONOCULAR)
+    if (mSensor == MONOCULAR)
         thRefRatio = 0.9f;
 
     // Condition 1a: More than "MaxFrames" have passed from last keyframe insertion
-    const bool c1a = mCurrentFrame.mnId>=mnLastKeyFrameId+mMaxFrames;
+    const bool c1a = mCurrentFrame.mnId >= (mnLastKeyFrameId + mMaxFrames);
+
     // Condition 1b: More than "MinFrames" have passed and Local Mapping is idle
-    const bool c1b = (mCurrentFrame.mnId>=mnLastKeyFrameId+mMinFrames && bLocalMappingIdle);
-    //Condition 1c: tracking is weak
-    const bool c1c =  mSensor!=MONOCULAR && (mnMatchesInliers<nRefMatches*0.25 || bNeedToInsertClose) ;
+    const bool c1b = (mCurrentFrame.mnId >= (mnLastKeyFrameId + mMinFrames)) && bLocalMappingIdle;
+
+    // Condition 1c: tracking is weak
+    const bool c1c = (mSensor != MONOCULAR) && (mnMatchesInliers < (nRefMatches * 0.25) || bNeedToInsertClose);
+
     // Condition 2: Few tracked points compared to reference keyframe. Lots of visual odometry compared to map matches.
-    const bool c2 = ((mnMatchesInliers<nRefMatches*thRefRatio|| bNeedToInsertClose) && mnMatchesInliers>15);
+    const bool c2 = ((mnMatchesInliers < (nRefMatches * thRefRatio)) || bNeedToInsertClose) && (mnMatchesInliers > 15);
 
     return ((c1a || c1b || c1c) && c2);
 }
