@@ -443,9 +443,7 @@ void Tracking::StereoInitialization()
         mCurrentFrame.mpReferenceKF = pKFini;
 
         initMap.mvpKeyFrameOrigins.push_back(pKFini);
-
         mpMapper->Initialize(initMap);
-        mpMapper->InsertKeyFrame(pKFini);
         mState = TRACKING_OK;
 
         mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
@@ -612,10 +610,7 @@ void Tracking::CreateInitialMapMonocular()
 
     mvpLocalMapPoints = initMap.GetAllMapPoints();
     initMap.mvpKeyFrameOrigins.push_back(pKFini);
-
     mpMapper->Initialize(initMap);
-    mpMapper->InsertKeyFrame(pKFini);
-    mpMapper->InsertKeyFrame(pKFcur);
 
     mCurrentFrame.SetPose(pKFcur->GetPose());
     mnLastKeyFrameId=mCurrentFrame.mnId;

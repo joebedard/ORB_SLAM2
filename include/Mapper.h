@@ -50,8 +50,6 @@ namespace ORB_SLAM2
 
       virtual bool AcceptKeyFrames();
 
-      virtual void InsertKeyFrame(KeyFrame* pKF);
-
       virtual void Shutdown();
 
       virtual KeyFrame * CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor sensorType);

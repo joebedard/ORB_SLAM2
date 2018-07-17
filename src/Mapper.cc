@@ -88,11 +88,6 @@ namespace ORB_SLAM2
       return mpLocalMapper->AcceptKeyFrames();
    }
    
-   void Mapper::InsertKeyFrame(KeyFrame * pKF)
-   {
-      mpLocalMapper->InsertKeyFrame(pKF);
-   }
-   
    void Mapper::Shutdown()
    {
       mpLocalMapper->RequestFinish();
@@ -188,7 +183,7 @@ namespace ORB_SLAM2
          }
       }
 
-      InsertKeyFrame(pKF);
+      mpLocalMapper->InsertKeyFrame(pKF);
 
       mpLocalMapper->SetNotStop(false);
 
@@ -212,6 +207,12 @@ namespace ORB_SLAM2
 
       mpLocalMapper->SetLoopCloser(mpLoopCloser);
       mpLoopCloser->SetLocalMapper(mpLocalMapper);
+
+      auto allKFs = pMap.GetAllKeyFrames();
+      for (auto it = allKFs.begin(); it != allKFs.end(); it++)
+      {
+         mpLocalMapper->InsertKeyFrame(*it);
+      }
 
       mInitialized = true;
    }
