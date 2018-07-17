@@ -35,7 +35,6 @@
 namespace ORB_SLAM2
 {
 
-//class Tracking;
 class LocalMapping;
 class KeyFrameDatabase;
 
@@ -51,8 +50,6 @@ public:
 public:
 
     LoopClosing(Map* pMap, KeyFrameDatabase* pDB, ORBVocabulary* pVoc,const bool bFixScale);
-
-    //void SetTracker(Tracking* pTracker);
 
     void SetLocalMapper(LocalMapping* pLocalMapper);
 
@@ -104,7 +101,6 @@ protected:
     std::mutex mMutexFinish;
 
     Map* mpMap;
-    //Tracking* mpTracker;
 
     KeyFrameDatabase* mpKeyFrameDB;
     ORBVocabulary* mpORBVocabulary;
