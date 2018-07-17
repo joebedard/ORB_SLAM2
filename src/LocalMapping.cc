@@ -54,10 +54,10 @@ void LocalMapping::Run()
         // Check if there are keyframes in the queue
         if(CheckNewKeyFrames())
         {
-           // Tracking will see that Local Mapping is busy
-           SetAcceptKeyFrames(false);
+            // Tracking will see that Local Mapping is busy
+            SetAcceptKeyFrames(false);
 
-           // BoW conversion and insertion in Map
+            // BoW conversion and insertion in Map
             ProcessNewKeyFrame();
 
             // Check recent MapPoints
