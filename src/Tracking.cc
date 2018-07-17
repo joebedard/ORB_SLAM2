@@ -409,7 +409,7 @@ void Tracking::StereoInitialization()
         mCurrentFrame.SetPose(cv::Mat::eye(4,4,CV_32F));
 
         // Create KeyFrame
-        KeyFrame* pKFini = new KeyFrame(mCurrentFrame);
+        KeyFrame* pKFini = new KeyFrame(1, mCurrentFrame);
 
         // Insert KeyFrame in the map
         initMap.AddKeyFrame(pKFini);
@@ -528,8 +528,8 @@ void Tracking::MonocularInitialization()
 void Tracking::CreateInitialMapMonocular()
 {
     // Create KeyFrames
-    KeyFrame* pKFini = new KeyFrame(mInitialFrame);
-    KeyFrame* pKFcur = new KeyFrame(mCurrentFrame);
+    KeyFrame* pKFini = new KeyFrame(1, mInitialFrame);
+    KeyFrame* pKFcur = new KeyFrame(2, mCurrentFrame);
 
     pKFini->ComputeBoW();
     pKFcur->ComputeBoW();

@@ -42,7 +42,7 @@ class KeyFrameDatabase;
 class KeyFrame
 {
 public:
-    KeyFrame(Frame &F);
+    KeyFrame(long unsigned int id, Frame &F);
 
     long unsigned int GetId() 
     {
@@ -124,7 +124,6 @@ public:
     // The following variables are accesed from only 1 thread or never change (no mutex needed).
 public:
 
-    static long unsigned int nNextId;
     const long unsigned int mnFrameId;
 
     const double mTimeStamp;

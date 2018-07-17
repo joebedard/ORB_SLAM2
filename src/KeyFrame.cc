@@ -25,9 +25,7 @@
 namespace ORB_SLAM2
 {
 
-long unsigned int KeyFrame::nNextId=0;
-
-KeyFrame::KeyFrame(Frame &F):
+KeyFrame::KeyFrame(long unsigned int id, Frame &F):
     mnFrameId(F.mnId),  mTimeStamp(F.mTimeStamp), mnGridCols(FRAME_GRID_COLS), mnGridRows(FRAME_GRID_ROWS),
     mfGridElementWidthInv(F.mfGridElementWidthInv), mfGridElementHeightInv(F.mfGridElementHeightInv),
     mnTrackReferenceForFrame(0), mnFuseTargetForKF(0), mnBALocalForKF(0), mnBAFixedForKF(0),
@@ -42,7 +40,7 @@ KeyFrame::KeyFrame(Frame &F):
     mpORBvocabulary(F.mpORBvocabulary), mbFirstConnection(true), mpParent(NULL), mbNotErase(false),
     mbToBeErased(false), mbBad(false), mHalfBaseline(F.mb/2)
 {
-    mnId=nNextId++;
+    mnId = id;
 
     mGrid.resize(mnGridCols);
     for(int i=0; i<mnGridCols;i++)

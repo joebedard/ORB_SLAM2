@@ -22,10 +22,9 @@
 
 namespace ORB_SLAM2
 {
-   long unsigned int Mapper::nNextMapPointId = 0;
 
    Mapper::Mapper(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular)
-      : mpMap(pMap), mpVocab(pVocab), mbMonocular(bMonocular), mInitialized(false)
+      : mpMap(pMap), mpVocab(pVocab), mbMonocular(bMonocular), mInitialized(false), mMaxKeyFrameId(0)
    {
       if (pMap == NULL)
          throw std::exception("pMap must not be NULL");
@@ -63,7 +62,6 @@ namespace ORB_SLAM2
       // Clear Map (this erase MapPoints and KeyFrames)
       mpMap->clear();
 
-      KeyFrame::nNextId = 0;
       Frame::nNextId = 0;
       mInitialized = false;
    }
@@ -119,7 +117,8 @@ namespace ORB_SLAM2
             return NULL;
       }
 
-      KeyFrame* pKF = new KeyFrame(currentFrame);
+      mMaxKeyFrameId++;
+      KeyFrame* pKF = new KeyFrame(mMaxKeyFrameId, currentFrame);
 
       if (sensorType != MONOCULAR)
       {
@@ -212,6 +211,8 @@ namespace ORB_SLAM2
       for (auto it = allKFs.begin(); it != allKFs.end(); it++)
       {
          mpLocalMapper->InsertKeyFrame(*it);
+         if ((*it)->GetId() > mMaxKeyFrameId)
+            mMaxKeyFrameId = (*it)->GetId();
       }
 
       mInitialized = true;

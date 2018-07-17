@@ -63,7 +63,7 @@ namespace ORB_SLAM2
       bool mbMonocular;
       KeyFrameDatabase * mpKeyFrameDB;
       Map* mpMap;
-      static long unsigned int nNextMapPointId;
+      long unsigned int mMaxKeyFrameId;
 
       // initialization variables
       bool mInitialized;
