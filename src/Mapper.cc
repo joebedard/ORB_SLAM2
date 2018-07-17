@@ -76,7 +76,7 @@ namespace ORB_SLAM2
       return mInitialized;
    }
 
-   bool Mapper::stopRequested()
+   bool Mapper::GetStopRequested()
    {
       return mpLocalMapper->stopRequested();
    }

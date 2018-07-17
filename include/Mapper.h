@@ -46,7 +46,7 @@ namespace ORB_SLAM2
 
       virtual std::vector<KeyFrame*> DetectRelocalizationCandidates(Frame* F);
 
-      virtual bool stopRequested();
+      virtual bool GetStopRequested();
 
       virtual bool AcceptKeyFrames();
 
