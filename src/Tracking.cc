@@ -442,14 +442,14 @@ void Tracking::StereoInitialization()
         mpReferenceKF = pKFini;
         mCurrentFrame.mpReferenceKF = pKFini;
 
-        initMap.SetReferenceMapPoints(mvpLocalMapPoints);
         initMap.mvpKeyFrameOrigins.push_back(pKFini);
 
         mpMapper->Initialize(initMap);
-        mpMapper->InsertKeyFrame(pKFini);        
+        mpMapper->InsertKeyFrame(pKFini);
         mState = TRACKING_OK;
 
         mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
+        mpMapDrawer->SetReferenceMapPoints(mvpLocalMapPoints);
     }
 }
 
@@ -610,6 +610,9 @@ void Tracking::CreateInitialMapMonocular()
         }
     }
 
+    mvpLocalMapPoints = initMap.GetAllMapPoints();
+    initMap.mvpKeyFrameOrigins.push_back(pKFini);
+
     mpMapper->Initialize(initMap);
     mpMapper->InsertKeyFrame(pKFini);
     mpMapper->InsertKeyFrame(pKFcur);
@@ -620,17 +623,13 @@ void Tracking::CreateInitialMapMonocular()
 
     mvpLocalKeyFrames.push_back(pKFcur);
     mvpLocalKeyFrames.push_back(pKFini);
-    mvpLocalMapPoints = mpMapper->GetAllMapPoints();
     mpReferenceKF = pKFcur;
     mCurrentFrame.mpReferenceKF = pKFcur;
 
     mLastFrame = Frame(mCurrentFrame);
 
-    mpMapper->SetReferenceMapPoints(mvpLocalMapPoints);
-
     mpMapDrawer->SetCurrentCameraPose(pKFcur->GetPose());
-
-    mpMapper->AddOriginKeyFrame(pKFini);
+    mpMapDrawer->SetReferenceMapPoints(mvpLocalMapPoints);
 
     mState = TRACKING_OK;
 }
@@ -924,7 +923,7 @@ void Tracking::SearchLocalPoints()
 void Tracking::UpdateLocalMap()
 {
     // This is for visualization
-    mpMapper->SetReferenceMapPoints(mvpLocalMapPoints);
+    mpMapDrawer->SetReferenceMapPoints(mvpLocalMapPoints);
 
     UpdateLocalKeyFrames();
 

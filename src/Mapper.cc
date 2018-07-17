@@ -43,33 +43,6 @@ namespace ORB_SLAM2
       return mpMap->KeyFramesInMap();
    }
 
-   long unsigned int Mapper::NextMapPointId()
-   {
-      // MapPoints can be created from Tracking and Local Mapping. This mutex avoid conflicts with id.
-      unique_lock<mutex> lock(mpMap->mMutexPointCreation);
-      return nNextMapPointId++;
-   }
-
-   void Mapper::AddMapPoint(MapPoint * pMP)
-   {
-      mpMap->AddMapPoint(pMP);
-   }
-
-   std::vector<MapPoint*> Mapper::GetAllMapPoints()
-   {
-      return mpMap->GetAllMapPoints();
-   }
-
-   void Mapper::SetReferenceMapPoints(const std::vector<MapPoint*>& vpMPs)
-   {
-      mpMap->SetReferenceMapPoints(vpMPs);
-   }
-
-   void Mapper::AddOriginKeyFrame(KeyFrame * pKF)
-   {
-      mpMap->mvpKeyFrameOrigins.push_back(pKF);
-   }
-
    void Mapper::Reset()
    {
       // Reset Local Mapping
@@ -199,7 +172,7 @@ namespace ORB_SLAM2
                   pKF->AddMapPoint(pNewMP, i);
                   pNewMP->ComputeDistinctiveDescriptors();
                   pNewMP->UpdateNormalAndDepth();
-                  AddMapPoint(pNewMP);
+                  mpMap->AddMapPoint(pNewMP);
 
                   currentFrame.mvpMapPoints[i] = pNewMP;
                   nPoints++;

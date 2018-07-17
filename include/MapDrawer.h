@@ -43,6 +43,7 @@ public:
     void DrawCurrentCamera(pangolin::OpenGlMatrix &Twc);
     void SetCurrentCameraPose(const cv::Mat &Tcw);
     void GetCurrentOpenGLCameraMatrix(pangolin::OpenGlMatrix &M);
+    void SetReferenceMapPoints(const std::vector<MapPoint*>& vpMPs);
 
 private:
 
@@ -56,6 +57,8 @@ private:
     cv::Mat mCameraPose;
 
     std::mutex mMutexCamera;
+
+    std::vector<MapPoint*> mvpReferenceMapPoints;
 };
 
 } //namespace ORB_SLAM

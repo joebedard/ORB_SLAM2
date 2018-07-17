@@ -61,12 +61,6 @@ void Map::EraseKeyFrame(KeyFrame *pKF)
     // Delete the MapPoint
 }
 
-void Map::SetReferenceMapPoints(const vector<MapPoint *> &vpMPs)
-{
-    unique_lock<mutex> lock(mMutexMap);
-    mvpReferenceMapPoints = vpMPs;
-}
-
 void Map::InformNewBigChange()
 {
     unique_lock<mutex> lock(mMutexMap);
@@ -103,12 +97,6 @@ long unsigned int Map::KeyFramesInMap()
     return mspKeyFrames.size();
 }
 
-vector<MapPoint*> Map::GetReferenceMapPoints()
-{
-    unique_lock<mutex> lock(mMutexMap);
-    return mvpReferenceMapPoints;
-}
-
 long unsigned int Map::GetMaxKFid()
 {
     unique_lock<mutex> lock(mMutexMap);
@@ -126,7 +114,6 @@ void Map::clear()
     mspMapPoints.clear();
     mspKeyFrames.clear();
     mnMaxKFid = 0;
-    mvpReferenceMapPoints.clear();
     mvpKeyFrameOrigins.clear();
 }
 
@@ -137,7 +124,6 @@ Map & Map::operator=(const Map & map)
       this->mvpKeyFrameOrigins = map.mvpKeyFrameOrigins;
       this->mspMapPoints = map.mspMapPoints;
       this->mspKeyFrames = map.mspKeyFrames;
-      this->mvpReferenceMapPoints = map.mvpReferenceMapPoints;
       this->mnMaxKFid = map.mnMaxKFid;
       this->mnBigChangeIdx = map.mnBigChangeIdx;
    }

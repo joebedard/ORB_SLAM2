@@ -42,16 +42,6 @@ namespace ORB_SLAM2
 
       virtual long unsigned  KeyFramesInMap();
 
-      virtual long unsigned int NextMapPointId();
-
-      virtual void AddMapPoint(MapPoint* pMP);
-
-      virtual std::vector<MapPoint*> GetAllMapPoints();
-
-      virtual void SetReferenceMapPoints(const std::vector<MapPoint*> &vpMPs);
-
-      virtual void AddOriginKeyFrame(KeyFrame* pKF);
-
       virtual void Reset();
 
       virtual std::vector<KeyFrame*> DetectRelocalizationCandidates(Frame* F);
