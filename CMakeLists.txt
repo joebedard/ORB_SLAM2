@@ -54,6 +54,7 @@ endif()
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
 find_package(RealSense2 REQUIRED)
+find_package(ZeroMQ REQUIRED)
 
 add_subdirectory("Thirdparty/DBoW2" ${PROJECT_BINARY_DIR}/Thirdparty/DBoW2)
 add_subdirectory("Thirdparty/g2o" ${PROJECT_BINARY_DIR}/Thirdparty/g2o)
@@ -127,6 +128,7 @@ ${OpenCV_LIBS}
 ${EIGEN3_LIBS}
 ${Pangolin_LIBRARIES}
 ${ORB_SLAM_LINK_LIBS}
+${ZeroMQ_LIBS}
 )
 
 # Build examples

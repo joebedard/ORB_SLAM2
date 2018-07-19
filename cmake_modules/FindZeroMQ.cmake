@@ -1,17 +1,17 @@
 # - Try to find Intel RealSense SDK 2.0
 #
 # This module does not support required versions in find_package. Valid examples:
-#   find_package(RealSense2)
-#   find_package(RealSense2 QUIET)
-#   find_package(RealSense2 REQUIRED)
+#   find_package(ZeroMQ)
+#   find_package(ZeroMQ QUIET)
+#   find_package(ZeroMQ REQUIRED)
 # This module only looks for version 2.0 of the SDK.
 #
 # Once done this will define
 #
-#  RealSense2_FOUND - system has Intel RealSense SDK 2.0
-#  RealSense2_DIR - base directory of the SDK
-#  RealSense2_INCLUDE_DIRS - one or more include directories
-#  RealSense2_LIBS - one or more libraries
+#  ZeroMQ_FOUND - system has Intel RealSense SDK 2.0
+#  ZeroMQ_DIR - base directory of the SDK
+#  ZeroMQ_INCLUDE_DIRS - one or more include directories
+#  ZeroMQ_LIBS - one or more libraries
 
 # This file is part of ORB-SLAM2-CS.
 #
@@ -33,39 +33,36 @@
 
 include(FindPackageHandleStandardArgs)
 
+find_path(ZeroMQ_DIR 
+   NAMES COPYING.LESSER COPYING
+   PATHS
+   "/libzmq"
+   DOC "base directory of ZeroMQ source distribution, usually called libzmq"
+)
+
+find_package_handle_standard_args(ZeroMQ DEFAULT_MSG ZeroMQ_DIR)
+
+find_path(ZeroMQ_INCLUDE_DIRS 
+   NAMES zmq.h
+   PATHS
+   ${ZeroMQ_DIR}
+   PATH_SUFFIXES 
+   "include"
+)
+
 if (WIN32)
-   find_path(RealSense2_DIR 
-      NAMES intel.realsense.props
+   find_file(ZeroMQ_LIBS 
+      NAMES libzmq.lib
       PATHS
-      "C:/Program Files (x86)"
-      "C:/Program Files"
+      ${ZeroMQ_DIR}
       PATH_SUFFIXES 
-      "Intel RealSense SDK 2.0"
-      DOC "base directory of Intel RealSense SDK 2.0"
-   )
-
-   find_package_handle_standard_args(RealSense2 DEFAULT_MSG RealSense2_DIR)
-
-   find_path(RealSense2_INCLUDE_DIRS 
-      NAMES librealsense2
-      PATHS
-      ${RealSense2_DIR}
-      PATH_SUFFIXES 
-      "include"
-   )
-
-   find_file(RealSense2_LIBS 
-      NAMES realsense2.lib
-      PATHS
-      ${RealSense2_DIR}
-      PATH_SUFFIXES 
-      "lib/x64"
+      "bin/Win32/Release/v141/static"
    )
 endif (WIN32)
 
-mark_as_advanced(RealSense2_INCLUDE_DIRS)
-mark_as_advanced(RealSense2_LIBS)
+mark_as_advanced(ZeroMQ_INCLUDE_DIRS)
+mark_as_advanced(ZeroMQ_LIBS)
 
-find_package_handle_standard_args(RealSense2 DEFAULT_MSG RealSense2_INCLUDE_DIRS RealSense2_LIBS)
+find_package_handle_standard_args(ZeroMQ DEFAULT_MSG ZeroMQ_INCLUDE_DIRS ZeroMQ_LIBS)
 
-set(RealSense2_FOUND 1)
+set(ZeroMQ_FOUND 1)
