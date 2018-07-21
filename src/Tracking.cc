@@ -345,7 +345,7 @@ void Tracking::Track()
                 {
                    mpReferenceKF = pKF;
                    mCurrentFrame.mpReferenceKF = pKF;
-                   mnLastKeyFrameId = mCurrentFrame.mnId;
+                   mnLastFrameIdMadeIntoKeyFrame = mCurrentFrame.mnId;
                    mpLastKeyFrame = pKF;
                 }
             }
@@ -434,7 +434,7 @@ void Tracking::StereoInitialization()
         cout << "New map created with " << initMap.MapPointsInMap() << " points" << endl;
 
         mLastFrame = Frame(mCurrentFrame);
-        mnLastKeyFrameId=mCurrentFrame.mnId;
+        mnLastFrameIdMadeIntoKeyFrame = mCurrentFrame.mnId;
         mpLastKeyFrame = pKFini;
 
         mvpLocalKeyFrames.push_back(pKFini);
@@ -613,7 +613,7 @@ void Tracking::CreateInitialMapMonocular()
     mpMapper->Initialize(initMap);
 
     mCurrentFrame.SetPose(pKFcur->GetPose());
-    mnLastKeyFrameId=mCurrentFrame.mnId;
+    mnLastFrameIdMadeIntoKeyFrame = mCurrentFrame.mnId;
     mpLastKeyFrame = pKFcur;
 
     mvpLocalKeyFrames.push_back(pKFcur);
@@ -849,10 +849,10 @@ bool Tracking::NeedNewKeyFrame()
         thRefRatio = 0.9f;
 
     // Condition 1a: More than "MaxFrames" have passed from last keyframe insertion
-    const bool c1a = mCurrentFrame.mnId >= (mnLastKeyFrameId + mMaxFrames);
+    const bool c1a = mCurrentFrame.mnId >= (mnLastFrameIdMadeIntoKeyFrame + mMaxFrames);
 
     // Condition 1b: More than "MinFrames" have passed and Local Mapping is idle
-    const bool c1b = (mCurrentFrame.mnId >= (mnLastKeyFrameId + mMinFrames)) && mpMapper->AcceptKeyFrames();
+    const bool c1b = (mCurrentFrame.mnId >= (mnLastFrameIdMadeIntoKeyFrame + mMinFrames)) && mpMapper->AcceptKeyFrames();
 
     // Condition 1c: tracking is weak
     const bool c1c = (mSensor != MONOCULAR) && (mnMatchesInliers < (nRefMatches * 0.25) || bNeedToInsertClose);
