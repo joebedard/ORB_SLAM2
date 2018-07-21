@@ -29,18 +29,14 @@ namespace ORB_SLAM2
 long unsigned int MapPoint::nNextId=0;
 mutex MapPoint::mGlobalMutex;
 
-MapPoint::MapPoint(const cv::Mat &Pos, KeyFrame *pRefKF, Map* pMap):
+MapPoint::MapPoint(long unsigned int id, const cv::Mat &Pos, KeyFrame *pRefKF):
     mnFirstKFid(pRefKF->GetId()), mnFirstFrame(pRefKF->mnFrameId), nObs(0), mnTrackReferenceForFrame(0),
     mnLastFrameSeen(0), mnBALocalForKF(0), mnFuseCandidateForKF(0), mnLoopPointForKF(0), mnCorrectedByKF(0),
     mnCorrectedReference(0), mnBAGlobalForKF(0), mpRefKF(pRefKF), mnVisible(1), mnFound(1), mbBad(false),
-    mpReplaced(static_cast<MapPoint*>(NULL)), mfMinDistance(0), mfMaxDistance(0), mpMap(pMap)
+    mpReplaced(static_cast<MapPoint*>(NULL)), mfMinDistance(0), mfMaxDistance(0), mnId(id)
 {
     Pos.copyTo(mWorldPos);
     mNormalVector = cv::Mat::zeros(3,1,CV_32F);
-
-    // MapPoints can be created from Tracking and Local Mapping. This mutex avoid conflicts with id.
-    unique_lock<mutex> lock(mpMap->mMutexPointCreation);
-    mnId=nNextId++;
 }
 
 void MapPoint::SetWorldPos(const cv::Mat &Pos)
@@ -81,7 +77,7 @@ void MapPoint::AddObservation(KeyFrame* pKF, size_t idx)
         nObs++;
 }
 
-void MapPoint::EraseObservation(KeyFrame* pKF)
+void MapPoint::EraseObservation(KeyFrame* pKF, Map * pMap)
 {
     bool bBad=false;
     {
@@ -106,7 +102,7 @@ void MapPoint::EraseObservation(KeyFrame* pKF)
     }
 
     if(bBad)
-        SetBadFlag();
+        SetBadFlag(pMap);
 }
 
 map<KeyFrame*, size_t> MapPoint::GetObservations()
@@ -121,7 +117,7 @@ int MapPoint::Observations()
     return nObs;
 }
 
-void MapPoint::SetBadFlag()
+void MapPoint::SetBadFlag(Map * pMap)
 {
     map<KeyFrame*,size_t> obs;
     {
@@ -137,8 +133,8 @@ void MapPoint::SetBadFlag()
         pKF->EraseMapPointMatch(mit->second);
     }
 
-    if (mpMap)
-      mpMap->EraseMapPoint(this);
+    if (pMap)
+      pMap->EraseMapPoint(this);
 }
 
 MapPoint* MapPoint::GetReplaced()
@@ -148,7 +144,7 @@ MapPoint* MapPoint::GetReplaced()
     return mpReplaced;
 }
 
-void MapPoint::Replace(MapPoint* pMP)
+void MapPoint::Replace(MapPoint* pMP, Map * pMap)
 {
     if(pMP->mnId==this->mnId)
         return;
@@ -185,8 +181,8 @@ void MapPoint::Replace(MapPoint* pMP)
     pMP->IncreaseVisible(nvisible);
     pMP->ComputeDistinctiveDescriptors();
 
-    if (mpMap)
-      mpMap->EraseMapPoint(this);
+    if (pMap)
+      pMap->EraseMapPoint(this);
 }
 
 bool MapPoint::isBad()

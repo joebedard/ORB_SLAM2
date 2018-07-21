@@ -38,10 +38,10 @@ using namespace std;
 namespace ORB_SLAM2
 {
 
-Tracking::Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
+Tracking::Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer,
    Mapper* pMapper, const string &strSettingPath, eSensor sensor) :
     mSensor(sensor), mbOnlyTracking(false), mpORBVocabulary(pVoc),
-    mpMap(pMap), mpMapper(pMapper), mpInitializer(static_cast<Initializer*>(NULL)), mpViewer(NULL),
+    mpMapper(pMapper), mpInitializer(static_cast<Initializer*>(NULL)), mpViewer(NULL),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mnLastRelocFrameId(0),
     mbActivateLocalizationMode(false), mbDeactivateLocalizationMode(false), mState(NOT_INITIALIZED)
 {
@@ -421,7 +421,7 @@ void Tracking::StereoInitialization()
             if(z>0)
             {
                 cv::Mat x3D = mCurrentFrame.UnprojectStereo(i);
-                MapPoint* pNewMP = new MapPoint(x3D, pKFini, mpMap);
+                MapPoint* pNewMP = new MapPoint(initMap.NextPointId(), x3D, pKFini);
                 pNewMP->AddObservation(pKFini,i);
                 pKFini->AddMapPoint(pNewMP,i);
                 pNewMP->ComputeDistinctiveDescriptors();
@@ -549,7 +549,7 @@ void Tracking::CreateInitialMapMonocular()
         //Create MapPoint.
         cv::Mat worldPos(mvIniP3D[i]);
 
-        MapPoint* pMP = new MapPoint(worldPos, pKFcur, mpMap);
+        MapPoint* pMP = new MapPoint(initMap.NextPointId(), worldPos, pKFcur);
 
         pKFini->AddMapPoint(pMP,i);
         pKFcur->AddMapPoint(pMP,mvIniMatches[i]);

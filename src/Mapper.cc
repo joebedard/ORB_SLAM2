@@ -122,7 +122,7 @@ namespace ORB_SLAM2
 
       if (sensorType != MONOCULAR)
       {
-         currentFrame.UpdatePoseMatrices();
+         currentFrame.UpdatePoseMatrices(); // could be done in tracker
 
          // We sort points by the measured depth by the stereo/RGBD sensor.
          // We create all those MapPoints whose depth < mThDepth.
@@ -161,14 +161,14 @@ namespace ORB_SLAM2
                if (bCreateNew)
                {
                   cv::Mat x3D = currentFrame.UnprojectStereo(i);
-                  MapPoint* pNewMP = new MapPoint(x3D, pKF, mpMap);
+                  MapPoint* pNewMP = new MapPoint(mpMap->NextPointId(), x3D, pKF);
                   pNewMP->AddObservation(pKF, i);
                   pKF->AddMapPoint(pNewMP, i);
                   pNewMP->ComputeDistinctiveDescriptors();
                   pNewMP->UpdateNormalAndDepth();
                   mpMap->AddMapPoint(pNewMP);
 
-                  currentFrame.mvpMapPoints[i] = pNewMP;
+                  currentFrame.mvpMapPoints[i] = pNewMP; // later used by Tracking::TrackWithMotionModel
                   nPoints++;
                }
                else

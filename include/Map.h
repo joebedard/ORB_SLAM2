@@ -61,8 +61,7 @@ public:
 
     std::mutex mMutexMapUpdate;
 
-    // This avoid that two points are created simultaneously in separate threads (id conflict)
-    std::mutex mMutexPointCreation;
+    long unsigned int NextPointId();
 
 protected:
     std::set<MapPoint*> mspMapPoints;
@@ -74,6 +73,12 @@ protected:
     int mnBigChangeIdx;
 
     std::mutex mMutexMap;
+
+private:
+   // This avoids that two points (with same id) are created simultaneously in separate threads (id conflict)
+   std::mutex mMutexPointCreation;
+
+   long unsigned int mnNextPointId;
 };
 
 } //namespace ORB_SLAM

@@ -25,7 +25,8 @@
 namespace ORB_SLAM2
 {
 
-Map::Map():mnMaxKFid(0),mnBigChangeIdx(0)
+Map::Map()
+: mnMaxKFid(0), mnBigChangeIdx(0), mnNextPointId(0)
 {
 }
 
@@ -126,8 +127,16 @@ Map & Map::operator=(const Map & map)
       this->mspKeyFrames = map.mspKeyFrames;
       this->mnMaxKFid = map.mnMaxKFid;
       this->mnBigChangeIdx = map.mnBigChangeIdx;
+      this->mnNextPointId = map.mnNextPointId;
    }
    return (*this);
+}
+
+long unsigned int Map::NextPointId()
+{
+   // MapPoints can be created from Tracking and Local Mapping. This mutex avoid conflicts with id.
+   unique_lock<mutex> lock(mMutexPointCreation);
+   return ++mnNextPointId;
 }
 
 } //namespace ORB_SLAM

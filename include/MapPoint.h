@@ -35,12 +35,11 @@ class KeyFrame;
 class Map;
 class Frame;
 
-
 class MapPoint
 {
 public:
    // constructor for map points
-    MapPoint(const cv::Mat &Pos, KeyFrame* pRefKF, Map* pMap);
+    MapPoint(long unsigned int id, const cv::Mat &Pos, KeyFrame* pRefKF);
 
     void SetWorldPos(const cv::Mat &Pos);
     cv::Mat GetWorldPos();
@@ -52,15 +51,15 @@ public:
     int Observations();
 
     void AddObservation(KeyFrame* pKF,size_t idx);
-    void EraseObservation(KeyFrame* pKF);
+    void EraseObservation(KeyFrame* pKF, Map * pMap);
 
     int GetIndexInKeyFrame(KeyFrame* pKF);
     bool IsInKeyFrame(KeyFrame* pKF);
 
-    void SetBadFlag();
+    void SetBadFlag(Map * pMap);
     bool isBad();
 
-    void Replace(MapPoint* pMP);    
+    void Replace(MapPoint* pMP, Map * pMap);
     MapPoint* GetReplaced();
 
     void IncreaseVisible(int n=1);
@@ -140,8 +139,6 @@ protected:
      // Scale invariance distances
      float mfMinDistance;
      float mfMaxDistance;
-
-     Map* mpMap;
 
      std::mutex mMutexPos;
      std::mutex mMutexFeatures;

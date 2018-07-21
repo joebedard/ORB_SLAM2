@@ -827,7 +827,7 @@ int ORBmatcher::SearchForTriangulation(KeyFrame *pKF1, KeyFrame *pKF2, cv::Mat F
     return nmatches;
 }
 
-int ORBmatcher::Fuse(KeyFrame *pKF, const vector<MapPoint *> &vpMapPoints, const float th)
+int ORBmatcher::Fuse(KeyFrame *pKF, const vector<MapPoint *> &vpMapPoints, Map * pMap, const float th)
 {
     cv::Mat Rcw = pKF->GetRotation();
     cv::Mat tcw = pKF->GetTranslation();
@@ -962,9 +962,9 @@ int ORBmatcher::Fuse(KeyFrame *pKF, const vector<MapPoint *> &vpMapPoints, const
                 if(!pMPinKF->isBad())
                 {
                     if(pMPinKF->Observations()>pMP->Observations())
-                        pMP->Replace(pMPinKF);
+                        pMP->Replace(pMPinKF, pMap);
                     else
-                        pMPinKF->Replace(pMP);
+                        pMPinKF->Replace(pMP, pMap);
                 }
             }
             else

@@ -47,7 +47,7 @@ class Tracking
 {  
 
 public:
-    Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
+    Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer,
        Mapper* pMapper, const string &strSettingPath, eSensor sensor);
 
     // Preprocess the input and call Track(). Extract features and performs stereo matching.
@@ -154,9 +154,6 @@ protected:
     FrameDrawer* mpFrameDrawer;
     MapDrawer* mpMapDrawer;
 
-    //Map
-    Map* mpMap;
-
     //Calibration matrix
     cv::Mat mK;
     cv::Mat mDistCoef;
@@ -180,7 +177,7 @@ protected:
     //Last Frame, KeyFrame and Relocalisation Info
     KeyFrame* mpLastKeyFrame;
     Frame mLastFrame;
-    unsigned int mnLastKeyFrameId;
+    unsigned int mnLastFrameIdMadeIntoKeyFrame;
     unsigned int mnLastRelocFrameId;
 
     //Motion Model
