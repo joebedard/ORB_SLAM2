@@ -76,9 +76,9 @@ namespace ORB_SLAM2
       return mInitialized;
    }
 
-   bool Mapper::GetStopRequested()
+   bool Mapper::GetPauseRequested()
    {
-      return mpLocalMapper->stopRequested();
+      return mpLocalMapper->PauseRequested();
    }
    
    bool Mapper::AcceptKeyFrames()
@@ -100,7 +100,7 @@ namespace ORB_SLAM2
 
    KeyFrame * Mapper::CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor sensorType)
    {
-      if (!mpLocalMapper->SetNotStop(true))
+      if (!mpLocalMapper->SetNotPause(true))
          return NULL;
 
       // If the mapping accepts keyframes, insert keyframe.
@@ -184,7 +184,7 @@ namespace ORB_SLAM2
 
       mpLocalMapper->InsertKeyFrame(pKF);
 
-      mpLocalMapper->SetNotStop(false);
+      mpLocalMapper->SetNotPause(false);
 
       return pKF;
    }

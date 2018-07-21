@@ -30,7 +30,7 @@ namespace ORB_SLAM2
 
 LocalMapping::LocalMapping(Map *pMap, KeyFrameDatabase* pDB, const float bMonocular) :
     mbMonocular(bMonocular), mbResetRequested(false), mbFinishRequested(false), mbFinished(true), mpMap(pMap), mpKeyFrameDB(pDB),
-    mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbNotStop(false), mbAcceptKeyFrames(true)
+    mbAbortBA(false), mbPaused(false), mbPauseRequested(false), mbNotPause(false), mbAcceptKeyFrames(true)
 {
 }
 
@@ -69,7 +69,7 @@ void LocalMapping::Run()
 
             mbAbortBA = false;
 
-            if(!CheckNewKeyFrames() && !stopRequested())
+            if(!CheckNewKeyFrames() && !PauseRequested())
             {
                 // Local BA
                 if(mpMap->KeyFramesInMap()>2)
@@ -84,10 +84,10 @@ void LocalMapping::Run()
             // Tracking will see that Local Mapping is not busy
             SetAcceptKeyFrames(true);
         }
-        else if(Stop())
+        else if(Pause())
         {
             // Safe area to stop
-            while(isStopped() && !CheckFinish())
+            while(IsPaused() && !CheckFinish())
             {
                 sleep(3000);
             }
@@ -549,20 +549,20 @@ cv::Mat LocalMapping::ComputeF12(KeyFrame *&pKF1, KeyFrame *&pKF2)
     return K1.t().inv()*t12x*R12*K2.inv();
 }
 
-void LocalMapping::RequestStop()
+void LocalMapping::RequestPause()
 {
-    unique_lock<mutex> lock(mMutexStop);
-    mbStopRequested = true;
+    unique_lock<mutex> lock(mMutexPause);
+    mbPauseRequested = true;
     unique_lock<mutex> lock2(mMutexNewKFs);
     mbAbortBA = true;
 }
 
-bool LocalMapping::Stop()
+bool LocalMapping::Pause()
 {
-    unique_lock<mutex> lock(mMutexStop);
-    if(mbStopRequested && !mbNotStop)
+    unique_lock<mutex> lock(mMutexPause);
+    if(mbPauseRequested && !mbNotPause)
     {
-        mbStopped = true;
+        mbPaused = true;
         cout << "Local Mapping STOP" << endl;
         return true;
     }
@@ -570,26 +570,26 @@ bool LocalMapping::Stop()
     return false;
 }
 
-bool LocalMapping::isStopped()
+bool LocalMapping::IsPaused()
 {
-    unique_lock<mutex> lock(mMutexStop);
-    return mbStopped;
+    unique_lock<mutex> lock(mMutexPause);
+    return mbPaused;
 }
 
-bool LocalMapping::stopRequested()
+bool LocalMapping::PauseRequested()
 {
-    unique_lock<mutex> lock(mMutexStop);
-    return mbStopRequested;
+    unique_lock<mutex> lock(mMutexPause);
+    return mbPauseRequested;
 }
 
-void LocalMapping::Release()
+void LocalMapping::Resume()
 {
-    unique_lock<mutex> lock(mMutexStop);
+    unique_lock<mutex> lock(mMutexPause);
     unique_lock<mutex> lock2(mMutexFinish);
     if(mbFinished)
         return;
-    mbStopped = false;
-    mbStopRequested = false;
+    mbPaused = false;
+    mbPauseRequested = false;
     for(list<KeyFrame*>::iterator lit = mlNewKeyFrames.begin(), lend=mlNewKeyFrames.end(); lit!=lend; lit++)
         delete *lit;
     mlNewKeyFrames.clear();
@@ -609,14 +609,14 @@ void LocalMapping::SetAcceptKeyFrames(bool flag)
     mbAcceptKeyFrames=flag;
 }
 
-bool LocalMapping::SetNotStop(bool flag)
+bool LocalMapping::SetNotPause(bool flag)
 {
-    unique_lock<mutex> lock(mMutexStop);
+    unique_lock<mutex> lock(mMutexPause);
 
-    if(flag && mbStopped)
+    if(flag && mbPaused)
         return false;
 
-    mbNotStop = flag;
+    mbNotPause = flag;
 
     return true;
 }
@@ -746,8 +746,8 @@ void LocalMapping::SetFinish()
 {
     unique_lock<mutex> lock(mMutexFinish);
     mbFinished = true;    
-    unique_lock<mutex> lock2(mMutexStop);
-    mbStopped = true;
+    unique_lock<mutex> lock2(mMutexPause);
+    mbPaused = true;
 }
 
 bool LocalMapping::isFinished()

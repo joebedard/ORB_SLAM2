@@ -407,7 +407,7 @@ void LoopClosing::CorrectLoop()
 
     // Send a stop signal to Local Mapping
     // Avoid new keyframes are inserted while correcting the loop
-    mpLocalMapper->RequestStop();
+    mpLocalMapper->RequestPause();
 
     // If a Global Bundle Adjustment is running, abort it
     if(isRunningGBA())
@@ -425,7 +425,7 @@ void LoopClosing::CorrectLoop()
     }
 
     // Wait until Local Mapping has effectively stopped
-    while(!mpLocalMapper->isStopped())
+    while(!mpLocalMapper->IsPaused())
     {
         sleep(1000);
     }
@@ -581,7 +581,7 @@ void LoopClosing::CorrectLoop()
     mpThreadGBA = new thread(&LoopClosing::RunGlobalBundleAdjustment,this,mpCurrentKF->GetId());
 
     // Loop closed. Release Local Mapping.
-    mpLocalMapper->Release();    
+    mpLocalMapper->Resume();    
 
     mLastLoopKFid = mpCurrentKF->GetId();   
 }
@@ -664,10 +664,10 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
         {
             cout << "Global Bundle Adjustment finished" << endl;
             cout << "Updating map ..." << endl;
-            mpLocalMapper->RequestStop();
+            mpLocalMapper->RequestPause();
             // Wait until Local Mapping has effectively stopped
 
-            while(!mpLocalMapper->isStopped() && !mpLocalMapper->isFinished())
+            while(!mpLocalMapper->IsPaused() && !mpLocalMapper->isFinished())
             {
                 sleep(1000);
             }
@@ -740,7 +740,7 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
 
             mpMap->InformNewBigChange();
 
-            mpLocalMapper->Release();
+            mpLocalMapper->Resume();
 
             cout << "Map updated!" << endl;
         }

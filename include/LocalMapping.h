@@ -44,23 +44,21 @@ public:
 
     void SetLoopCloser(LoopClosing* pLoopCloser);
 
-    //void SetTracker(Tracking* pTracker);
-
     // Main function
     void Run();
 
     void InsertKeyFrame(KeyFrame* pKF);
 
     // Thread Synch
-    void RequestStop();
+    void RequestPause();
     void RequestReset();
-    bool Stop();
-    void Release();
-    bool isStopped();
-    bool stopRequested();
+    bool Pause();
+    void Resume();
+    bool IsPaused();
+    bool PauseRequested();
     bool AcceptKeyFrames();
     void SetAcceptKeyFrames(bool flag);
-    bool SetNotStop(bool flag);
+    bool SetNotPause(bool flag);
 
     void InterruptBA();
 
@@ -103,7 +101,6 @@ protected:
     KeyFrameDatabase* mpKeyFrameDB;
 
     LoopClosing* mpLoopCloser;
-    //Tracking* mpTracker;
 
     std::list<KeyFrame*> mlNewKeyFrames;
 
@@ -119,10 +116,10 @@ protected:
     std::mutex mMutexAccept;
 
  private:
-    bool mbStopped;
-    bool mbStopRequested;
-    bool mbNotStop;
-    std::mutex mMutexStop;
+    bool mbPaused;
+    bool mbPauseRequested;
+    bool mbNotPause;
+    std::mutex mMutexPause;
 
 };
 
