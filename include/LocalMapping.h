@@ -47,7 +47,7 @@ public:
     // Main function
     void Run();
 
-    void InsertKeyFrame(KeyFrame* pKF);
+    bool InsertKeyFrame(KeyFrame* pKF);
 
     // Thread Synch
     void RequestPause();

@@ -106,11 +106,32 @@ void LocalMapping::Run()
     SetFinish();
 }
 
-void LocalMapping::InsertKeyFrame(KeyFrame *pKF)
+bool LocalMapping::InsertKeyFrame(KeyFrame *pKF)
 {
+    if (!SetNotPause(true))
+        return false;
+
+    // If the mapping accepts keyframes, insert keyframe.
+    // Otherwise send a signal to interrupt BA
+    if (!AcceptKeyFrames())
+    {
+        InterruptBA();
+        if (!mbMonocular)
+        {
+            if (KeyframesInQueue() >= 3)
+                return false;
+        }
+        else
+            return false;
+    }
+
     unique_lock<mutex> lock(mMutexNewKFs);
     mlNewKeyFrames.push_back(pKF);
     mbAbortBA=true;
+
+    SetNotPause(false);
+
+    return true;
 }
 
 

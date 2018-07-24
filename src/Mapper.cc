@@ -100,34 +100,18 @@ namespace ORB_SLAM2
 
    KeyFrame * Mapper::CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor sensorType)
    {
-      if (!mpLocalMapper->SetNotPause(true))
-         return NULL;
-
-      // If the mapping accepts keyframes, insert keyframe.
-      // Otherwise send a signal to interrupt BA
-      if (!mpLocalMapper->AcceptKeyFrames())
-      {
-         mpLocalMapper->InterruptBA();
-         if (sensorType != MONOCULAR)
-         {
-            if (mpLocalMapper->KeyframesInQueue() >= 3)
-               return NULL;
-         }
-         else
-            return NULL;
-      }
-
       mMaxKeyFrameId++;
       KeyFrame* pKF = new KeyFrame(mMaxKeyFrameId, currentFrame);
+
+      // We sort points by the measured depth by the stereo/RGBD sensor.
+      // We create all those MapPoints whose depth < mThDepth.
+      // If there are less than 100 close points we create the 100 closest.
+      vector<pair<float, int> > vDepthIdx;
 
       if (sensorType != MONOCULAR)
       {
          currentFrame.UpdatePoseMatrices(); // could be done in tracker
 
-         // We sort points by the measured depth by the stereo/RGBD sensor.
-         // We create all those MapPoints whose depth < mThDepth.
-         // If there are less than 100 close points we create the 100 closest.
-         vector<pair<float, int> > vDepthIdx;
          vDepthIdx.reserve(currentFrame.N);
          for (int i = 0; i < currentFrame.N; i++)
          {
@@ -155,8 +139,6 @@ namespace ORB_SLAM2
                   pNewMP->ComputeDistinctiveDescriptors();
                   pNewMP->UpdateNormalAndDepth();
                   mpMap->AddMapPoint(pNewMP);
-
-                  currentFrame.mvpMapPoints[i] = pNewMP; // later used by Tracking::TrackWithMotionModel
                }
 
                if (vDepthIdx[j].first > currentFrame.mThDepth && j > 99)
@@ -165,11 +147,25 @@ namespace ORB_SLAM2
          }
       }
 
-      mpLocalMapper->InsertKeyFrame(pKF);
+      if (mpLocalMapper->InsertKeyFrame(pKF))
+      {
+          if (sensorType != MONOCULAR)
+          {
+             for (size_t j = 0; j<vDepthIdx.size();j++)
+             {
+                int i = vDepthIdx[j].second;
+                MapPoint * pMP = pKF->GetMapPoint(i);
+                if (!pMP || pMP->Observations() < 1)
+                   currentFrame.mvpMapPoints[i] = pMP; // later used by Tracking::TrackWithMotionModel
 
-      mpLocalMapper->SetNotPause(false);
-
-      return pKF;
+                if (vDepthIdx[j].first > currentFrame.mThDepth && j > 99)
+                   break;
+             }
+         }
+         return pKF;
+      }
+      else
+         return NULL;
    }
 
    void Mapper::Initialize(Map & pMap)
