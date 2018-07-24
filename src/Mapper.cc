@@ -142,23 +142,11 @@ namespace ORB_SLAM2
          {
             sort(vDepthIdx.begin(), vDepthIdx.end());
 
-            int nPoints = 0;
             for (size_t j = 0; j<vDepthIdx.size();j++)
             {
                int i = vDepthIdx[j].second;
-
-               bool bCreateNew = false;
-
                MapPoint* pMP = currentFrame.mvpMapPoints[i];
-               if (!pMP)
-                  bCreateNew = true;
-               else if (pMP->Observations()<1)
-               {
-                  bCreateNew = true;
-                  currentFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL);
-               }
-
-               if (bCreateNew)
+               if (!pMP || pMP->Observations() < 1)
                {
                   cv::Mat x3D = currentFrame.UnprojectStereo(i);
                   MapPoint* pNewMP = new MapPoint(mpMap->NextPointId(), x3D, pKF);
@@ -169,14 +157,9 @@ namespace ORB_SLAM2
                   mpMap->AddMapPoint(pNewMP);
 
                   currentFrame.mvpMapPoints[i] = pNewMP; // later used by Tracking::TrackWithMotionModel
-                  nPoints++;
-               }
-               else
-               {
-                  nPoints++;
                }
 
-               if (vDepthIdx[j].first > currentFrame.mThDepth && nPoints > 100)
+               if (vDepthIdx[j].first > currentFrame.mThDepth && j > 99)
                   break;
             }
          }
