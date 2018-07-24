@@ -24,12 +24,24 @@ namespace ORB_SLAM2
 {
 
    Mapper::Mapper(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular)
-      : mpMap(pMap), mpVocab(pVocab), mbMonocular(bMonocular), mInitialized(false), mMaxKeyFrameId(0)
+      : mpMap(pMap), mpVocab(pVocab), mbMonocular(bMonocular), mInitialized(false)
    {
       if (pMap == NULL)
          throw std::exception("pMap must not be NULL");
 
+      if (pVocab == NULL)
+         throw std::exception("pVocab must not be NULL");
+
+      assert(mTrackers.size() == MAX_TRACKERS + 1);
+
       mpKeyFrameDB = new KeyFrameDatabase(*pVocab);
+
+      for (int i = 0; i < MAX_TRACKERS + 1; ++i)
+      {
+         mTrackers[i].connected = false;
+         mTrackers[i].lastKeyFrameId = 0;
+         mTrackers[i].lastMapPointId = 0;
+      }
    }
 
    std::mutex & Mapper::getMutexMapUpdate()
@@ -98,85 +110,16 @@ namespace ORB_SLAM2
       }
    }
 
-   KeyFrame * Mapper::CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor sensorType)
-   {
-      mMaxKeyFrameId++;
-      KeyFrame* pKF = new KeyFrame(mMaxKeyFrameId, currentFrame);
-
-      // We sort points by the measured depth by the stereo/RGBD sensor.
-      // We create all those MapPoints whose depth < mThDepth.
-      // If there are less than 100 close points we create the 100 closest.
-      vector<pair<float, int> > vDepthIdx;
-
-      if (sensorType != MONOCULAR)
-      {
-         currentFrame.UpdatePoseMatrices(); // could be done in tracker
-
-         vDepthIdx.reserve(currentFrame.N);
-         for (int i = 0; i < currentFrame.N; i++)
-         {
-            float z = currentFrame.mvDepth[i];
-            if (z>0)
-            {
-               vDepthIdx.push_back(make_pair(z, i));
-            }
-         }
-
-         if (!vDepthIdx.empty())
-         {
-            sort(vDepthIdx.begin(), vDepthIdx.end());
-
-            for (size_t j = 0; j<vDepthIdx.size();j++)
-            {
-               int i = vDepthIdx[j].second;
-               MapPoint* pMP = currentFrame.mvpMapPoints[i];
-               if (!pMP || pMP->Observations() < 1)
-               {
-                  cv::Mat x3D = currentFrame.UnprojectStereo(i);
-                  MapPoint* pNewMP = new MapPoint(mpMap->NextPointId(), x3D, pKF);
-                  pNewMP->AddObservation(pKF, i);
-                  pKF->AddMapPoint(pNewMP, i);
-                  pNewMP->ComputeDistinctiveDescriptors();
-                  pNewMP->UpdateNormalAndDepth();
-                  mpMap->AddMapPoint(pNewMP);
-               }
-
-               if (vDepthIdx[j].first > currentFrame.mThDepth && j > 99)
-                  break;
-            }
-         }
-      }
-
-      if (mpLocalMapper->InsertKeyFrame(pKF))
-      {
-          if (sensorType != MONOCULAR)
-          {
-             for (size_t j = 0; j<vDepthIdx.size();j++)
-             {
-                int i = vDepthIdx[j].second;
-                MapPoint * pMP = pKF->GetMapPoint(i);
-                if (!pMP || pMP->Observations() < 1)
-                   currentFrame.mvpMapPoints[i] = pMP; // later used by Tracking::TrackWithMotionModel
-
-                if (vDepthIdx[j].first > currentFrame.mThDepth && j > 99)
-                   break;
-             }
-         }
-         return pKF;
-      }
-      else
-         return NULL;
-   }
-
-   void Mapper::Initialize(Map & pMap)
+   void Mapper::Initialize(unsigned int trackerId, Map & pMap)
    {
       if (mInitialized)
          throw std::exception("The mapper may only be initialized once.");
 
-      *mpMap = pMap;
+      if (trackerId != 1)
+         throw std::exception("Only the first Tracker may initialize the map.");
 
       //Initialize the Local Mapping thread and launch
-      mpLocalMapper = new LocalMapping(mpMap, mpKeyFrameDB, mbMonocular);
+      mpLocalMapper = new LocalMapping(mpMap, mpKeyFrameDB, mbMonocular, 0, MAX_TRACKERS + 1);
       mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run, mpLocalMapper);
 
       //Initialize the Loop Closing thread and launch
@@ -189,12 +132,77 @@ namespace ORB_SLAM2
       auto allKFs = pMap.GetAllKeyFrames();
       for (auto it = allKFs.begin(); it != allKFs.end(); it++)
       {
-         mpLocalMapper->InsertKeyFrame(*it);
-         if ((*it)->GetId() > mMaxKeyFrameId)
-            mMaxKeyFrameId = (*it)->GetId();
+         InsertKeyFrame(trackerId, *it);
       }
 
       mInitialized = true;
    }
 
+   bool Mapper::InsertKeyFrame(unsigned int trackerId, KeyFrame *pKF)
+   {
+      if (mpLocalMapper->InsertKeyFrame(pKF))
+      {
+         // update TrackerStatus array with last Id(s)
+
+         assert((pKF->GetId() - trackerId) % KEYFRAME_ID_SPAN == 0);
+         if (mTrackers[trackerId].lastKeyFrameId < pKF->GetId())
+         {
+            mTrackers[trackerId].lastKeyFrameId = pKF->GetId();
+         }
+
+         set<ORB_SLAM2::MapPoint*> mapPoints = pKF->GetMapPoints();
+         for (auto pMP : mapPoints)
+         {
+            assert((pMP->GetId() - trackerId) % MAPPOINT_ID_SPAN == 0);
+            if (mTrackers[trackerId].lastMapPointId < pMP->GetId())
+            {
+               mTrackers[trackerId].lastMapPointId = pMP->GetId();
+            }
+         }
+
+         return true;
+      }
+      else
+         return false;
+   }
+
+   unsigned int Mapper::LoginTracker(unsigned long  & firstKeyFrameId, unsigned int & keyFrameIdSpan, unsigned long & firstMapPointId, unsigned int & mapPointIdSpan)
+   {
+      unsigned int id;
+      /*
+      Note that mTrackers[0] is not used. It might be used in the future by the LocalMapper.
+      */
+      for (id = 1; id <= MAX_TRACKERS; ++id)
+      {
+         if (!mTrackers[id].connected)
+         {
+            mTrackers[id].connected = true;
+            break;
+         }
+      }
+
+      if (id > MAX_TRACKERS)
+         throw std::exception("Maximum number of trackers reached. Additional trackers are not supported.");
+
+      if (0 == mTrackers[id].lastKeyFrameId)
+         firstKeyFrameId = id;
+      else
+         firstKeyFrameId = mTrackers[id].lastKeyFrameId + KEYFRAME_ID_SPAN;
+
+      keyFrameIdSpan = KEYFRAME_ID_SPAN;
+
+      if (0 == mTrackers[id].lastMapPointId)
+         firstMapPointId = id;
+      else
+         firstMapPointId = mTrackers[id].lastMapPointId + MAPPOINT_ID_SPAN;
+
+      mapPointIdSpan = MAPPOINT_ID_SPAN;
+
+      return id;
+   }
+
+   void Mapper::LogoutTracker(unsigned int id)
+   {
+      mTrackers[id].connected = false;
+   }
 }

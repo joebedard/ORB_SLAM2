@@ -81,8 +81,8 @@ public:
     int PredictScale(const float &currentDist, Frame* pF);
 
 public:
-    long unsigned int mnId;
-    static long unsigned int nNextId;
+   unsigned long MapPoint::GetId();
+
     long int mnFirstKFid;
     long int mnFirstFrame;
     int nObs;
@@ -142,6 +142,9 @@ protected:
 
      std::mutex mMutexPos;
      std::mutex mMutexFeatures;
+
+private:
+   long unsigned int mnId;
 };
 
 } //namespace ORB_SLAM

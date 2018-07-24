@@ -61,8 +61,6 @@ public:
 
     std::mutex mMutexMapUpdate;
 
-    long unsigned int NextPointId();
-
 protected:
     std::set<MapPoint*> mspMapPoints;
     std::set<KeyFrame*> mspKeyFrames;

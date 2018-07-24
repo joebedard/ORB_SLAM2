@@ -28,7 +28,6 @@
 
 #include <mutex>
 
-
 namespace ORB_SLAM2
 {
 
@@ -40,7 +39,7 @@ class Mapper;
 class LocalMapping
 {
 public:
-    LocalMapping(Map* pMap, KeyFrameDatabase* pDB, const float bMonocular);
+    LocalMapping(Map* pMap, KeyFrameDatabase* pDB, const float bMonocular, unsigned long firstMapPointId, unsigned int mapPointIdSpan);
 
     void SetLoopCloser(LoopClosing* pLoopCloser);
 
@@ -116,11 +115,14 @@ protected:
     std::mutex mMutexAccept;
 
  private:
+    unsigned long mNextMapPointId;
+    unsigned int mMapPointIdSpan;
     bool mbPaused;
     bool mbPauseRequested;
     bool mbNotPause;
     std::mutex mMutexPause;
 
+    unsigned long NewMapPointId();
 };
 
 } //namespace ORB_SLAM

@@ -25,6 +25,7 @@
 #include<opencv2/core/core.hpp>
 #include<opencv2/features2d/features2d.hpp>
 
+#include "Mapper.h"
 #include "Viewer.h"
 #include "FrameDrawer.h"
 #include "Frame.h"
@@ -33,7 +34,6 @@
 #include "Initializer.h"
 #include "Map.h"
 #include "MapDrawer.h"
-#include "Mapper.h"
 #include "Enums.h"
 #include <mutex>
 
@@ -48,7 +48,9 @@ class Tracking
 
 public:
     Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer,
-       Mapper* pMapper, const string &strSettingPath, eSensor sensor);
+       Map* pMap, Mapper* pMapper, const string &strSettingPath, eSensor sensor);
+
+    ~Tracking();
 
     // Preprocess the input and call Track(). Extract features and performs stereo matching.
     cv::Mat GrabImageStereo(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp);
@@ -132,8 +134,6 @@ protected:
     bool TrackLocalMap();
     void SearchLocalPoints();
 
-    bool NeedNewKeyFrame();
-
     //ORB
     ORBextractor* mpORBextractorLeft, *mpORBextractorRight;
     ORBextractor* mpIniORBextractor;
@@ -153,6 +153,9 @@ protected:
     Viewer* mpViewer;
     FrameDrawer* mpFrameDrawer;
     MapDrawer* mpMapDrawer;
+
+    //Map
+    Map* mpMap;
 
     //Calibration matrix
     cv::Mat mK;
@@ -198,12 +201,32 @@ private:
    std::mutex mMutexReset;
    bool mbReset;
 
-   // Mapper
    Mapper * mpMapper;
+
+   unsigned int mId;
+
+   unsigned long mNextKeyFrameId;
+
+   unsigned int mKeyFrameIdSpan;
+
+   unsigned long mNextMapPointId; 
+
+   unsigned int mMapPointIdSpan;
+
+   void LoadCameraParameters(const string & strFilePath, eSensor sensor);
 
    void CheckModeChange();
 
    void CheckReset();
+
+   bool NeedNewKeyFrame();
+
+   KeyFrame * CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor sensorType);
+
+   unsigned long NewKeyFrameId();
+
+   unsigned long NewMapPointId();
+
 };
 
 } //namespace ORB_SLAM

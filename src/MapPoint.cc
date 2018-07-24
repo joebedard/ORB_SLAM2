@@ -26,7 +26,6 @@
 namespace ORB_SLAM2
 {
 
-long unsigned int MapPoint::nNextId=0;
 mutex MapPoint::mGlobalMutex;
 
 MapPoint::MapPoint(long unsigned int id, const cv::Mat &Pos, KeyFrame *pRefKF):
@@ -394,6 +393,9 @@ int MapPoint::PredictScale(const float &currentDist, Frame* pF)
     return nScale;
 }
 
-
+unsigned long MapPoint::GetId()
+{
+   return mnId;
+}
 
 } //namespace ORB_SLAM

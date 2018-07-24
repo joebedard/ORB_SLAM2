@@ -52,18 +52,33 @@ namespace ORB_SLAM2
 
       virtual void Shutdown();
 
-      virtual KeyFrame * CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor sensorType);
+      bool InsertKeyFrame(unsigned int trackerId, KeyFrame* pKF);
 
-      virtual void Initialize(Map & pMap);
+      virtual void Initialize(unsigned int trackerId, Map & pMap);
 
       virtual bool GetInitialized();
 
+      unsigned int LoginTracker(unsigned long  & firstKeyFrameId, unsigned int & keyFrameIdSpan, unsigned long & firstMapPointId, unsigned int & mapPointIdSpan);
+
+      void LogoutTracker(unsigned int id);
+
    private:
+      static const unsigned int MAX_TRACKERS = 2;
+      static const unsigned int KEYFRAME_ID_SPAN = 2;
+      static const unsigned int MAPPOINT_ID_SPAN = 3;
+
+      struct TrackerStatus {
+         bool connected;
+         unsigned long lastKeyFrameId;
+         unsigned long lastMapPointId;
+      };
+      TrackerStatus mTrackers[MAX_TRACKERS + 1];
+
       ORBVocabulary * mpVocab;
       bool mbMonocular;
       KeyFrameDatabase * mpKeyFrameDB;
       Map* mpMap;
-      long unsigned int mMaxKeyFrameId;
+      unsigned int mMaxTrackers;
 
       // initialization variables
       bool mInitialized;
@@ -73,6 +88,7 @@ namespace ORB_SLAM2
       // System threads: Local Mapping, Loop Closing
       std::thread* mptLocalMapping;
       std::thread* mptLoopClosing;
+
    };
 
 }

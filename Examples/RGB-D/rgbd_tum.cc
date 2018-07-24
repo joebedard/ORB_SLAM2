@@ -34,7 +34,7 @@ using namespace std;
 void LoadImages(const string &strAssociationFilename, vector<string> &vstrImageFilenamesRGB,
                 vector<string> &vstrImageFilenamesD, vector<double> &vTimestamps);
 
-int main(int argc, char **argv)
+int main(int argc, char **argv) try
 {
     if(argc != 5)
     {
@@ -138,6 +138,11 @@ int main(int argc, char **argv)
     SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");   
 
     return 0;
+}
+catch (const std::exception& e)
+{
+   std::cerr << e.what() << std::endl;
+   return -1;
 }
 
 void LoadImages(const string &strAssociationFilename, vector<string> &vstrImageFilenamesRGB,

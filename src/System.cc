@@ -19,7 +19,6 @@
 */
 
 
-
 #include "System.h"
 #include "Converter.h"
 #include "Sleep.h"
@@ -82,7 +81,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     //Initialize the Tracking thread
     //(it will live in the main thread of execution, the one that called this constructor)
     mpTracker = new Tracking(mpVocabulary, mpFrameDrawer, mpMapDrawer,
-       mpMapper, strSettingsFile, mSensor);
+       mpMap, mpMapper, strSettingsFile, mSensor);
 
     //Initialize the Viewer thread and launch
     if(bUseViewer)
@@ -92,6 +91,16 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         mpTracker->SetViewer(mpViewer);
     }
 
+}
+
+System::~System()
+{
+   delete mpViewer;
+   delete mpFrameDrawer;
+   delete mpMapDrawer;
+   delete mpTracker;
+   delete mpMapper;
+   delete mpMap;
 }
 
 cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp)
@@ -166,15 +175,12 @@ void System::Shutdown()
         mpViewer->RequestFinish();
         while(!mpViewer->isFinished())
             sleep(5000);
-        delete mpViewer;
-        mpViewer = static_cast<Viewer*>(NULL);
+
+        //this causes freeze at shutdown. not sure why it was here.
+        //pangolin::BindToContext("ORB-SLAM2: Map Viewer");
     }
 
-    if(mpViewer)
-        pangolin::BindToContext("ORB-SLAM2: Map Viewer");
-
-   mpMapper->Shutdown();
-   delete mpMapper;
+    mpMapper->Shutdown();
 }
 
 void System::SaveTrajectoryTUM(const string &filename)

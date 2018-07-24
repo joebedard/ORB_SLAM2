@@ -28,9 +28,10 @@
 namespace ORB_SLAM2
 {
 
-LocalMapping::LocalMapping(Map *pMap, KeyFrameDatabase* pDB, const float bMonocular) :
+LocalMapping::LocalMapping(Map *pMap, KeyFrameDatabase* pDB, const float bMonocular, unsigned long firstMapPointId, unsigned int mapPointIdSpan) :
     mbMonocular(bMonocular), mbResetRequested(false), mbFinishRequested(false), mbFinished(true), mpMap(pMap), mpKeyFrameDB(pDB),
-    mbAbortBA(false), mbPaused(false), mbPauseRequested(false), mbNotPause(false), mbAcceptKeyFrames(true)
+    mbAbortBA(false), mbPaused(false), mbPauseRequested(false), mbNotPause(false), mbAcceptKeyFrames(true),
+    mNextMapPointId(firstMapPointId), mMapPointIdSpan(mapPointIdSpan)
 {
 }
 
@@ -41,7 +42,6 @@ void LocalMapping::SetLoopCloser(LoopClosing* pLoopCloser)
 
 void LocalMapping::Run()
 {
-
     mbFinished = false;
 
     while(1)
@@ -447,7 +447,7 @@ void LocalMapping::CreateNewMapPoints()
                 continue;
 
             // Triangulation is succesfull
-            MapPoint* pMP = new MapPoint(mpMap->NextPointId(), x3D, mpCurrentKeyFrame);
+            MapPoint* pMP = new MapPoint(NewMapPointId(), x3D, mpCurrentKeyFrame);
 
             pMP->AddObservation(mpCurrentKeyFrame,idx1);            
             pMP->AddObservation(pKF2,idx2);
@@ -775,6 +775,13 @@ bool LocalMapping::isFinished()
 {
     unique_lock<mutex> lock(mMutexFinish);
     return mbFinished;
+}
+
+unsigned long LocalMapping::NewMapPointId()
+{
+    unsigned long temp = mNextMapPointId;
+    mNextMapPointId += mMapPointIdSpan;
+    return temp;
 }
 
 } //namespace ORB_SLAM

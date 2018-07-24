@@ -36,7 +36,7 @@ using namespace std;
 void LoadImages(const string &strPathLeft, const string &strPathRight, const string &strPathTimes,
                 vector<string> &vstrImageLeft, vector<string> &vstrImageRight, vector<double> &vTimeStamps);
 
-int main(int argc, char **argv)
+int main(int argc, char **argv) try
 {
     if(argc != 6)
     {
@@ -189,6 +189,11 @@ int main(int argc, char **argv)
     SLAM.SaveTrajectoryTUM("CameraTrajectory.txt");
 
     return 0;
+}
+catch (const std::exception& e)
+{
+   std::cerr << e.what() << std::endl;
+   return -1;
 }
 
 void LoadImages(const string &strPathLeft, const string &strPathRight, const string &strPathTimes,

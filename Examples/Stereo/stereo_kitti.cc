@@ -35,7 +35,7 @@ using namespace std;
 void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
                 vector<string> &vstrImageRight, vector<double> &vTimestamps);
 
-int main(int argc, char **argv)
+int main(int argc, char **argv) try
 {
     if(argc != 4)
     {
@@ -126,6 +126,11 @@ int main(int argc, char **argv)
     SLAM.SaveTrajectoryKITTI("CameraTrajectory.txt");
 
     return 0;
+}
+catch (const std::exception& e)
+{
+   std::cerr << e.what() << std::endl;
+   return -1;
 }
 
 void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,

@@ -132,11 +132,4 @@ Map & Map::operator=(const Map & map)
    return (*this);
 }
 
-long unsigned int Map::NextPointId()
-{
-   // MapPoints can be created from Tracking and Local Mapping. This mutex avoid conflicts with id.
-   unique_lock<mutex> lock(mMutexPointCreation);
-   return ++mnNextPointId;
-}
-
 } //namespace ORB_SLAM
