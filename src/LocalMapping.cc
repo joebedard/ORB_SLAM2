@@ -95,7 +95,7 @@ void LocalMapping::Run()
                 break;
         }
 
-        //ResetIfRequested();
+        ResetIfRequested();
 
         if(CheckFinish())
             break;
