@@ -39,14 +39,14 @@ namespace ORB_SLAM2
 {
 
 Tracking::Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer,
-    Map* pMap, Mapper* pMapper, const string &strSettingPath, eSensor sensor) :
+    Map* pMap, Mapper* pMapper, cv::FileStorage & fSettings, eSensor sensor) :
     mSensor(sensor), mbOnlyTracking(false), mpORBVocabulary(pVoc), mpMap(pMap),
     mpMapper(pMapper), mpInitializer(static_cast<Initializer*>(NULL)), mpViewer(NULL),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mnLastRelocFrameId(0),
     mbActivateLocalizationMode(false), mbDeactivateLocalizationMode(false), mState(NOT_INITIALIZED),
     mNextKeyFrameId(0), mKeyFrameIdSpan(0), mNextMapPointId(0), mMapPointIdSpan(0)
 {
-    LoadCameraParameters(strSettingPath, sensor);
+    LoadCameraParameters(fSettings, sensor);
     Login();
 }
 
@@ -55,11 +55,10 @@ Tracking::~Tracking()
    mpMapper->LogoutTracker(mId);
 }
 
-void Tracking::LoadCameraParameters(const string & strFilePath, eSensor sensor)
+void Tracking::LoadCameraParameters(cv::FileStorage & fSettings, eSensor sensor)
 {
     // Load camera parameters from settings file
 
-    cv::FileStorage fSettings(strFilePath, cv::FileStorage::READ);
     float fx = fSettings["Camera.fx"];
     float fy = fSettings["Camera.fy"];
     float cx = fSettings["Camera.cx"];

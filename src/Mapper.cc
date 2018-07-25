@@ -32,8 +32,6 @@ namespace ORB_SLAM2
       if (pVocab == NULL)
          throw std::exception("pVocab must not be NULL");
 
-      assert(mTrackers.size() == MAX_TRACKERS + 1);
-
       mpKeyFrameDB = new KeyFrameDatabase(*pVocab);
 
       ResetTrackerStatus();

@@ -48,7 +48,7 @@ class Tracking
 
 public:
     Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer,
-       Map* pMap, Mapper* pMapper, const string &strSettingPath, eSensor sensor);
+       Map* pMap, Mapper* pMapper, cv::FileStorage & settings, eSensor sensor);
 
     ~Tracking();
 
@@ -213,7 +213,7 @@ private:
 
    unsigned int mMapPointIdSpan;
 
-   void LoadCameraParameters(const string & strFilePath, eSensor sensor);
+   void LoadCameraParameters(cv::FileStorage & settings, eSensor sensor);
 
    void CheckModeChange();
 

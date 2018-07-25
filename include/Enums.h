@@ -31,7 +31,7 @@ namespace ORB_SLAM2
    };
 
     // Input sensor
-    enum eSensor{
+    enum eSensor {
         MONOCULAR=0,
         STEREO=1,
         RGBD=2

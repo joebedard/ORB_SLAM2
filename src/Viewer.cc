@@ -30,12 +30,10 @@ namespace ORB_SLAM2
 
 const char * Viewer::CURRENT_FRAME_WINDOW_NAME = "ORB-SLAM2: Current Frame";
 
-Viewer::Viewer(FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, const string &strSettingPath):
+Viewer::Viewer(FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, cv::FileStorage & fSettings):
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpTracker(pTracking),
     mbFinishRequested(false), mbFinished(true), mbStopped(true), mbStopRequested(false), mbResetting(false)
 {
-    cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
-
     float fps = fSettings["Camera.fps"];
     if(fps<1)
         fps=30;

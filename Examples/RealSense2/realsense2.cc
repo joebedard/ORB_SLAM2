@@ -103,7 +103,7 @@ int main(int argc, char * argv[]) try
    }
 
    // Create SLAM system. It initializes all system threads and gets ready to process frames.
-   ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::STEREO, true);
+   ORB_SLAM2::System SLAM(strVocFile, strSettingsFile, ORB_SLAM2::eSensor::STEREO, true);
 
    // Vector for tracking time statistics
    vector<float> vTimesTrack;
@@ -165,9 +165,6 @@ int main(int argc, char * argv[]) try
    cout << "-------" << endl << endl;
    cout << "median tracking time: " << vTimesTrack[vTimesTrack.size() / 2] << endl;
    cout << "mean tracking time: " << totaltime / vTimesTrack.size() << endl;
-
-   // Save camera trajectory
-   SLAM.SaveTrajectoryKITTI("RealSense2CameraTrajectory.txt");
 
    return EXIT_SUCCESS;
 }
