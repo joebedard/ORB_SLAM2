@@ -1,0 +1,39 @@
+rs-enumerate-devices.exe -c
+
+Intrinsic of "Depth"      640x480         Z16
+Width:          640
+Height:         480
+PPX:            319.657806396484
+PPY:            243.611282348633
+Fx:             383.242828369141
+Fy:             383.242828369141
+Distortion:     Brown Conrady
+Coeffs:         0       0       0       0       0
+
+Intrinsic of "Infrared 1"         640x480         Y8
+Width:          640
+Height:         480
+PPX:            319.657806396484
+PPY:            243.611282348633
+Fx:             383.242828369141
+Fy:             383.242828369141
+Distortion:     Brown Conrady
+Coeffs:         0       0       0       0       0
+
+Intrinsic of "Infrared 2"         640x480         Y8
+Width:          640
+Height:         480
+PPX:            319.657806396484
+PPY:            243.611282348633
+Fx:             383.242828369141
+Fy:             383.242828369141
+Distortion:     Brown Conrady
+Coeffs:         0       0       0       0       0
+
+Extrinsic from "Infrared 1"       To      "Infrared 2" :
+Rotation Matrix:
+1              0              0
+0              1              0
+0              0              1
+
+Translation Vector: -0.0498920977115631  0  0

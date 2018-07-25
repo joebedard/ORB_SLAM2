@@ -171,6 +171,10 @@ add_executable(realsense2
 Examples/RealSense2/realsense2.cc)
 target_link_libraries(realsense2 ${PROJECT_NAME} ${RealSense2_LIBS})
 
+add_executable(realsense2dual
+Examples/RealSense2Dual/realsense2dual.cc)
+target_link_libraries(realsense2dual ${PROJECT_NAME} ${RealSense2_LIBS})
+
 # build client and server
 
 add_executable(client
