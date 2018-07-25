@@ -47,17 +47,7 @@ Tracking::Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pM
     mNextKeyFrameId(0), mKeyFrameIdSpan(0), mNextMapPointId(0), mMapPointIdSpan(0)
 {
     LoadCameraParameters(strSettingPath, sensor);
-
-    mId = mpMapper->LoginTracker(mNextKeyFrameId, mKeyFrameIdSpan, mNextMapPointId, mMapPointIdSpan);
-    assert(mKeyFrameIdSpan != 0);
-    assert(mKeyFrameIdSpan != 0);
-    cout << endl;
-    cout << "Tracker Login Complete" << endl;
-    cout << "Tracker Id:         " << mId << endl;
-    cout << "First Keyframe Id:  " << mNextKeyFrameId << endl;
-    cout << "Keyframe Id Span:   " << mKeyFrameIdSpan << endl;
-    cout << "First Map Point Id: " << mNextMapPointId << endl;
-    cout << "Map Point Id Span:  " << mMapPointIdSpan << endl;
+    Login();
 }
 
 Tracking::~Tracking()
@@ -290,15 +280,20 @@ void Tracking::Track()
 
     if (!mpMapper->GetInitialized())
     {
-        if(mSensor==STEREO || mSensor==RGBD)
-            StereoInitialization();
+        if (0 == mId)
+        {
+            if(mSensor==STEREO || mSensor==RGBD)
+                StereoInitialization();
+            else
+                MonocularInitialization();
+
+            mpFrameDrawer->Update(this);
+
+            if (!mpMapper->GetInitialized())
+                return;
+        }
         else
-            MonocularInitialization();
-
-        mpFrameDrawer->Update(this);
-
-        if (!mpMapper->GetInitialized())
-            return;
+          return;
     }
     else
     {
@@ -1260,7 +1255,9 @@ void Tracking::Reset()
             sleep(3000);
     }
 
+    mpMapper->LogoutTracker(mId);
     mpMapper->Reset();
+    Login();
 
     if(mpInitializer)
     {
@@ -1432,6 +1429,20 @@ unsigned long Tracking::NewMapPointId()
     unsigned long temp = mNextMapPointId;
     mNextMapPointId += mMapPointIdSpan;
     return temp;
+}
+
+void Tracking::Login()
+{
+   mId = mpMapper->LoginTracker(mNextKeyFrameId, mKeyFrameIdSpan, mNextMapPointId, mMapPointIdSpan);
+   assert(mKeyFrameIdSpan != 0);
+   assert(mKeyFrameIdSpan != 0);
+   cout << endl;
+   cout << "Tracker Login Complete" << endl;
+   cout << "Tracker Id:         " << mId << endl;
+   cout << "First Keyframe Id:  " << mNextKeyFrameId << endl;
+   cout << "Keyframe Id Span:   " << mKeyFrameIdSpan << endl;
+   cout << "First Map Point Id: " << mNextMapPointId << endl;
+   cout << "Map Point Id Span:  " << mMapPointIdSpan << endl;
 }
 
 } //namespace ORB_SLAM

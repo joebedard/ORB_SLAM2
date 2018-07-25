@@ -227,6 +227,7 @@ private:
 
    unsigned long NewMapPointId();
 
+   void Login();
 };
 
 } //namespace ORB_SLAM

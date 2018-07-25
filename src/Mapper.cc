@@ -36,12 +36,7 @@ namespace ORB_SLAM2
 
       mpKeyFrameDB = new KeyFrameDatabase(*pVocab);
 
-      for (int i = 0; i < MAX_TRACKERS + 1; ++i)
-      {
-         mTrackers[i].connected = false;
-         mTrackers[i].lastKeyFrameId = 0;
-         mTrackers[i].lastMapPointId = 0;
-      }
+      ResetTrackerStatus();
    }
 
    std::mutex & Mapper::getMutexMapUpdate()
@@ -74,6 +69,7 @@ namespace ORB_SLAM2
       // Clear Map (this erase MapPoints and KeyFrames)
       mpMap->clear();
 
+      ResetTrackerStatus();
       Frame::nNextId = 0;
       mInitialized = false;
    }
@@ -115,11 +111,11 @@ namespace ORB_SLAM2
       if (mInitialized)
          throw std::exception("The mapper may only be initialized once.");
 
-      if (trackerId != 1)
-         throw std::exception("Only the first Tracker may initialize the map.");
+      if (trackerId != 0)
+         throw std::exception("Only the first Tracker (id=0) may initialize the map.");
 
       //Initialize the Local Mapping thread and launch
-      mpLocalMapper = new LocalMapping(mpMap, mpKeyFrameDB, mbMonocular, 0, MAX_TRACKERS + 1);
+      mpLocalMapper = new LocalMapping(mpMap, mpKeyFrameDB, mbMonocular, FIRST_MAPPOINT_ID_LOCALMAPPER, MAPPOINT_ID_SPAN);
       mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run, mpLocalMapper);
 
       //Initialize the Loop Closing thread and launch
@@ -145,21 +141,23 @@ namespace ORB_SLAM2
          // update TrackerStatus array with last Id(s)
 
          assert((pKF->GetId() - trackerId) % KEYFRAME_ID_SPAN == 0);
-         if (mTrackers[trackerId].lastKeyFrameId < pKF->GetId())
+         if (mTrackers[trackerId].nextKeyFrameId < pKF->GetId())
          {
-            mTrackers[trackerId].lastKeyFrameId = pKF->GetId();
+            mTrackers[trackerId].nextKeyFrameId = pKF->GetId();
          }
 
          set<ORB_SLAM2::MapPoint*> mapPoints = pKF->GetMapPoints();
          for (auto pMP : mapPoints)
          {
             assert((pMP->GetId() - trackerId) % MAPPOINT_ID_SPAN == 0);
-            if (mTrackers[trackerId].lastMapPointId < pMP->GetId())
+            if (mTrackers[trackerId].nextMapPointId < pMP->GetId())
             {
-               mTrackers[trackerId].lastMapPointId = pMP->GetId();
+               mTrackers[trackerId].nextMapPointId = pMP->GetId();
             }
          }
 
+         mTrackers[trackerId].nextKeyFrameId += KEYFRAME_ID_SPAN;
+         mTrackers[trackerId].nextMapPointId += MAPPOINT_ID_SPAN;
          return true;
       }
       else
@@ -169,10 +167,7 @@ namespace ORB_SLAM2
    unsigned int Mapper::LoginTracker(unsigned long  & firstKeyFrameId, unsigned int & keyFrameIdSpan, unsigned long & firstMapPointId, unsigned int & mapPointIdSpan)
    {
       unsigned int id;
-      /*
-      Note that mTrackers[0] is not used. It might be used in the future by the LocalMapper.
-      */
-      for (id = 1; id <= MAX_TRACKERS; ++id)
+      for (id = 0; id < MAX_TRACKERS; ++id)
       {
          if (!mTrackers[id].connected)
          {
@@ -181,21 +176,12 @@ namespace ORB_SLAM2
          }
       }
 
-      if (id > MAX_TRACKERS)
+      if (id >= MAX_TRACKERS)
          throw std::exception("Maximum number of trackers reached. Additional trackers are not supported.");
 
-      if (0 == mTrackers[id].lastKeyFrameId)
-         firstKeyFrameId = id;
-      else
-         firstKeyFrameId = mTrackers[id].lastKeyFrameId + KEYFRAME_ID_SPAN;
-
+      firstKeyFrameId = mTrackers[id].nextKeyFrameId;
       keyFrameIdSpan = KEYFRAME_ID_SPAN;
-
-      if (0 == mTrackers[id].lastMapPointId)
-         firstMapPointId = id;
-      else
-         firstMapPointId = mTrackers[id].lastMapPointId + MAPPOINT_ID_SPAN;
-
+      firstMapPointId = mTrackers[id].nextMapPointId;
       mapPointIdSpan = MAPPOINT_ID_SPAN;
 
       return id;
@@ -204,5 +190,15 @@ namespace ORB_SLAM2
    void Mapper::LogoutTracker(unsigned int id)
    {
       mTrackers[id].connected = false;
+   }
+
+   void Mapper::ResetTrackerStatus()
+   {
+      for (int i = 0; i < MAX_TRACKERS; ++i)
+      {
+         mTrackers[i].connected = false;
+         mTrackers[i].nextKeyFrameId = i;
+         mTrackers[i].nextMapPointId = i;
+      }
    }
 }
