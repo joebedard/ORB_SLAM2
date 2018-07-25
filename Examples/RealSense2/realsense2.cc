@@ -69,13 +69,14 @@ int main(int argc, char * argv[]) try
    parseArgs(argc, argv);
 
    //Check settings file
-   cv::FileStorage fsSettings(argv[2], cv::FileStorage::READ);
+   cv::FileStorage fsSettings(strSettingsFile, cv::FileStorage::READ);
    if (!fsSettings.isOpened())
    {
       cerr << "Failed to open settings file at: " << strSettingsFile << endl;
       return EXIT_FAILURE;
    }
 
+   string serial = fsSettings["Camera.serial"];
    int width = fsSettings["Camera.width"];
    int height = fsSettings["Camera.height"];
 
@@ -84,6 +85,7 @@ int main(int argc, char * argv[]) try
 
    // create and resolve custom configuration for RealSense
    rs2::config customConfig;
+   customConfig.enable_device(serial);
    customConfig.enable_stream(RS2_STREAM_INFRARED, 1, width, height, RS2_FORMAT_Y8, 30);
    customConfig.enable_stream(RS2_STREAM_INFRARED, 2, width, height, RS2_FORMAT_Y8, 30);
    if (!customConfig.can_resolve(pipe))
