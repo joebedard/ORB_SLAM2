@@ -39,22 +39,23 @@ using namespace std;
 using namespace ORB_SLAM2;
 using namespace cv;
 
+const int TRACKER_QUANTITY = 2;
 struct ThreadParam
 {
    int returnCode;
    char * settingsFilePath;
    ORBVocabulary * vocabulary;
    Map * map;
-   MapDrawer * mapDrawer;
    Mapper * mapper;
+   mutex * mutexOutput;
+   vector<float> timesTrack;
+   thread * threadObj;
 };
-ThreadParam mThreadParams[2];
+ThreadParam mThreadParams[TRACKER_QUANTITY];
 bool mShouldRun = true;
 
 // command line parameters
 char * mVocFile = NULL;
-char * mSettingsFile1 = NULL;
-char * mSettingsFile2 = NULL;
 
 void ParseParams(int paramc, char * paramv[])
 {
@@ -65,8 +66,6 @@ void ParseParams(int paramc, char * paramv[])
       throw e;
    }
    mVocFile = paramv[1];
-   mSettingsFile1 = paramv[2];
-   mSettingsFile2 = paramv[3];
 }
 
 void ParseSettings(FileStorage & settings, const char * settingsFilePath, string & serial, int & width, int & height)
@@ -117,12 +116,16 @@ void RunTracker(int threadId) try
    sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 0);
 
    FrameDrawer frameDrawer(mThreadParams[threadId].map);
+   MapDrawer mapDrawer(mThreadParams[threadId].map, settings);
 
-   Tracking tracker(mThreadParams[threadId].vocabulary, &frameDrawer, mThreadParams[threadId].mapDrawer,
+   Tracking tracker(mThreadParams[threadId].vocabulary, &frameDrawer, &mapDrawer,
       mThreadParams[threadId].map, mThreadParams[threadId].mapper, settings, eSensor::STEREO);
 
-   // vector for tracking time statistics
-   vector<float> vTimesTrack;
+   //Initialize and start the Viewer thread
+   Viewer viewer(&frameDrawer, &mapDrawer, &tracker, settings);
+   thread viewerThread(&Viewer::Run, &viewer);
+   tracker.SetViewer(&viewer);
+
    std::chrono::steady_clock::time_point tStart = std::chrono::steady_clock::now();
 
    while (mShouldRun)
@@ -145,44 +148,89 @@ void RunTracker(int threadId) try
 
       double ttrack = std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
 
-      vTimesTrack.push_back(ttrack);
+      mThreadParams[threadId].timesTrack.push_back(ttrack);
    }
 
-   // calculate time statistics
-   sort(vTimesTrack.begin(), vTimesTrack.end());
-   float totaltime = 0;
-   for (int i = 0; i<vTimesTrack.size(); i++)
-   {
-      totaltime += vTimesTrack[i];
-   }
-   cout << "tracking time statistics for thread " << threadId << ":" << endl;
-   cout << "   median tracking time: " << vTimesTrack[vTimesTrack.size() / 2] << endl;
-   cout << "   mean tracking time: " << totaltime / vTimesTrack.size() << endl;
+   viewer.RequestFinish();
+   viewerThread.join();
 
    mThreadParams[threadId].returnCode = EXIT_SUCCESS;
 }
 catch (const rs2::error & e)
 {
+   unique_lock<mutex> lock(*mThreadParams[threadId].mutexOutput);
    std::cerr << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
    mThreadParams[threadId].returnCode = EXIT_FAILURE;
 }
 catch (const std::exception& e)
 {
+   unique_lock<mutex> lock(*mThreadParams[threadId].mutexOutput);
    std::cerr << e.what() << std::endl;
    mThreadParams[threadId].returnCode = EXIT_FAILURE;
+}
+
+void printStatistics()
+{
+   for (int i = 0; i < TRACKER_QUANTITY; ++i)
+   {
+      vector<float> & vTimesTrack = mThreadParams[i].timesTrack;
+
+      // calculate time statistics
+      sort(vTimesTrack.begin(), vTimesTrack.end());
+      float totaltime = 0;
+      for (int i = 0; i<vTimesTrack.size(); i++)
+      {
+         totaltime += vTimesTrack[i];
+      }
+
+      cout << "tracking time statistics for thread " << i << ":" << endl;
+      cout << "   median tracking time: " << vTimesTrack[vTimesTrack.size() / 2] << endl;
+      cout << "   mean tracking time: " << totaltime / vTimesTrack.size() << endl;
+   }
 }
 
 int main(int paramc, char * paramv[]) try
 {
    ParseParams(paramc, paramv);
 
-   /*
-   TODO:
-   + create map, mapper, viewers, etc
-   + start tracker threads
-   + map drawer loop
-   + join threads
-   */
+   //Load ORB Vocabulary
+   cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
+   ORBVocabulary * pVocab = new ORBVocabulary();
+   bool bVocLoad = pVocab->loadFromTextFile(mVocFile);
+   if (!bVocLoad)
+   {
+      cerr << "Wrong path to vocabulary. " << endl;
+      cerr << "Falied to open at: " << mVocFile << endl;
+      exit(-1);
+   }
+   cout << "Vocabulary loaded!" << endl << endl;
+
+   //Create the Map
+   Map * pMap = new Map();
+
+   //Initialize the Mapper
+   Mapper * pMapper = new Mapper(pMap, pVocab, false);
+
+   //Create mutex for output synchronization
+   mutex * pMutexOutput = new mutex();
+
+   for (int i = 0; i < TRACKER_QUANTITY; ++i)
+   {
+      mThreadParams[i].settingsFilePath = paramv[i+2];
+      mThreadParams[i].vocabulary = pVocab;
+      mThreadParams[i].map = pMap;
+      mThreadParams[i].mapper = pMapper;
+      mThreadParams[i].mutexOutput = pMutexOutput;
+      mThreadParams[i].threadObj = new thread(RunTracker, i);
+   }
+
+   for (int i = 0; i < TRACKER_QUANTITY; ++i)
+   {
+      mThreadParams[i].threadObj->join();
+      delete mThreadParams[i].threadObj;
+   }
+
+   printStatistics();
 
    return EXIT_SUCCESS;
 }
