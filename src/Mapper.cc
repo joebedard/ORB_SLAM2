@@ -35,6 +35,17 @@ namespace ORB_SLAM2
       mpKeyFrameDB = new KeyFrameDatabase(*pVocab);
 
       ResetTrackerStatus();
+
+      //Initialize and start the Local Mapping thread
+      mpLocalMapper = new LocalMapping(mpMap, mpKeyFrameDB, mbMonocular, FIRST_MAPPOINT_ID_LOCALMAPPER, MAPPOINT_ID_SPAN);
+      mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run, mpLocalMapper);
+
+      //Initialize and start the Loop Closing thread
+      mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDB, mpVocab, !mbMonocular);
+      mptLoopClosing = new thread(&ORB_SLAM2::LoopClosing::Run, mpLoopCloser);
+
+      mpLocalMapper->SetLoopCloser(mpLoopCloser);
+      mpLoopCloser->SetLocalMapper(mpLocalMapper);
    }
 
    std::mutex & Mapper::getMutexMapUpdate()
@@ -111,17 +122,6 @@ namespace ORB_SLAM2
 
       if (trackerId != 0)
          throw std::exception("Only the first Tracker (id=0) may initialize the map.");
-
-      //Initialize the Local Mapping thread and launch
-      mpLocalMapper = new LocalMapping(mpMap, mpKeyFrameDB, mbMonocular, FIRST_MAPPOINT_ID_LOCALMAPPER, MAPPOINT_ID_SPAN);
-      mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run, mpLocalMapper);
-
-      //Initialize the Loop Closing thread and launch
-      mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDB, mpVocab, !mbMonocular);
-      mptLoopClosing = new thread(&ORB_SLAM2::LoopClosing::Run, mpLoopCloser);
-
-      mpLocalMapper->SetLoopCloser(mpLoopCloser);
-      mpLoopCloser->SetLocalMapper(mpLocalMapper);
 
       auto allKFs = pMap.GetAllKeyFrames();
       for (auto it = allKFs.begin(); it != allKFs.end(); it++)
