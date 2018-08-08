@@ -39,13 +39,17 @@ class Tracking;
 class FrameDrawer
 {
 public:
-    FrameDrawer(Map* pMap);
+    FrameDrawer(Map* pMap, cv::FileStorage & fSettings);
 
     // Update info from the last processed frame.
     void Update(Tracking *pTracker);
 
     // Draw last processed frame.
     cv::Mat DrawFrame();
+
+    int GetHeight();
+
+    int GetWidth();
 
 protected:
 
@@ -65,6 +69,12 @@ protected:
     Map* mpMap;
 
     std::mutex mMutex;
+
+private:
+   // 1/fps in ms
+   double mT;
+   int mImageWidth, mImageHeight;
+
 };
 
 } //namespace ORB_SLAM

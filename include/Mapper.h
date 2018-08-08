@@ -81,6 +81,8 @@ namespace ORB_SLAM2
       };
       TrackerStatus mTrackers[MAX_TRACKERS];
 
+      std::mutex mMutexLogin;
+
       ORBVocabulary * mpVocab;
       bool mbMonocular;
       KeyFrameDatabase * mpKeyFrameDB;

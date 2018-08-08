@@ -379,7 +379,8 @@ void Tracking::Track()
         }
 
         // Reset if the camera get lost soon after initialization
-        if (mState == TRACKING_LOST)
+        // and this tracker is the initializer
+        if (mState == TRACKING_LOST && mId == 0)
         {
             if(mpMapper->KeyFramesInMap()<=5)
             {

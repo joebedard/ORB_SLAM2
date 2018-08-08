@@ -28,29 +28,25 @@
 namespace ORB_SLAM2
 {
 
-const char * Viewer::CURRENT_FRAME_WINDOW_NAME = "ORB-SLAM2: Current Frame";
-
-Viewer::Viewer(FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, cv::FileStorage & fSettings):
-    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpTracker(pTracking),
+Viewer::Viewer(FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking) :
     mbFinishRequested(false), mbFinished(true), mbStopped(true), mbStopRequested(false), mbResetting(false)
 {
-    float fps = fSettings["Camera.fps"];
-    if(fps<1)
-        fps=30;
-    mT = 1e3/fps;
+   mvFrameDrawers.push_back(pFrameDrawer);
+   mvMapDrawers.push_back(pMapDrawer);
+   mvTrackers.push_back(pTracking);
+   Initialize();
+}
 
-    mImageWidth = fSettings["Camera.width"];
-    mImageHeight = fSettings["Camera.height"];
-    if(mImageWidth<1 || mImageHeight<1)
-    {
-        mImageWidth = 640;
-        mImageHeight = 480;
-    }
+Viewer::Viewer(vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers) :
+   mvFrameDrawers(vFrameDrawers), mvMapDrawers(vMapDrawers), mvTrackers(vTrackers),
+   mbFinishRequested(false), mbFinished(true), mbStopped(true), mbStopRequested(false), mbResetting(false)
+{
+   Initialize();
+}
 
-    mViewpointX = fSettings["Viewer.ViewpointX"];
-    mViewpointY = fSettings["Viewer.ViewpointY"];
-    mViewpointZ = fSettings["Viewer.ViewpointZ"];
-    mViewpointF = fSettings["Viewer.ViewpointF"];
+void Viewer::Initialize()
+{
+   mMapWindowTitle.append("ORB-SLAM2 : Map Viewer");
 }
 
 void Viewer::Run()
@@ -58,7 +54,7 @@ void Viewer::Run()
     mbFinished = false;
     mbStopped = false;
 
-    pangolin::CreateWindowAndBind("ORB-SLAM2: Map Viewer",1024,768);
+    pangolin::CreateWindowAndBind(mMapWindowTitle, 1024, 768);
 
     // 3D Mouse handler requires depth testing to be enabled
     glEnable(GL_DEPTH_TEST);
@@ -67,30 +63,68 @@ void Viewer::Run()
     glEnable (GL_BLEND);
     glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    pangolin::CreatePanel("menu").SetBounds(0.0,1.0,0.0,pangolin::Attach::Pix(175));
+    pangolin::View & menu = pangolin::CreatePanel("menu").SetBounds(0.0,1.0,0.0,pangolin::Attach::Pix(175));
     pangolin::Var<bool> menuFollowCamera("menu.Follow Camera",true,true);
     pangolin::Var<bool> menuShowPoints("menu.Show Points",true,true);
     pangolin::Var<bool> menuShowKeyFrames("menu.Show KeyFrames",true,true);
     pangolin::Var<bool> menuShowGraph("menu.Show Graph",true,true);
-    pangolin::Var<bool> menuLocalizationMode("menu.Localization Mode",false,true);
+
+    vector<pangolin::Var<bool> *> vMenuLocalizationModes;
+    for (int i = 0; i < mvTrackers.size(); ++i)
+    {
+       string name("menu.Localization Mode Tracker "); name.append(to_string(i));
+       auto menuLocalizationMode = new pangolin::Var<bool>(name, false, true);
+       vMenuLocalizationModes.push_back(menuLocalizationMode);
+    }
+
     pangolin::Var<bool> menuReset("menu.Reset",false,false);
     pangolin::Var<bool> menuQuit("menu.Quit",false,false);
 
-    // Define Camera Render Object (for view / scene browsing)
-    pangolin::OpenGlRenderState s_cam(
-                pangolin::ProjectionMatrix(1024,768,mViewpointF,mViewpointF,512,389,0.1,1000),
-                pangolin::ModelViewLookAt(mViewpointX,mViewpointY,mViewpointZ, 0,0,0,0.0,-1.0, 0.0)
-                );
+    pangolin::View & d_multi = pangolin::Display("multi")
+       .SetBounds(0.0, 1.0, pangolin::Attach::Pix(175), 1.0, -1024.0f / 768.0f)
+       .SetLayout(pangolin::LayoutEqual);
 
-    // Add named OpenGL viewport to window and provide 3D Handler
-    pangolin::View& d_cam = pangolin::CreateDisplay()
-            .SetBounds(0.0, 1.0, pangolin::Attach::Pix(175), 1.0, -1024.0f/768.0f)
-            .SetHandler(new pangolin::Handler3D(s_cam));
+    vector<pangolin::OpenGlRenderState *> vMapStates;
+    vector<pangolin::View *> vMapViews;
+    for (int i = 0; i < mvMapDrawers.size(); ++i)
+    {
+        float viewpointX = mvMapDrawers[i]->GetViewpointX();
+        float viewpointY = mvMapDrawers[i]->GetViewpointY();
+        float viewpointZ = mvMapDrawers[i]->GetViewpointZ();
+        float viewpointF = mvMapDrawers[i]->GetViewpointF();
+
+        // Define Camera Render Object (for view / scene browsing)
+        auto s_cam = new pangolin::OpenGlRenderState(
+            pangolin::ProjectionMatrix(1024, 768, viewpointF, viewpointF, 512, 389, 0.1, 1000),
+            pangolin::ModelViewLookAt(viewpointX, viewpointY, viewpointZ, 0, 0, 0, 0.0, -1.0, 0.0)
+        );
+        vMapStates.push_back(s_cam);
+
+        // Add named OpenGL viewport to window and provide 3D Handler
+        pangolin::View & d_cam = pangolin::CreateDisplay()
+           //.SetBounds(0.0, 1.0, pangolin::Attach::Pix(175), 1.0, -1024.0f/768.0f)
+           .SetAspect(1024.0f / 768.0f)
+           .SetHandler(new pangolin::Handler3D(*s_cam));
+        vMapViews.push_back(&d_cam);
+
+        d_multi.AddDisplay(d_cam);
+    }
+
+    vector<pangolin::View *> vImageViews;
+    vector<pangolin::GlTexture *> vImageTextures;
+    for (int i = 0; i < mvFrameDrawers.size(); ++i)
+    {
+       string name("img"); name.append(to_string(i));
+       pangolin::View& d_img = pangolin::Display(name)
+          .SetAspect(1024.0f / 768.0f);
+       d_multi.AddDisplay(d_img);
+       vImageViews.push_back(&d_img);
+       FrameDrawer * fd = mvFrameDrawers[i];
+       vImageTextures[i] = new pangolin::GlTexture(fd->GetWidth(), fd->GetHeight(), GL_LUMINANCE, false, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE);
+    }
 
     pangolin::OpenGlMatrix Twc;
     Twc.SetIdentity();
-
-    cv::namedWindow(CURRENT_FRAME_WINDOW_NAME);
 
     bool bFollow = true;
     bool bLocalizationMode = false;
@@ -99,49 +133,61 @@ void Viewer::Run()
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        mpMapDrawer->GetCurrentOpenGLCameraMatrix(Twc);
-
-        if(menuFollowCamera && bFollow)
+        for (int i = 0; i < mvTrackers.size(); ++i)
         {
-            s_cam.Follow(Twc);
-        }
-        else if(menuFollowCamera && !bFollow)
-        {
-            s_cam.SetModelViewMatrix(pangolin::ModelViewLookAt(mViewpointX,mViewpointY,mViewpointZ, 0,0,0,0.0,-1.0, 0.0));
-            s_cam.Follow(Twc);
-            bFollow = true;
-        }
-        else if(!menuFollowCamera && bFollow)
-        {
-            bFollow = false;
+           if (vMenuLocalizationModes[i]->GuiChanged())
+           {
+              if (*vMenuLocalizationModes[i])
+                 mvTrackers[i]->ActivateLocalizationMode();
+              else
+                 mvTrackers[i]->DeactivateLocalizationMode();
+           }
         }
 
-        if(menuLocalizationMode && !bLocalizationMode)
+        for (int i = 0; i < mvMapDrawers.size(); ++i)
         {
-            mpTracker->ActivateLocalizationMode();
-            bLocalizationMode = true;
-        }
-        else if(!menuLocalizationMode && bLocalizationMode)
-        {
-            mpTracker->DeactivateLocalizationMode();
-            bLocalizationMode = false;
-        }
+           float viewpointX = mvMapDrawers[i]->GetViewpointX();
+           float viewpointY = mvMapDrawers[i]->GetViewpointY();
+           float viewpointZ = mvMapDrawers[i]->GetViewpointZ();
+           float viewpointF = mvMapDrawers[i]->GetViewpointF();
 
-        d_cam.Activate(s_cam);
-        glClearColor(1.0f,1.0f,1.0f,1.0f);
-        mpMapDrawer->DrawCurrentCamera(Twc);
-        if(menuShowKeyFrames || menuShowGraph)
-            mpMapDrawer->DrawKeyFrames(menuShowKeyFrames,menuShowGraph);
-        if(menuShowPoints)
-            mpMapDrawer->DrawMapPoints();
+           mvMapDrawers[i]->GetCurrentOpenGLCameraMatrix(Twc);
+
+           if (menuFollowCamera && bFollow)
+           {
+              vMapStates[i]->Follow(Twc);
+           }
+           else if (menuFollowCamera && !bFollow)
+           {
+              vMapStates[i]->SetModelViewMatrix(pangolin::ModelViewLookAt(viewpointX, viewpointY, viewpointZ, 0, 0, 0, 0.0, -1.0, 0.0));
+              vMapStates[i]->Follow(Twc);
+              bFollow = true;
+           }
+           else if (!menuFollowCamera && bFollow)
+           {
+              bFollow = false;
+           }
+
+           vMapViews[i]->Activate(*vMapStates[i]);
+           glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+           mvMapDrawers[i]->DrawCurrentCamera(Twc);
+           if (menuShowKeyFrames || menuShowGraph)
+              mvMapDrawers[i]->DrawKeyFrames(menuShowKeyFrames, menuShowGraph);
+           if (menuShowPoints)
+              mvMapDrawers[i]->DrawMapPoints();
+        }
 
         pangolin::FinishFrame();
+        
+        for (int i = 0; i < mvFrameDrawers.size(); ++i)
+        {
+            cv::Mat im = mvFrameDrawers[i]->DrawFrame();
+            vImageTextures[i]->Upload( im.data, GL_LUMINANCE, GL_UNSIGNED_BYTE);
+            vImageViews[i]->Activate();
+            vImageTextures[i]->RenderToViewport();
+        }
 
-        cv::Mat im = mpFrameDrawer->DrawFrame();
-        cv::imshow(CURRENT_FRAME_WINDOW_NAME,im);
-        cv::waitKey(mT);
-
-        if (menuQuit || !cvGetWindowHandle(CURRENT_FRAME_WINDOW_NAME))
+        if (menuQuit)
         {
            RequestFinish();
         }
@@ -152,13 +198,20 @@ void Viewer::Run()
             menuShowGraph = true;
             menuShowKeyFrames = true;
             menuShowPoints = true;
-            menuLocalizationMode = false;
-            if(bLocalizationMode)
-                mpTracker->DeactivateLocalizationMode();
-            bLocalizationMode = false;
+            for (int i = 0; i < mvTrackers.size(); ++i)
+            {
+               if (*vMenuLocalizationModes[i])
+               {
+                  mvTrackers[i]->DeactivateLocalizationMode();
+                  *vMenuLocalizationModes[i] = false;
+               }
+            }
             bFollow = true;
             menuFollowCamera = true;
-            mpTracker->Reset();
+            for (auto t : mvTrackers)
+            {
+               t->Reset();
+            }
             mbResetting = false;
             menuReset = false;
         }

@@ -45,6 +45,10 @@ public:
     void GetCurrentOpenGLCameraMatrix(pangolin::OpenGlMatrix &M);
     void SetReferenceMapPoints(const std::vector<MapPoint*>& vpMPs);
 
+    float GetViewpointX();
+    float GetViewpointY();
+    float GetViewpointZ();
+    float GetViewpointF();
 private:
 
     float mKeyFrameSize;
@@ -59,6 +63,9 @@ private:
     std::mutex mMutexCamera;
 
     std::vector<MapPoint*> mvpReferenceMapPoints;
+
+    float mViewpointX, mViewpointY, mViewpointZ, mViewpointF;
+
 };
 
 } //namespace ORB_SLAM

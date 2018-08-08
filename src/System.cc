@@ -63,7 +63,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     if(!bVocLoad)
     {
         cerr << "Wrong path to vocabulary. " << endl;
-        cerr << "Falied to open at: " << strVocFile << endl;
+        cerr << "Failed to open at: " << strVocFile << endl;
         exit(-1);
     }
     cout << "Vocabulary loaded!" << endl << endl;
@@ -72,7 +72,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mpMap = new Map();
 
     //Create Drawers. These are used by the Viewer
-    mpFrameDrawer = new FrameDrawer(mpMap);
+    mpFrameDrawer = new FrameDrawer(mpMap, fsSettings);
     mpMapDrawer = new MapDrawer(mpMap, fsSettings);
 
     //Initialize the Mapper
@@ -86,7 +86,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     //Initialize the Viewer thread and launch
     if(bUseViewer)
     {
-        mpViewer = new Viewer(mpFrameDrawer, mpMapDrawer, mpTracker, fsSettings);
+        mpViewer = new Viewer(mpFrameDrawer, mpMapDrawer, mpTracker);
         mptViewer = new thread(&Viewer::Run, mpViewer);
         mpTracker->SetViewer(mpViewer);
     }

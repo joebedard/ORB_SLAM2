@@ -164,6 +164,8 @@ namespace ORB_SLAM2
 
    unsigned int Mapper::LoginTracker(unsigned long  & firstKeyFrameId, unsigned int & keyFrameIdSpan, unsigned long & firstMapPointId, unsigned int & mapPointIdSpan)
    {
+      unique_lock<mutex> lock(mMutexLogin);
+
       unsigned int id;
       for (id = 0; id < MAX_TRACKERS; ++id)
       {
@@ -192,6 +194,7 @@ namespace ORB_SLAM2
 
    void Mapper::ResetTrackerStatus()
    {
+      unique_lock<mutex> lock(mMutexLogin);
       for (int i = 0; i < MAX_TRACKERS; ++i)
       {
          mTrackers[i].connected = false;

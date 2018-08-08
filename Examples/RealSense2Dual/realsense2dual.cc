@@ -43,10 +43,10 @@ const int TRACKER_QUANTITY = 2;
 struct ThreadParam
 {
    int returnCode;
-   char * settingsFilePath;
-   ORBVocabulary * vocabulary;
-   Map * map;
-   Mapper * mapper;
+   string * serial;
+   Tracking * tracker;
+   int height;
+   int width;
    mutex * mutexOutput;
    vector<float> timesTrack;
    thread * threadObj;
@@ -68,7 +68,7 @@ void ParseParams(int paramc, char * paramv[])
    mVocFile = paramv[1];
 }
 
-void ParseSettings(FileStorage & settings, const char * settingsFilePath, string & serial, int & width, int & height)
+void ParseSettings(FileStorage & settings, const char * settingsFilePath, string & serial)
 {
    if (!settings.isOpened())
    {
@@ -81,29 +81,19 @@ void ParseSettings(FileStorage & settings, const char * settingsFilePath, string
    if (0 == serial.length())
       throw new exception("Camera.serial property is not set or value is not in quotes.");
 
-   width = settings["Camera.width"];
-   if (0 == width)
-      throw new exception("Camera.width is not set.");
-
-   height = settings["Camera.height"];
-   if (0 == height)
-      throw new exception("Camera.height is not set.");
 }
 
 void RunTracker(int threadId) try
 {
-   FileStorage settings(mThreadParams[threadId].settingsFilePath, FileStorage::READ);
-   
-   string serial;
-   int width, height;
-   ParseSettings(settings, mThreadParams[threadId].settingsFilePath, serial, width, height);
+   int height = mThreadParams[threadId].height;
+   int width = mThreadParams[threadId].width;
 
    // Declare RealSense pipeline, encapsulating the actual device and sensors
    rs2::pipeline pipe;
 
    // create and resolve custom configuration for RealSense
    rs2::config customConfig;
-   customConfig.enable_device(serial);
+   customConfig.enable_device(*mThreadParams[threadId].serial);
    customConfig.enable_stream(RS2_STREAM_INFRARED, 1, width, height, RS2_FORMAT_Y8, 30);
    customConfig.enable_stream(RS2_STREAM_INFRARED, 2, width, height, RS2_FORMAT_Y8, 30);
    if (!customConfig.can_resolve(pipe))
@@ -114,17 +104,6 @@ void RunTracker(int threadId) try
 
    // disable the projected IR pattern when using stereo IR images
    sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 0);
-
-   FrameDrawer frameDrawer(mThreadParams[threadId].map);
-   MapDrawer mapDrawer(mThreadParams[threadId].map, settings);
-
-   Tracking tracker(mThreadParams[threadId].vocabulary, &frameDrawer, &mapDrawer,
-      mThreadParams[threadId].map, mThreadParams[threadId].mapper, settings, eSensor::STEREO);
-
-   //Initialize and start the Viewer thread
-   Viewer viewer(&frameDrawer, &mapDrawer, &tracker, settings);
-   thread viewerThread(&Viewer::Run, &viewer);
-   tracker.SetViewer(&viewer);
 
    std::chrono::steady_clock::time_point tStart = std::chrono::steady_clock::now();
 
@@ -142,7 +121,7 @@ void RunTracker(int threadId) try
 
       double tframe = std::chrono::duration_cast<std::chrono::duration<double> >(t1 - tStart).count();
 
-      tracker.GrabImageStereo(irMat1, irMat2, tframe);
+      mThreadParams[threadId].tracker->GrabImageStereo(irMat1, irMat2, tframe);
 
       std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
@@ -150,9 +129,6 @@ void RunTracker(int threadId) try
 
       mThreadParams[threadId].timesTrack.push_back(ttrack);
    }
-
-   viewer.RequestFinish();
-   viewerThread.join();
 
    mThreadParams[threadId].returnCode = EXIT_SUCCESS;
 }
@@ -175,17 +151,20 @@ void printStatistics()
    {
       vector<float> & vTimesTrack = mThreadParams[i].timesTrack;
 
-      // calculate time statistics
-      sort(vTimesTrack.begin(), vTimesTrack.end());
-      float totaltime = 0;
-      for (int i = 0; i<vTimesTrack.size(); i++)
+      if (vTimesTrack.size() > 0)
       {
-         totaltime += vTimesTrack[i];
-      }
+         // calculate time statistics
+         sort(vTimesTrack.begin(), vTimesTrack.end());
+         float totaltime = 0;
+         for (int i = 0; i<vTimesTrack.size(); i++)
+         {
+            totaltime += vTimesTrack[i];
+         }
 
-      cout << "tracking time statistics for thread " << i << ":" << endl;
-      cout << "   median tracking time: " << vTimesTrack[vTimesTrack.size() / 2] << endl;
-      cout << "   mean tracking time: " << totaltime / vTimesTrack.size() << endl;
+         cout << "tracking time statistics for thread " << i << ":" << endl;
+         cout << "   median tracking time: " << vTimesTrack[vTimesTrack.size() / 2] << endl;
+         cout << "   mean tracking time: " << totaltime / vTimesTrack.size() << endl;
+      }
    }
 }
 
@@ -200,7 +179,7 @@ int main(int paramc, char * paramv[]) try
    if (!bVocLoad)
    {
       cerr << "Wrong path to vocabulary. " << endl;
-      cerr << "Falied to open at: " << mVocFile << endl;
+      cerr << "Failed to open at: " << mVocFile << endl;
       exit(-1);
    }
    cout << "Vocabulary loaded!" << endl << endl;
@@ -214,19 +193,49 @@ int main(int paramc, char * paramv[]) try
    //Create mutex for output synchronization
    mutex * pMutexOutput = new mutex();
 
+   vector<FrameDrawer *> vFrameDrawers;
+   vector<MapDrawer *> vMapDrawers;
+   vector<Tracking *> vTrackers;
+
    for (int i = 0; i < TRACKER_QUANTITY; ++i)
    {
-      mThreadParams[i].settingsFilePath = paramv[i+2];
-      mThreadParams[i].vocabulary = pVocab;
-      mThreadParams[i].map = pMap;
-      mThreadParams[i].mapper = pMapper;
+      FileStorage settings(paramv[i + 2], FileStorage::READ);
+
+      string * pSerial = new string();
+      ParseSettings(settings, paramv[i + 2], *pSerial);
+
+      FrameDrawer * frameDrawer = new FrameDrawer(pMap, settings);
+      vFrameDrawers.push_back(frameDrawer);
+
+      MapDrawer * mapDrawer = new MapDrawer(pMap, settings);
+      vMapDrawers.push_back(mapDrawer);
+
+      Tracking * tracker = new Tracking(pVocab, frameDrawer, mapDrawer, pMap, pMapper, settings, eSensor::STEREO);
+      vTrackers.push_back(tracker);
+
+      mThreadParams[i].serial = pSerial;
+      mThreadParams[i].tracker = tracker;
+      mThreadParams[i].height = frameDrawer->GetHeight();
+      mThreadParams[i].width = frameDrawer->GetWidth();
       mThreadParams[i].mutexOutput = pMutexOutput;
       mThreadParams[i].threadObj = new thread(RunTracker, i);
    }
 
+   //Initialize and start the Viewer thread
+   Viewer viewer(vFrameDrawers, vMapDrawers, vTrackers);
+   for (auto tracker : vTrackers)
+   {
+       tracker->SetViewer(&viewer);
+   }
+   viewer.Run();
+   mShouldRun = false; //signal tracking threads to stop
+
+   int returnCode = EXIT_SUCCESS;
    for (int i = 0; i < TRACKER_QUANTITY; ++i)
    {
       mThreadParams[i].threadObj->join();
+      if (mThreadParams[i].returnCode == EXIT_FAILURE)
+         returnCode = EXIT_FAILURE;
       delete mThreadParams[i].threadObj;
    }
 

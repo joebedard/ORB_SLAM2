@@ -35,6 +35,10 @@ MapDrawer::MapDrawer(Map* pMap, cv::FileStorage & fSettings)
     mCameraSize = fSettings["Viewer.CameraSize"];
     mCameraLineWidth = fSettings["Viewer.CameraLineWidth"];
 
+    mViewpointX = fSettings["Viewer.ViewpointX"];
+    mViewpointY = fSettings["Viewer.ViewpointY"];
+    mViewpointZ = fSettings["Viewer.ViewpointZ"];
+    mViewpointF = fSettings["Viewer.ViewpointF"];
 }
 
 void MapDrawer::DrawMapPoints()
@@ -259,6 +263,26 @@ void MapDrawer::GetCurrentOpenGLCameraMatrix(pangolin::OpenGlMatrix &M)
 void MapDrawer::SetReferenceMapPoints(const std::vector<MapPoint*>& vpMPs)
 {
    mvpReferenceMapPoints = vpMPs;
+}
+
+float MapDrawer::GetViewpointX()
+{
+   return mViewpointX;
+}
+
+float MapDrawer::GetViewpointY()
+{
+   return mViewpointY;
+}
+
+float MapDrawer::GetViewpointZ()
+{
+   return mViewpointZ;
+}
+
+float MapDrawer::GetViewpointF()
+{
+   return mViewpointF;
 }
 
 } //namespace ORB_SLAM

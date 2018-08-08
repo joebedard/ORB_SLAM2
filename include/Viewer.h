@@ -38,7 +38,9 @@ class MapDrawer;
 class Viewer
 {
 public:
-    Viewer(FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Tracking *pTracking, cv::FileStorage & fSettings);
+    Viewer(FrameDrawer * pFrameDrawer, MapDrawer * pMapDrawer, Tracking * pTracking);
+
+    Viewer(vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers);
 
     // Main thread function. Draw points, keyframes, the current camera pose and the last processed
     // frame. Drawing is refreshed according to the camera fps. We use Pangolin.
@@ -57,18 +59,13 @@ public:
     void Release();
 
 private:
+    string mMapWindowTitle;
 
     bool Stop();
 
-    FrameDrawer* mpFrameDrawer;
-    MapDrawer* mpMapDrawer;
-    Tracking* mpTracker;
-
-    // 1/fps in ms
-    double mT;
-    float mImageWidth, mImageHeight;
-
-    float mViewpointX, mViewpointY, mViewpointZ, mViewpointF;
+    vector<FrameDrawer*> mvFrameDrawers;
+    vector<MapDrawer *> mvMapDrawers;
+    vector<Tracking*> mvTrackers;
 
     void SetFinish();
     bool mbFinishRequested;
@@ -78,9 +75,10 @@ private:
     bool mbStopped;
     bool mbStopRequested;
     std::mutex mMutexStop;
-    static const char * CURRENT_FRAME_WINDOW_NAME;
 
     bool mbResetting;
+
+    void Initialize();
 };
 
 }

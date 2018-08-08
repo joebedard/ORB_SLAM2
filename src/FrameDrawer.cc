@@ -29,10 +29,23 @@
 namespace ORB_SLAM2
 {
 
-FrameDrawer::FrameDrawer(Map* pMap):mpMap(pMap)
+FrameDrawer::FrameDrawer(Map* pMap, cv::FileStorage & fSettings) : mpMap(pMap)
 {
-    mState = NO_IMAGES_YET;
-    mIm = cv::Mat(480,640,CV_8UC3, cv::Scalar(0,0,0));
+   float fps = fSettings["Camera.fps"];
+   if (fps < 1.0f)
+      throw new exception("Camera.fps is not set.");
+   mT = 1e3 / fps;
+
+   mImageWidth = (int)fSettings["Camera.width"];
+   if (0 == mImageWidth)
+      throw new exception("Camera.width is not set.");
+
+   mImageHeight = (int)fSettings["Camera.height"];
+   if (0 == mImageHeight)
+      throw new exception("Camera.height is not set.");
+
+   mState = NO_IMAGES_YET;
+   mIm = cv::Mat(mImageHeight, mImageWidth, CV_8UC3, cv::Scalar(0, 0, 0));
 }
 
 cv::Mat FrameDrawer::DrawFrame()
@@ -123,6 +136,15 @@ cv::Mat FrameDrawer::DrawFrame()
     return imWithInfo;
 }
 
+int FrameDrawer::GetHeight()
+{
+   return mImageHeight;
+}
+
+int FrameDrawer::GetWidth()
+{
+   return mImageWidth;
+}
 
 void FrameDrawer::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
 {
