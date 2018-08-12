@@ -43,6 +43,9 @@ MapDrawer::MapDrawer(Map* pMap, cv::FileStorage & fSettings)
 
 void MapDrawer::DrawMapPoints()
 {
+   float currentColor[4];
+   glGetFloatv(GL_CURRENT_COLOR, currentColor);
+
     const vector<MapPoint*> &vpMPs = mpMap->GetAllMapPoints();
 
     set<MapPoint*> spRefMPs(mvpReferenceMapPoints.begin(), mvpReferenceMapPoints.end());
@@ -77,10 +80,14 @@ void MapDrawer::DrawMapPoints()
     }
 
     glEnd();
+    glColor4fv(currentColor);
 }
 
 void MapDrawer::DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph)
 {
+    float currentColor[4];
+    glGetFloatv(GL_CURRENT_COLOR, currentColor);
+   
     const float &w = mKeyFrameSize;
     const float h = w*0.75;
     const float z = w*0.6;
@@ -173,10 +180,14 @@ void MapDrawer::DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph)
 
         glEnd();
     }
+    glColor4fv(currentColor);
 }
 
 void MapDrawer::DrawCurrentCamera(pangolin::OpenGlMatrix &Twc)
 {
+    float currentColor[4];
+    glGetFloatv(GL_CURRENT_COLOR, currentColor);
+   
     const float &w = mCameraSize;
     const float h = w*0.75;
     const float z = w*0.6;
@@ -215,6 +226,8 @@ void MapDrawer::DrawCurrentCamera(pangolin::OpenGlMatrix &Twc)
     glEnd();
 
     glPopMatrix();
+
+    glColor4fv(currentColor);
 }
 
 

@@ -62,7 +62,7 @@ void ParseParams(int paramc, char * paramv[])
    if (paramc != 4)
    {
       const char * usage = "Usage: ./realsense2 vocabulary_file_and_path first_settings_file_and_path second_settings_file_and_path";
-      std::exception e(usage);
+      exception e(usage);
       throw e;
    }
    mVocFile = paramv[1];
@@ -74,12 +74,12 @@ void ParseSettings(FileStorage & settings, const char * settingsFilePath, string
    {
       std::string m("Failed to open settings file at: ");
       m.append(settingsFilePath);
-      throw std::exception(m.c_str());
+      throw exception(m.c_str());
    }
 
    serial.append(settings["Camera.serial"]);
    if (0 == serial.length())
-      throw new exception("Camera.serial property is not set or value is not in quotes.");
+      throw exception("Camera.serial property is not set or value is not in quotes.");
 
 }
 
@@ -89,7 +89,7 @@ void RunTracker(int threadId) try
    int width = mThreadParams[threadId].width;
 
    // Declare RealSense pipeline, encapsulating the actual device and sensors
-   rs2::pipeline pipe;
+   rs2::pipeline pipe;  //ok to create more than one in different threads?
 
    // create and resolve custom configuration for RealSense
    rs2::config customConfig;
@@ -97,7 +97,7 @@ void RunTracker(int threadId) try
    customConfig.enable_stream(RS2_STREAM_INFRARED, 1, width, height, RS2_FORMAT_Y8, 30);
    customConfig.enable_stream(RS2_STREAM_INFRARED, 2, width, height, RS2_FORMAT_Y8, 30);
    if (!customConfig.can_resolve(pipe))
-      throw new exception("Can not resolve RealSense config.");
+      throw exception("Can not resolve RealSense config.");
 
    rs2::pipeline_profile profile = pipe.start(customConfig);
    rs2::depth_sensor sensor = profile.get_device().first<rs2::depth_sensor>();
@@ -135,13 +135,18 @@ void RunTracker(int threadId) try
 catch (const rs2::error & e)
 {
    unique_lock<mutex> lock(*mThreadParams[threadId].mutexOutput);
-   std::cerr << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
+   std::cerr << std::endl << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
    mThreadParams[threadId].returnCode = EXIT_FAILURE;
 }
-catch (const std::exception& e)
+catch (const exception& e)
 {
    unique_lock<mutex> lock(*mThreadParams[threadId].mutexOutput);
-   std::cerr << e.what() << std::endl;
+   std::cerr << std::endl << e.what() << std::endl;
+   mThreadParams[threadId].returnCode = EXIT_FAILURE;
+}
+catch (...)
+{
+   std::cerr << std::endl << "An exception was not caught in thread " << threadId << "." << std::endl;
    mThreadParams[threadId].returnCode = EXIT_FAILURE;
 }
 
@@ -245,11 +250,16 @@ int main(int paramc, char * paramv[]) try
 }
 catch (const rs2::error & e)
 {
-   std::cerr << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
+   std::cerr << std::endl << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
    return EXIT_FAILURE;
 }
-catch (const std::exception& e)
+catch (const exception& e)
 {
-   std::cerr << e.what() << std::endl;
+   std::cerr << std::endl << e.what() << std::endl;
+   return EXIT_FAILURE;
+}
+catch (...)
+{
+   std::cerr << std::endl << "An exception was not caught in the main thread." << std::endl;
    return EXIT_FAILURE;
 }

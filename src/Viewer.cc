@@ -114,13 +114,13 @@ void Viewer::Run()
     vector<pangolin::GlTexture *> vImageTextures;
     for (int i = 0; i < mvFrameDrawers.size(); ++i)
     {
+       FrameDrawer * fd = mvFrameDrawers[i];
+       vImageTextures.push_back(new pangolin::GlTexture(fd->GetWidth(), fd->GetHeight(), GL_RGB, false, 0, GL_BGR, GL_UNSIGNED_BYTE));
        string name("img"); name.append(to_string(i));
        pangolin::View& d_img = pangolin::Display(name)
-          .SetAspect(1024.0f / 768.0f);
+          .SetAspect((float)fd->GetWidth() / (float)fd->GetHeight());
        d_multi.AddDisplay(d_img);
        vImageViews.push_back(&d_img);
-       FrameDrawer * fd = mvFrameDrawers[i];
-       vImageTextures[i] = new pangolin::GlTexture(fd->GetWidth(), fd->GetHeight(), GL_LUMINANCE, false, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE);
     }
 
     pangolin::OpenGlMatrix Twc;
@@ -177,15 +177,25 @@ void Viewer::Run()
               mvMapDrawers[i]->DrawMapPoints();
         }
 
-        pangolin::FinishFrame();
-        
         for (int i = 0; i < mvFrameDrawers.size(); ++i)
         {
             cv::Mat im = mvFrameDrawers[i]->DrawFrame();
-            vImageTextures[i]->Upload( im.data, GL_LUMINANCE, GL_UNSIGNED_BYTE);
+
+            //use fast 4-byte alignment (default anyway) if possible
+            //glPixelStorei(GL_UNPACK_ALIGNMENT, (im.step & 3) ? 1 : 4);
+
+            //set length of one complete row in data (doesn't need to equal image.cols)
+            //glPixelStorei(GL_UNPACK_ROW_LENGTH, im.step / im.elemSize());
+            
+            //cv::resize(im, im, cv::Size(1024, 1024));
+            cv::Mat flipped = cv::Mat(im.rows, im.cols, CV_8UC3, cv::Scalar(0, 0, 0));
+            cv::flip(im, flipped, 0);
+            vImageTextures[i]->Upload( (void *)flipped.data, GL_BGR, GL_UNSIGNED_BYTE);
             vImageViews[i]->Activate();
             vImageTextures[i]->RenderToViewport();
         }
+
+        pangolin::FinishFrame();
 
         if (menuQuit)
         {
