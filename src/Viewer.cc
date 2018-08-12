@@ -51,10 +51,15 @@ void Viewer::Initialize()
 
 void Viewer::Run()
 {
+    const int MENU_WIDTH = 220;
+    const int MULTIVIEW_WIDTH = 1024;
+    const int WINDOW_WIDTH = MENU_WIDTH + MULTIVIEW_WIDTH;
+    const int WINDOW_HEIGHT = 768;
+    const float MULTIVIEW_ASPECT = (float)MULTIVIEW_WIDTH / (float)WINDOW_HEIGHT;
     mbFinished = false;
     mbStopped = false;
 
-    pangolin::CreateWindowAndBind(mMapWindowTitle, 1024, 768);
+    pangolin::CreateWindowAndBind(mMapWindowTitle, WINDOW_WIDTH, WINDOW_HEIGHT);
 
     // 3D Mouse handler requires depth testing to be enabled
     glEnable(GL_DEPTH_TEST);
@@ -63,7 +68,7 @@ void Viewer::Run()
     glEnable (GL_BLEND);
     glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    pangolin::View & menu = pangolin::CreatePanel("menu").SetBounds(0.0,1.0,0.0,pangolin::Attach::Pix(175));
+    pangolin::View & menu = pangolin::CreatePanel("menu").SetBounds(0.0, 1.0, 0.0, pangolin::Attach::Pix(MENU_WIDTH));
     pangolin::Var<bool> menuFollowCamera("menu.Follow Camera",true,true);
     pangolin::Var<bool> menuShowPoints("menu.Show Points",true,true);
     pangolin::Var<bool> menuShowKeyFrames("menu.Show KeyFrames",true,true);
@@ -72,16 +77,15 @@ void Viewer::Run()
     vector<pangolin::Var<bool> *> vMenuLocalizationModes;
     for (int i = 0; i < mvTrackers.size(); ++i)
     {
-       string name("menu.Localization Mode Tracker "); name.append(to_string(i));
+       string name("menu.Localization Tracker "); name.append(to_string(i));
        auto menuLocalizationMode = new pangolin::Var<bool>(name, false, true);
        vMenuLocalizationModes.push_back(menuLocalizationMode);
     }
 
     pangolin::Var<bool> menuReset("menu.Reset",false,false);
-    pangolin::Var<bool> menuQuit("menu.Quit",false,false);
 
-    pangolin::View & d_multi = pangolin::Display("multi")
-       .SetBounds(0.0, 1.0, pangolin::Attach::Pix(175), 1.0, -1024.0f / 768.0f)
+    pangolin::View & d_multi = pangolin::Display("multiview")
+       .SetBounds(0.0, 1.0, pangolin::Attach::Pix(MENU_WIDTH), 1.0, MULTIVIEW_ASPECT)
        .SetLayout(pangolin::LayoutEqual);
 
     vector<pangolin::OpenGlRenderState *> vMapStates;
@@ -95,15 +99,16 @@ void Viewer::Run()
 
         // Define Camera Render Object (for view / scene browsing)
         auto s_cam = new pangolin::OpenGlRenderState(
-            pangolin::ProjectionMatrix(1024, 768, viewpointF, viewpointF, 512, 389, 0.1, 1000),
+            pangolin::ProjectionMatrix(MULTIVIEW_WIDTH, WINDOW_HEIGHT, viewpointF, viewpointF, 512, 389, 0.1, 1000),
             pangolin::ModelViewLookAt(viewpointX, viewpointY, viewpointZ, 0, 0, 0, 0.0, -1.0, 0.0)
         );
         vMapStates.push_back(s_cam);
 
         // Add named OpenGL viewport to window and provide 3D Handler
-        pangolin::View & d_cam = pangolin::CreateDisplay()
+        string name("mapView"); name.append(to_string(i));
+        pangolin::View & d_cam = pangolin::Display(name)
            //.SetBounds(0.0, 1.0, pangolin::Attach::Pix(175), 1.0, -1024.0f/768.0f)
-           .SetAspect(1024.0f / 768.0f)
+           .SetAspect(MULTIVIEW_ASPECT)
            .SetHandler(new pangolin::Handler3D(*s_cam));
         vMapViews.push_back(&d_cam);
 
@@ -115,10 +120,11 @@ void Viewer::Run()
     for (int i = 0; i < mvFrameDrawers.size(); ++i)
     {
        FrameDrawer * fd = mvFrameDrawers[i];
-       vImageTextures.push_back(new pangolin::GlTexture(fd->GetWidth(), fd->GetHeight(), GL_RGB, false, 0, GL_BGR, GL_UNSIGNED_BYTE));
-       string name("img"); name.append(to_string(i));
+       vImageTextures.push_back(new pangolin::GlTexture(fd->GetWidth(), fd->GetHeight(), GL_RGB, true, 0, GL_BGR, GL_UNSIGNED_BYTE));
+       string name("trackerView"); name.append(to_string(i));
        pangolin::View& d_img = pangolin::Display(name)
-          .SetAspect((float)fd->GetWidth() / (float)fd->GetHeight());
+          //.SetAspect((float)fd->GetWidth() / (float)fd->GetHeight());
+          .SetAspect(MULTIVIEW_ASPECT);
        d_multi.AddDisplay(d_img);
        vImageViews.push_back(&d_img);
     }
@@ -128,6 +134,12 @@ void Viewer::Run()
 
     bool bFollow = true;
     bool bLocalizationMode = false;
+
+    // workaround for OpenGL errors caused by pangolin::FinishFrame
+    pangolin::process::Resize(WINDOW_WIDTH, WINDOW_HEIGHT); 
+
+    // check for OpenGL errors in initialization
+    CheckGlDieOnError();
 
     while(1)
     {
@@ -180,14 +192,6 @@ void Viewer::Run()
         for (int i = 0; i < mvFrameDrawers.size(); ++i)
         {
             cv::Mat im = mvFrameDrawers[i]->DrawFrame();
-
-            //use fast 4-byte alignment (default anyway) if possible
-            //glPixelStorei(GL_UNPACK_ALIGNMENT, (im.step & 3) ? 1 : 4);
-
-            //set length of one complete row in data (doesn't need to equal image.cols)
-            //glPixelStorei(GL_UNPACK_ROW_LENGTH, im.step / im.elemSize());
-            
-            //cv::resize(im, im, cv::Size(1024, 1024));
             cv::Mat flipped = cv::Mat(im.rows, im.cols, CV_8UC3, cv::Scalar(0, 0, 0));
             cv::flip(im, flipped, 0);
             vImageTextures[i]->Upload( (void *)flipped.data, GL_BGR, GL_UNSIGNED_BYTE);
@@ -196,8 +200,9 @@ void Viewer::Run()
         }
 
         pangolin::FinishFrame();
+        //CheckGlDieOnError();
 
-        if (menuQuit)
+        if (pangolin::ShouldQuit())
         {
            RequestFinish();
         }
@@ -239,6 +244,7 @@ void Viewer::Run()
     }
 
     SetFinish();
+    pangolin::Quit();
 }
 
 void Viewer::RequestFinish()

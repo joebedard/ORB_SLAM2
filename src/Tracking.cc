@@ -40,7 +40,7 @@ namespace ORB_SLAM2
 
 Tracking::Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer,
     Map* pMap, Mapper* pMapper, cv::FileStorage & fSettings, eSensor sensor) :
-    mSensor(sensor), mbOnlyTracking(false), mpORBVocabulary(pVoc), mpMap(pMap),
+    mSensor(sensor), mbOnlyTracking(false), mpORBVocabulary(pVoc), mpMap(pMap), mbReset(false),
     mpMapper(pMapper), mpInitializer(static_cast<Initializer*>(NULL)), mpViewer(NULL),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mnLastRelocFrameId(0),
     mbActivateLocalizationMode(false), mbDeactivateLocalizationMode(false), mState(NOT_INITIALIZED),
