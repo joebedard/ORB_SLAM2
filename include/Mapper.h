@@ -38,8 +38,6 @@ namespace ORB_SLAM2
 
       Mapper(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular);
 
-      virtual std::mutex & getMutexMapUpdate();
-
       virtual long unsigned  KeyFramesInMap();
 
       virtual void Reset();
@@ -54,13 +52,25 @@ namespace ORB_SLAM2
 
       bool InsertKeyFrame(unsigned int trackerId, KeyFrame* pKF);
 
-      virtual void Initialize(unsigned int trackerId, Map & pMap);
+      virtual void Initialize(unsigned int trackerId);
 
       virtual bool GetInitialized();
 
       unsigned int LoginTracker(unsigned long  & firstKeyFrameId, unsigned int & keyFrameIdSpan, unsigned long & firstMapPointId, unsigned int & mapPointIdSpan);
 
       void LogoutTracker(unsigned int id);
+
+      Map * GetMap();
+
+      class Observer
+      {
+      public:
+          virtual void HandleReset() {}
+      };
+
+      void AddObserver(Observer * ob);
+
+      void RemoveObserver(Observer * ob);
 
    private:
       static const unsigned int MAX_TRACKERS = 2;
@@ -87,7 +97,6 @@ namespace ORB_SLAM2
       bool mbMonocular;
       KeyFrameDatabase * mpKeyFrameDB;
       Map* mpMap;
-      unsigned int mMaxTrackers;
 
       // initialization variables
       bool mInitialized;
@@ -97,6 +106,10 @@ namespace ORB_SLAM2
       // System threads: Local Mapping, Loop Closing
       std::thread* mptLocalMapping;
       std::thread* mptLoopClosing;
+
+      std::map<Observer *, Observer *> mObservers;
+
+      void NotifyReset();
 
       void ResetTrackerStatus();
    };

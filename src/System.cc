@@ -81,7 +81,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     //Initialize the Tracking thread
     //(it will live in the main thread of execution, the one that called this constructor)
     mpTracker = new Tracking(mpVocabulary, mpFrameDrawer, mpMapDrawer,
-       mpMap, mpMapper, fsSettings, mSensor);
+       mpMapper, fsSettings, mSensor, new mutex());
 
     //Initialize the Viewer thread and launch
     if(bUseViewer)

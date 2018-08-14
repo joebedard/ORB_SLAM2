@@ -83,6 +83,13 @@ void ParseSettings(FileStorage & settings, const char * settingsFilePath, string
 
 }
 
+void printDebug(int threadId, mutex * mutexPrint, const char * message)
+{
+   if (threadId == 0) return;
+   unique_lock<mutex> lock(*mutexPrint);
+   std::cerr << message << std::endl;
+}
+
 void RunTracker(int threadId) try
 {
    int height = mThreadParams[threadId].height;
@@ -215,7 +222,7 @@ int main(int paramc, char * paramv[]) try
       MapDrawer * mapDrawer = new MapDrawer(pMap, settings);
       vMapDrawers.push_back(mapDrawer);
 
-      Tracking * tracker = new Tracking(pVocab, frameDrawer, mapDrawer, pMap, pMapper, settings, eSensor::STEREO);
+      Tracking * tracker = new Tracking(pVocab, frameDrawer, mapDrawer, pMapper, settings, eSensor::STEREO, pMutexOutput);
       vTrackers.push_back(tracker);
 
       mThreadParams[i].serial = pSerial;

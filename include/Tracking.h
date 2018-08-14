@@ -48,7 +48,7 @@ class Tracking
 
 public:
     Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer,
-       Map* pMap, Mapper* pMapper, cv::FileStorage & settings, eSensor sensor);
+       Mapper* pMapper, cv::FileStorage & settings, eSensor sensor, mutex * mutexOutput);
 
     ~Tracking();
 
@@ -101,8 +101,9 @@ public:
     // in both cases, the map could still be updated by loop closure or bundle adjust
     bool mbOnlyTracking;
 
+
     // Reset the map
-    void Reset();
+    void RequestReset();
 
 protected:
 
@@ -154,9 +155,6 @@ protected:
     FrameDrawer* mpFrameDrawer;
     MapDrawer* mpMapDrawer;
 
-    //Map
-    Map* mpMap;
-
     //Calibration matrix
     cv::Mat mK;
     cv::Mat mDistCoef;
@@ -190,6 +188,9 @@ protected:
     bool mbRGB;
 
 private:
+   mutex * mMutexOutput;
+   void Print(const char * message);
+
    eTrackingState mState;
 
    // Change mode flags
@@ -219,6 +220,8 @@ private:
 
    void CheckReset();
 
+   void Reset();
+
    bool NeedNewKeyFrame();
 
    KeyFrame * CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor sensorType);
@@ -228,6 +231,19 @@ private:
    unsigned long NewMapPointId();
 
    void Login();
+
+   void Logout();
+
+    class MapperObserver : public Mapper::Observer
+    {
+    public:
+        MapperObserver(Tracking * pTracker) : mpTracker(pTracker) {};
+        virtual void HandleReset();
+    private:
+        Tracking * mpTracker;
+    };
+
+    MapperObserver mMapperObserver;
 };
 
 } //namespace ORB_SLAM

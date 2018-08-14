@@ -128,18 +128,23 @@ public:
     // Far points are inserted as in the monocular case from 2 views.
     float mThDepth;
 
-    // Number of KeyPoints.
+    // Number of KeyPoints (features).
     int N;
 
-    // Vector of keypoints (original for visualization) and undistorted (actually used by the system).
-    // In the stereo case, mvKeysUn is redundant as images must be rectified.
-    // In the RGB-D case, RGB images can be distorted.
+    // Vector of KeyPoints (features) based on original image(s). Used for visualization.
     std::vector<cv::KeyPoint> mvKeys, mvKeysRight;
+
+    // Vector of undistorted KeyPoints (features). Used by tracking and mapping.
+    // If it is a stereo frame, mvKeysUn is redundant because images are pre-rectified.
+    // If it is a RGB-D frame, the RGB images might be distorted.
     std::vector<cv::KeyPoint> mvKeysUn;
 
-    // Corresponding stereo coordinate and depth for each keypoint.
-    // "Monocular" keypoints have a negative value.
+    // Corresponding stereo coordinate for each KeyPoint.
+    // If this frame is monocular, all elements are negative.
     std::vector<float> mvuRight;
+
+    // Corresponding depth for each KeyPoint.
+    // If this frame is monocular, all elements are negative.
     std::vector<float> mvDepth;
 
     // Bag of Words Vector structures.
@@ -149,7 +154,8 @@ public:
     // ORB descriptor, each row associated to a keypoint.
     cv::Mat mDescriptors, mDescriptorsRight;
 
-    // MapPoints associated to keypoints, NULL pointer if no association.
+    // MapPoints associated to KeyPoints (via the index), NULL pointer if no association.
+    // Each non-null element corresponds to an element in mvKeysUn.
     std::vector<MapPoint*> mvpMapPoints;
 
     // Flag to identify outlier associations.

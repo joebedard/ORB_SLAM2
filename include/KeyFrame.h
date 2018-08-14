@@ -158,14 +158,26 @@ public:
     // Calibration parameters
     const float fx, fy, cx, cy, invfx, invfy, mbf, mb, mThDepth;
 
-    // Number of KeyPoints
+    // Number of KeyPoints (features).
     const int N;
 
-    // KeyPoints, stereo coordinate and descriptors (all associated by an index)
+    // Vector of KeyPoints (features) based on original image(s). Used for visualization.
     const std::vector<cv::KeyPoint> mvKeys;
+
+    // Vector of undistorted KeyPoints (features). Used by tracking and mapping.
+    // If it is a stereo frame, mvKeysUn is redundant because images are pre-rectified.
+    // If it is a RGB-D frame, the RGB images might be distorted.
     const std::vector<cv::KeyPoint> mvKeysUn;
-    const std::vector<float> mvuRight; // negative value for monocular points
-    const std::vector<float> mvDepth; // negative value for monocular points
+
+    // Corresponding stereo coordinate for each KeyPoint.
+    // If this frame is monocular, all elements are negative.
+    const std::vector<float> mvuRight;
+
+    // Corresponding depth for each KeyPoint.
+    // If this frame is monocular, all elements are negative.
+    const std::vector<float> mvDepth;
+
+    // Corresponding descriptor for each KeyPoint.
     const cv::Mat mDescriptors;
 
     //BoW
@@ -199,13 +211,13 @@ protected:
     cv::Mat Twc;
     cv::Mat Ow;
 
-    cv::Mat Cw; // Stereo middel point. Only for visualization
+    // Stereo middle point. Only for visualization
+    cv::Mat Cw;
 
-    // MapPoints associated to keypoints
+    // MapPoints associated to KeyPoints (via the index), NULL pointer if no association.
+    // Each non-null element corresponds to an element in mvKeysUn.
     std::vector<MapPoint*> mvpMapPoints;
 
-    // BoW
-    //KeyFrameDatabase* mpKeyFrameDB;
     ORBVocabulary* mpORBvocabulary;
 
     // Grid over the image to speed up feature matching
@@ -227,8 +239,6 @@ protected:
     bool mbBad;    
 
     float mHalfBaseline; // Only for visualization
-
-    //Map* mpMap;
 
     std::mutex mMutexPose;
     std::mutex mMutexConnections;

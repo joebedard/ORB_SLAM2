@@ -106,6 +106,8 @@ long unsigned int Map::GetMaxKFid()
 
 void Map::clear()
 {
+    unique_lock<mutex> lock(mMutexMap);
+
     for(set<MapPoint*>::iterator sit=mspMapPoints.begin(), send=mspMapPoints.end(); sit!=send; sit++)
         delete *sit;
 
@@ -120,7 +122,9 @@ void Map::clear()
 
 Map & Map::operator=(const Map & map)
 {
-   if (this != _STD addressof(map))
+    unique_lock<mutex> lock(mMutexMap);
+
+    if (this != _STD addressof(map))
    {
       this->mvpKeyFrameOrigins = map.mvpKeyFrameOrigins;
       this->mspMapPoints = map.mspMapPoints;

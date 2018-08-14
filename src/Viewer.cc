@@ -223,10 +223,7 @@ void Viewer::Run()
             }
             bFollow = true;
             menuFollowCamera = true;
-            for (auto t : mvTrackers)
-            {
-               t->Reset();
-            }
+            mvTrackers[0]->RequestReset();
             mbResetting = false;
             menuReset = false;
         }

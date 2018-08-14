@@ -48,11 +48,6 @@ namespace ORB_SLAM2
       mpLoopCloser->SetLocalMapper(mpLocalMapper);
    }
 
-   std::mutex & Mapper::getMutexMapUpdate()
-   {
-      return mpMap->mMutexMapUpdate;
-   }
-
    long unsigned Mapper::KeyFramesInMap()
    {
       return mpMap->KeyFramesInMap();
@@ -61,26 +56,30 @@ namespace ORB_SLAM2
    void Mapper::Reset()
    {
       // Reset Local Mapping
-      cout << "Reseting Local Mapper...";
+      cout << "Begin Local Mapper Reset ..." << endl;
       mpLocalMapper->RequestReset();
-      cout << " done" << endl;
+      cout << "... End Local Mapper Reset" << endl;
 
       // Reset Loop Closing
-      cout << "Reseting Loop Closing...";
+      cout << "Begin Loop Closing Reset ..." << endl;
       mpLoopCloser->RequestReset();
-      cout << " done" << endl;
+      cout << "... End Loop Closing Reset" << endl;
 
       // Clear BoW Database
-      cout << "Reseting Database...";
+      cout << "Begin Database Reset ..." << endl;
       mpKeyFrameDB->clear();
-      cout << " done" << endl;
+      cout << "... End Database Reset" << endl;
 
       // Clear Map (this erase MapPoints and KeyFrames)
+      cout << "Begin Map Reset ..." << endl;
       mpMap->clear();
+      cout << "... End Map Reset" << endl;
 
       ResetTrackerStatus();
+      NotifyReset();
       Frame::nNextId = 0;
       mInitialized = false;
+      cout << "Mapper Reset Complete" << endl;
    }
 
    std::vector<KeyFrame*> Mapper::DetectRelocalizationCandidates(Frame* F)
@@ -115,18 +114,19 @@ namespace ORB_SLAM2
       }
    }
 
-   void Mapper::Initialize(unsigned int trackerId, Map & pMap)
+   void Mapper::Initialize(unsigned int trackerId)
    {
       if (mInitialized)
-         throw std::exception("The mapper may only be initialized once.");
+         throw exception("The mapper may only be initialized once.");
 
       if (trackerId != 0)
-         throw std::exception("Only the first Tracker (id=0) may initialize the map.");
+         throw exception("Only the first Tracker (id=0) may initialize the map.");
 
-      auto allKFs = pMap.GetAllKeyFrames();
+      auto allKFs = mpMap->GetAllKeyFrames();
       for (auto it = allKFs.begin(); it != allKFs.end(); it++)
       {
-         InsertKeyFrame(trackerId, *it);
+         if (!InsertKeyFrame(trackerId, *it))
+             throw exception("Unable to InsertKeyFrame during Initialize.");
       }
 
       mInitialized = true;
@@ -156,6 +156,9 @@ namespace ORB_SLAM2
 
          mTrackers[trackerId].nextKeyFrameId += KEYFRAME_ID_SPAN;
          mTrackers[trackerId].nextMapPointId += MAPPOINT_ID_SPAN;
+
+         // add points to map
+
          return true;
       }
       else
@@ -192,6 +195,29 @@ namespace ORB_SLAM2
       mTrackers[id].connected = false;
    }
 
+   Map * Mapper::GetMap()
+   {
+       return mpMap;
+   }
+
+   void Mapper::AddObserver(Observer * ob)
+   {
+       mObservers[ob] = ob;
+   }
+
+   void Mapper::RemoveObserver(Observer * ob)
+   {
+       mObservers.erase(ob);
+   }
+
+   void Mapper::NotifyReset()
+   {
+      for (auto it : mObservers)
+      {
+         it.second->HandleReset();
+      }
+   }
+
    void Mapper::ResetTrackerStatus()
    {
       unique_lock<mutex> lock(mMutexLogin);
@@ -202,4 +228,5 @@ namespace ORB_SLAM2
          mTrackers[i].nextMapPointId = i;
       }
    }
+
 }
