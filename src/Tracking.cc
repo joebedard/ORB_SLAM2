@@ -468,6 +468,7 @@ void Tracking::StereoInitialization()
         ss << "New map created with " << pMap->MapPointsInMap() << " points";
         Print(ss.str().c_str());
 
+        mCurrentFrame.mpReferenceKF = pKFini;
         mLastFrame = Frame(mCurrentFrame);
         mnLastFrameIdMadeIntoKeyFrame = mCurrentFrame.mnId;
         mpLastKeyFrame = pKFini;
@@ -475,7 +476,6 @@ void Tracking::StereoInitialization()
         mvpLocalKeyFrames.push_back(pKFini);
         mvpLocalMapPoints = pMap->GetAllMapPoints();
         mpReferenceKF = pKFini;
-        mCurrentFrame.mpReferenceKF = pKFini;
 
         pMap->mvpKeyFrameOrigins.push_back(pKFini);
         mpMapper->Initialize(mId);
