@@ -28,9 +28,11 @@
 namespace ORB_SLAM2
 {
 
-LocalMapping::LocalMapping(Map *pMap, KeyFrameDatabase* pDB, const float bMonocular, unsigned long firstMapPointId, unsigned int mapPointIdSpan) :
-    mbMonocular(bMonocular), mbResetRequested(false), mbFinishRequested(false), mbFinished(true), mpMap(pMap), mpKeyFrameDB(pDB),
-    mbAbortBA(false), mbPaused(false), mbPauseRequested(false), mbNotPause(false), mbAcceptKeyFrames(true),
+LocalMapping::LocalMapping(mutex * pMutexOutput, Map *pMap, KeyFrameDatabase* pDB, const float bMonocular, unsigned long firstMapPointId, unsigned int mapPointIdSpan) :
+    mpMutexOutput(pMutexOutput), mbMonocular(bMonocular), mbResetRequested(false),
+    mbFinishRequested(false), mbFinished(true), mpMap(pMap),
+    mpKeyFrameDB(pDB), mbAbortBA(false), mbPaused(false),
+    mbPauseRequested(false), mbNotPause(false), mbAcceptKeyFrames(true),
     mNextMapPointId(firstMapPointId), mMapPointIdSpan(mapPointIdSpan)
 {
 }
@@ -40,7 +42,7 @@ void LocalMapping::SetLoopCloser(LoopClosing* pLoopCloser)
     mpLoopCloser = pLoopCloser;
 }
 
-void LocalMapping::Run()
+void LocalMapping::Run() try
 {
     mbFinished = false;
 
@@ -104,6 +106,14 @@ void LocalMapping::Run()
     }
 
     SetFinish();
+}
+catch (const exception& e)
+{
+    std::cerr << std::endl << e.what() << std::endl;
+}
+catch (...)
+{
+    std::cerr << std::endl << "An exception was not caught in the LocalMapping thread." << std::endl;
 }
 
 bool LocalMapping::InsertKeyFrame(KeyFrame *pKF)
@@ -782,6 +792,12 @@ unsigned long LocalMapping::NewMapPointId()
     unsigned long temp = mNextMapPointId;
     mNextMapPointId += mMapPointIdSpan;
     return temp;
+}
+
+void LocalMapping::Print(const char * message)
+{
+    unique_lock<mutex> lock(*mpMutexOutput);
+    cout << "LocalMapping: " << message << endl;
 }
 
 } //namespace ORB_SLAM

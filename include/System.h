@@ -106,6 +106,7 @@ public:
     // LoadMap(const string &filename);
 
 private:
+    mutex mMutexOutput;
 
    // Temporarily make these 3 functions private until they are really needed publicly
    // Information from most recent processed frame
@@ -148,6 +149,8 @@ private:
     std::vector<MapPoint*> mTrackedMapPoints;
     std::vector<cv::KeyPoint> mTrackedKeyPointsUn;
     std::mutex mMutexState;
+
+    void Print(const char * message);
 };
 
 }// namespace ORB_SLAM

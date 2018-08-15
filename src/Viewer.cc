@@ -28,28 +28,25 @@
 namespace ORB_SLAM2
 {
 
-Viewer::Viewer(FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking) :
-    mbFinishRequested(false), mbFinished(true), mbStopped(true), mbStopRequested(false), mbResetting(false)
+Viewer::Viewer(mutex * pMutex, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking) :
+    mpMutexOutput(pMutex), mbFinishRequested(false), mbFinished(true), 
+    mbStopped(true), mbStopRequested(false), mbResetting(false),
+    mWindowTitle("ORB-SLAM2 Viewer")
 {
    mvFrameDrawers.push_back(pFrameDrawer);
    mvMapDrawers.push_back(pMapDrawer);
    mvTrackers.push_back(pTracking);
-   Initialize();
 }
 
-Viewer::Viewer(vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers) :
-   mvFrameDrawers(vFrameDrawers), mvMapDrawers(vMapDrawers), mvTrackers(vTrackers),
-   mbFinishRequested(false), mbFinished(true), mbStopped(true), mbStopRequested(false), mbResetting(false)
+Viewer::Viewer(mutex * pMutex, vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers) :
+    mvFrameDrawers(vFrameDrawers), mvMapDrawers(vMapDrawers), mvTrackers(vTrackers),
+    mpMutexOutput(pMutex), mbFinishRequested(false), mbFinished(true), 
+    mbStopped(true), mbStopRequested(false), mbResetting(false),
+    mWindowTitle("ORB-SLAM2 Viewer")
 {
-   Initialize();
 }
 
-void Viewer::Initialize()
-{
-   mMapWindowTitle.append("ORB-SLAM2 : Map Viewer");
-}
-
-void Viewer::Run()
+void Viewer::Run() try
 {
     const int MENU_WIDTH = 220;
     const int MULTIVIEW_WIDTH = 1024;
@@ -59,7 +56,7 @@ void Viewer::Run()
     mbFinished = false;
     mbStopped = false;
 
-    pangolin::CreateWindowAndBind(mMapWindowTitle, WINDOW_WIDTH, WINDOW_HEIGHT);
+    pangolin::CreateWindowAndBind(mWindowTitle, WINDOW_WIDTH, WINDOW_HEIGHT);
 
     // 3D Mouse handler requires depth testing to be enabled
     glEnable(GL_DEPTH_TEST);
@@ -243,6 +240,16 @@ void Viewer::Run()
     SetFinish();
     pangolin::Quit();
 }
+catch (const exception& e)
+{
+    unique_lock<mutex> lock(*mpMutexOutput);
+    std::cerr << std::endl << e.what() << std::endl;
+}
+catch (...)
+{
+    unique_lock<mutex> lock(*mpMutexOutput);
+    std::cerr << std::endl << "An exception was not caught in the Viewer thread." << std::endl;
+}
 
 void Viewer::RequestFinish()
 {
@@ -303,6 +310,12 @@ void Viewer::Release()
 {
     unique_lock<mutex> lock(mMutexStop);
     mbStopped = false;
+}
+
+void Viewer::Print(const char * message)
+{
+    unique_lock<mutex> lock(*mpMutexOutput);
+    cout << "Viewer: " << message << endl;
 }
 
 }

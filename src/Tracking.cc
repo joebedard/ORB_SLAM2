@@ -38,14 +38,15 @@ using namespace std;
 namespace ORB_SLAM2
 {
 
-Tracking::Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer,
-    Mapper* pMapper, cv::FileStorage & fSettings, eSensor sensor, mutex * mutexOutput) :
-    mId(-1), mSensor(sensor), mbOnlyTracking(false), mpORBVocabulary(pVoc), mbReset(false),
+Tracking::Tracking(mutex * pMutexOutput, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer,
+    Mapper* pMapper, cv::FileStorage & fSettings, eSensor sensor) :
+    mpMutexOutput(pMutexOutput), mId(-1), mSensor(sensor),
+    mbOnlyTracking(false), mpORBVocabulary(pVoc), mbReset(false),
     mpMapper(pMapper), mpInitializer(static_cast<Initializer*>(NULL)), mpViewer(NULL),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mnLastRelocFrameId(0),
     mbActivateLocalizationMode(false), mbDeactivateLocalizationMode(false), mState(NOT_INITIALIZED),
-    mNextKeyFrameId(0), mKeyFrameIdSpan(0), mNextMapPointId(0), mMapPointIdSpan(0),
-    mMutexOutput(mutexOutput), mMapperObserver(this)
+    mNextKeyFrameId(0), mKeyFrameIdSpan(0), mNextMapPointId(0),
+    mMapPointIdSpan(0), mMapperObserver(this)
 {
     LoadCameraParameters(fSettings, sensor);
     Login();
@@ -59,13 +60,13 @@ Tracking::~Tracking()
 
 void Tracking::Print(const char * message)
 {
-    unique_lock<mutex> lock(*mMutexOutput);
-    cout << mId << " " << message << endl;
+    unique_lock<mutex> lock(*mpMutexOutput);
+    cout << "Tracking: Id=" << mId << " " << message << endl;
 }
 
 void Tracking::LoadCameraParameters(cv::FileStorage & fSettings, eSensor sensor)
 { 
-    unique_lock<mutex> lock(*mMutexOutput);
+    unique_lock<mutex> lock(*mpMutexOutput);
     // Load camera parameters from settings file
 
     float fx = fSettings["Camera.fx"];
@@ -165,18 +166,16 @@ void Tracking::LoadCameraParameters(cv::FileStorage & fSettings, eSensor sensor)
 }
 
 void Tracking::SetViewer(Viewer *pViewer)
-{ Print("begin SetViewer");
+{
     mpViewer=pViewer;
-    Print("end SetViewer");
 }
 
 cv::Mat Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRectRight, const double &timestamp)
 {
-   Print("begin GrabImageStereo");
-   CheckModeChange();
-   CheckReset();
+    CheckModeChange();
+    CheckReset();
 
-   mImGray = imRectLeft;
+    mImGray = imRectLeft;
     cv::Mat imGrayRight = imRectRight;
 
     if(mImGray.channels()==3)
@@ -210,14 +209,12 @@ cv::Mat Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRe
 
     Track();
 
-    Print("end GrabImageStereo");
     return mCurrentFrame.mTcw.clone();
 }
 
 
 cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const double &timestamp)
 {
-   Print("begin GrabImageRGBD");
    CheckModeChange();
    CheckReset();
 
@@ -246,14 +243,12 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
 
     Track();
 
-    Print("end GrabImageRGBD");
     return mCurrentFrame.mTcw.clone();
 }
 
 
 cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
 {
-   Print("begin GrabImageMonocular");
    CheckModeChange();
    CheckReset();
 
@@ -281,13 +276,11 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
 
     Track();
 
-    Print("end GrabImageMonocular");
     return mCurrentFrame.mTcw.clone();
 }
 
 void Tracking::Track()
 {
-   Print("begin Track");
     mLastProcessedState = mState;
 
     // Get Map Mutex -> Map cannot be changed
@@ -306,13 +299,11 @@ void Tracking::Track()
 
             if (!mpMapper->GetInitialized())
             {
-               Print("end Track");
                 return;
             }
         }
         else
         {
-           Print("end Track");
           return;
         }
     }
@@ -406,9 +397,8 @@ void Tracking::Track()
         {
             if(mpMapper->KeyFramesInMap()<=5)
             {
-                Print("Track lost soon after initialisation, reseting...");
+                Print("Tracking lost soon after initialisation, reseting...");
                 RequestReset();
-                Print("end Track");
                 return;
             }
         }
@@ -439,13 +429,11 @@ void Tracking::Track()
             mlbLost.push_back(mState == TRACKING_LOST);
         }
     }
-    Print("end Track");
 }
 
 
 void Tracking::StereoInitialization()
 {
-   Print("begin StereoInitialization");
     if(mCurrentFrame.N>500)
     {
         Map * pMap = mpMapper->GetMap();
@@ -499,13 +487,10 @@ void Tracking::StereoInitialization()
             mpMapDrawer->SetReferenceMapPoints(mvpLocalMapPoints);
         }
     }
-    Print("end StereoInitialization");
 }
 
 void Tracking::MonocularInitialization()
 {
-   Print("begin MonocularInitialization");
-
     if(!mpInitializer)
     {
         // Set Reference Frame
@@ -524,7 +509,6 @@ void Tracking::MonocularInitialization()
 
             fill(mvIniMatches.begin(),mvIniMatches.end(),-1);
 
-            Print("end MonocularInitialization");
             return;
         }
     }
@@ -536,7 +520,6 @@ void Tracking::MonocularInitialization()
             delete mpInitializer;
             mpInitializer = static_cast<Initializer*>(NULL);
             fill(mvIniMatches.begin(),mvIniMatches.end(),-1);
-            Print("end MonocularInitialization");
             return;
         }
 
@@ -549,7 +532,6 @@ void Tracking::MonocularInitialization()
         {
             delete mpInitializer;
             mpInitializer = static_cast<Initializer*>(NULL);
-            Print("end MonocularInitialization");
             return;
         }
 
@@ -578,12 +560,10 @@ void Tracking::MonocularInitialization()
             CreateInitialMapMonocular();
         }
     }
-    Print("end MonocularInitialization");
 }
 
 void Tracking::CreateInitialMapMonocular()
 {
-   Print("begin CreateInitialMapMonocular");
     Map * pMap = mpMapper->GetMap();
     
     // Create KeyFrames
@@ -651,7 +631,6 @@ void Tracking::CreateInitialMapMonocular()
            delete mpInitializer;
            mpInitializer = static_cast<Initializer*>(NULL);
         }
-        Print("end CreateInitialMapMonocular");
         return;
     }
 
@@ -693,12 +672,10 @@ void Tracking::CreateInitialMapMonocular()
     }
 
     mState = TRACKING_OK;
-    Print("end CreateInitialMapMonocular");
 }
 
 void Tracking::CheckReplacedInLastFrame()
 {
-   Print("begin CheckReplacedInLastFrame");
     for(int i =0; i<mLastFrame.N; i++)
     {
         MapPoint* pMP = mLastFrame.mvpMapPoints[i];
@@ -712,13 +689,11 @@ void Tracking::CheckReplacedInLastFrame()
             }
         }
     }
-    Print("end CheckReplacedInLastFrame");
 }
 
 
 bool Tracking::TrackReferenceKeyFrame()
 {
-   Print("begin TrackReferenceKeyFrame");
     // Compute Bag of Words vector
     mCurrentFrame.ComputeBoW();
 
@@ -731,7 +706,6 @@ bool Tracking::TrackReferenceKeyFrame()
 
     if(nmatches<15)
     {
-       Print("end TrackReferenceKeyFrame");
         return false;
     }
 
@@ -761,23 +735,19 @@ bool Tracking::TrackReferenceKeyFrame()
         }
     }
 
-    Print("end TrackReferenceKeyFrame");
     return nmatchesMap>=10;
 }
 
 void Tracking::UpdateLastFrame()
 {
-   Print("begin UpdateLastFrame");
     // Update pose according to reference keyframe
     KeyFrame* pRef = mLastFrame.mpReferenceKF;
     cv::Mat Tlr = mlRelativeFramePoses.back();
     mLastFrame.SetPose(Tlr*pRef->GetPose());
-    Print("end UpdateLastFrame");
 }
 
 bool Tracking::TrackWithMotionModel()
 {
-   Print("begin TrackWithMotionModel");
     ORBmatcher matcher(0.9,true);
 
     // Update last frame pose according to its reference keyframe
@@ -805,7 +775,6 @@ bool Tracking::TrackWithMotionModel()
 
     if(nmatches<20)
     {
-       Print("end TrackWithMotionModel");
         return false;
     }
 
@@ -833,13 +802,11 @@ bool Tracking::TrackWithMotionModel()
         }
     }    
 
-    Print("end TrackWithMotionModel");
     return nmatchesMap>=10;
 }
 
 bool Tracking::TrackLocalMap()
 {
-   Print("begin TrackLocalMap");
     // We have an estimation of the camera pose and some map points tracked in the frame.
     // We retrieve the local map and try to find matches to points in the local map.
 
@@ -874,18 +841,15 @@ bool Tracking::TrackLocalMap()
     // More restrictive if there was a relocalization recently
     if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mnMatchesInliers<50)
     {
-       Print("end TrackLocalMap");
         return false;
     }
 
     if(mnMatchesInliers<30)
     {
-       Print("end TrackLocalMap");
         return false;
     }
     else
     {
-       Print("end TrackLocalMap");
        return true;
     }
 }
@@ -893,17 +857,14 @@ bool Tracking::TrackLocalMap()
 
 bool Tracking::NeedNewKeyFrame()
 {
-   Print("begin NeedNewKeyFrame");
     if(mbOnlyTracking)
     {
-       Print("end NeedNewKeyFrame");
         return false;
     }
 
     // If Local Mapping is freezed by a Loop Closure do not insert keyframes
     if(mpMapper->GetPauseRequested())
     {
-       Print("end NeedNewKeyFrame");
         return false;
     }
 
@@ -912,7 +873,6 @@ bool Tracking::NeedNewKeyFrame()
     // Do not insert keyframes if not enough frames have passed from last relocalisation
     if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && nKFs>mMaxFrames)
     {
-       Print("end NeedNewKeyFrame");
         return false;
     }
 
@@ -961,13 +921,11 @@ bool Tracking::NeedNewKeyFrame()
     // Condition 2: Few tracked points compared to reference keyframe. Lots of visual odometry compared to map matches.
     const bool c2 = ((mnMatchesInliers < (nRefMatches * thRefRatio)) || bNeedToInsertClose) && (mnMatchesInliers > 15);
 
-    Print("end NeedNewKeyFrame");
     return ((c1a || c1b || c1c) && c2);
 }
 
 void Tracking::SearchLocalPoints()
 {
-   Print("begin SearchLocalPoints");
     // Do not search map points already matched
     for(vector<MapPoint*>::iterator vit=mCurrentFrame.mvpMapPoints.begin(), vend=mCurrentFrame.mvpMapPoints.end(); vit!=vend; vit++)
     {
@@ -1016,27 +974,23 @@ void Tracking::SearchLocalPoints()
             th=5;
         matcher.SearchByProjection(mCurrentFrame,mvpLocalMapPoints,th);
     }
-    Print("end SearchLocalPoints");
 }
 
 void Tracking::UpdateLocalMap()
 {
-   Print("begin UpdateLocalMap");
     // This is for visualization
     if (mpMapDrawer)
         mpMapDrawer->SetReferenceMapPoints(mvpLocalMapPoints);
 
     // post: relevant keyframes are in mvpLocalKeyFrames
-    UpdateLocalKeyFrames();
+    UpdateLocalMapKeyFrames();
 
     // post: potential map points are in mvpLocalMapPoints
-    UpdateLocalPoints();
-    Print("end UpdateLocalMap");
+    UpdateLocalMapPoints();
 }
 
-void Tracking::UpdateLocalPoints()
+void Tracking::UpdateLocalMapPoints()
 {
-   Print("begin UpdateLocalPoints");
    mvpLocalMapPoints.clear();
 
     for(vector<KeyFrame*>::const_iterator itKF=mvpLocalKeyFrames.begin(), itEndKF=mvpLocalKeyFrames.end(); itKF!=itEndKF; itKF++)
@@ -1058,13 +1012,11 @@ void Tracking::UpdateLocalPoints()
             }
         }
     }
-    Print("end UpdateLocalPoints");
 }
 
 
-void Tracking::UpdateLocalKeyFrames()
+void Tracking::UpdateLocalMapKeyFrames()
 {
-   Print("begin UpdateLocalKeyFrames");
     // Each map point vote for the keyframes in which it has been observed
     map<KeyFrame*,int> keyframeCounter;
     for(int i=0; i<mCurrentFrame.N; i++)
@@ -1087,7 +1039,6 @@ void Tracking::UpdateLocalKeyFrames()
 
     if(keyframeCounter.empty())
     {
-       Print("end UpdateLocalKeyFrames");
         return;
     }
 
@@ -1174,12 +1125,10 @@ void Tracking::UpdateLocalKeyFrames()
         mpReferenceKF = pKFmax;
         mCurrentFrame.mpReferenceKF = mpReferenceKF;
     }
-    Print("end UpdateLocalKeyFrames");
 }
 
 bool Tracking::Relocalization()
 {
-   Print("begin Relocalization");
     // Compute Bag of Words Vector
     mCurrentFrame.ComputeBoW();
 
@@ -1189,7 +1138,6 @@ bool Tracking::Relocalization()
     
     if(vpCandidateKFs.empty())
     {
-       Print("end Relocalization");
         return false;
     }
 
@@ -1334,13 +1282,11 @@ bool Tracking::Relocalization()
 
     if(!bMatch)
     {
-       Print("end Relocalization");
         return false;
     }
     else
     {
         mnLastRelocFrameId = mCurrentFrame.mnId;
-        Print("end Relocalization");
         return true;
     }
 
@@ -1354,42 +1300,23 @@ void Tracking::RequestReset()
 
 void Tracking::Reset()
 {
-    unique_lock<mutex> lock(mpMapper->GetMap()->mMutexMapUpdate);
-
-    Print("begin Reset");
-
    Print("System Reseting");
    
     if(mpViewer)
     {
         mpViewer->RequestStop();
-        while(!mpViewer->isStopped())
+        while(!mpViewer->isStopped() && !mpViewer->isFinished())
             sleep(3000);
     }
 
     mpMapper->Reset();
 
-    if(mpInitializer)
-    {
-        delete mpInitializer;
-        mpInitializer = static_cast<Initializer*>(NULL);
-    }
-
-    mlRelativeFramePoses.clear();
-    mlpReferences.clear();
-    mlFrameTimes.clear();
-    mlbLost.clear();
-
-    mState = NOT_INITIALIZED;
-
     if(mpViewer)
         mpViewer->Release();
-    Print("end Reset");
 }
 
 void Tracking::ChangeCalibration(const string &strSettingPath)
 {
-   Print("begin ChangeCalibration");
     cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
     float fx = fSettings["Camera.fx"];
     float fy = fSettings["Camera.fy"];
@@ -1419,28 +1346,22 @@ void Tracking::ChangeCalibration(const string &strSettingPath)
     mbf = fSettings["Camera.bf"];
 
     Frame::mbInitialComputations = true;
-    Print("end ChangeCalibration");
 }
 
 void Tracking::ActivateLocalizationMode()
 {
-   Print("begin ActivateLocalizationMode");
    unique_lock<mutex> lock(mMutexMode);
    mbActivateLocalizationMode = true;
-   Print("end ActivateLocalizationMode");
 }
 
 void Tracking::DeactivateLocalizationMode()
 {
-   Print("begin DeactivateLocalizationMode");
    unique_lock<mutex> lock(mMutexMode);
    mbDeactivateLocalizationMode = true;
-   Print("end DeactivateLocalizationMode");
 }
 
 void Tracking::CheckModeChange()
 {
-   Print("begin CheckModeChange");
    unique_lock<mutex> lock(mMutexMode);
    if (mbActivateLocalizationMode)
    {
@@ -1454,24 +1375,20 @@ void Tracking::CheckModeChange()
       mbOnlyTracking = false;
       mbDeactivateLocalizationMode = false;
    }
-   Print("end CheckModeChange");
 }
 
 void Tracking::CheckReset()
 {
-   Print("begin CheckReset");
    unique_lock<mutex> lock(mMutexReset);
    if (mbReset)
    {
       Reset();
       mbReset = false;
    }
-   Print("end CheckReset");
 }
 
 KeyFrame * Tracking::CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor sensorType)
 {
-   Print("begin CreateNewKeyFrame");
     KeyFrame* pKF = new KeyFrame(NewKeyFrameId(), currentFrame);
     Map * pMap = mpMapper->GetMap();
 
@@ -1535,7 +1452,6 @@ KeyFrame * Tracking::CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor 
                     break;
             }
         }
-        Print("end CreateNewKeyFrame");
         return pKF;
     }
     else
@@ -1562,26 +1478,21 @@ KeyFrame * Tracking::CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor 
             }
             delete pKF;
         }
-       Print("end CreateNewKeyFrame");
         return NULL;
     }
 }
 
 unsigned long Tracking::NewKeyFrameId()
 {
-   Print("begin NewKeyFrameId");
     unsigned long temp = mNextKeyFrameId;
     mNextKeyFrameId += mKeyFrameIdSpan;
-    Print("end NewKeyFrameId");
     return temp;
 }
 
 unsigned long Tracking::NewMapPointId()
 {
-    //Print("begin NewMapPointId");
     unsigned long temp = mNextMapPointId;
     mNextMapPointId += mMapPointIdSpan;
-    //Print("end NewMapPointId");
     return temp;
 }
 
@@ -1590,29 +1501,42 @@ void Tracking::Login()
     mId = mpMapper->LoginTracker(mNextKeyFrameId, mKeyFrameIdSpan, mNextMapPointId, mMapPointIdSpan);
     assert(mKeyFrameIdSpan != 0);
     assert(mKeyFrameIdSpan != 0);
-    unique_lock<mutex> lock(*mMutexOutput);
-    cout << endl;
-    cout << "Tracker Login Complete" << endl;
-    cout << "Tracker Id:         " << mId << endl;
-    cout << "First Keyframe Id:  " << mNextKeyFrameId << endl;
-    cout << "Keyframe Id Span:   " << mKeyFrameIdSpan << endl;
-    cout << "First Map Point Id: " << mNextMapPointId << endl;
-    cout << "Map Point Id Span:  " << mMapPointIdSpan << endl;
+    unique_lock<mutex> lock(*mpMutexOutput);
+    cout << "Tracking: Login Complete" << endl;
+    cout << "   Tracker Id =         " << mId << endl;
+    cout << "   First Keyframe Id =  " << mNextKeyFrameId << endl;
+    cout << "   Keyframe Id Span =   " << mKeyFrameIdSpan << endl;
+    cout << "   First Map Point Id = " << mNextMapPointId << endl;
+    cout << "   Map Point Id Span =  " << mMapPointIdSpan << endl;
 }
 
 void Tracking::Logout()
 {
-    mpMapper->LogoutTracker(mId);
+    unsigned int tempId = mId;
     mId = -1;
-    unique_lock<mutex> lock(*mMutexOutput);
-    cout << endl;
-    cout << "Tracker Logout Complete" << endl;
+    mpMapper->LogoutTracker(tempId);
+    unique_lock<mutex> lock(*mpMutexOutput);
+    cout << "Tracking: Logout Complete" << endl;
+    cout << "   Tracker Id = " << tempId << endl;
 }
 
-void Tracking::MapperObserver::HandleReset()
+void Tracking::MapperObserverHandleReset()
 {
-    mpTracker->Logout();
-    mpTracker->Login();
+    Logout();
+    Login();
+
+    if (mpInitializer)
+    {
+        delete mpInitializer;
+        mpInitializer = static_cast<Initializer*>(NULL);
+    }
+
+    mlRelativeFramePoses.clear();
+    mlpReferences.clear();
+    mlFrameTimes.clear();
+    mlbLost.clear();
+
+    mState = NOT_INITIALIZED;
 }
 
 } //namespace ORB_SLAM

@@ -33,64 +33,66 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
                const bool bUseViewer):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL))
 {
     // Output welcome message
-    cout << endl <<
-    "ORB-SLAM2 Copyright (C) 2014-2016 Raul Mur-Artal, University of Zaragoza." << endl <<
-    "This program comes with ABSOLUTELY NO WARRANTY;" << endl  <<
-    "This is free software, and you are welcome to redistribute it" << endl <<
-    "under certain conditions. See LICENSE.txt." << endl << endl;
+    stringstream ss1;
+    ss1 << endl;
+    ss1 << "   ORB-SLAM2 Copyright (C) 2014-2016 Raul Mur-Artal, University of Zaragoza." << endl;
+    ss1 << "   This program comes with ABSOLUTELY NO WARRANTY;" << endl;
+    ss1 << "   This is free software, and you are welcome to redistribute it" << endl;
+    ss1 << "   under certain conditions. See LICENSE.txt." << endl;
+    Print(ss1.str().c_str());
 
-    cout << "Input sensor was set to: ";
-
+    stringstream ss2("Input sensor was set to: ");
     if(mSensor==MONOCULAR)
-        cout << "Monocular" << endl;
+        ss2 << "Monocular";
     else if(mSensor==STEREO)
-        cout << "Stereo" << endl;
+        ss2 << "Stereo";
     else if(mSensor==RGBD)
-        cout << "RGB-D" << endl;
+        ss2 << "RGB-D";
+    Print(ss2.str().c_str());
 
     //Check settings file
     cv::FileStorage fsSettings(strSettingsFile.c_str(), cv::FileStorage::READ);
     if(!fsSettings.isOpened())
     {
-       cerr << "Failed to open settings file at: " << strSettingsFile << endl;
-       exit(-1);
+        string m("Failed to open settings file at: ");
+        m.append(strSettingsFile);
+        throw exception(m.c_str());
     }
 
     //Load ORB Vocabulary
-    cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
+    Print("Loading ORB Vocabulary. This could take a while...");
     mpVocabulary = new ORBVocabulary();
     bool bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
     if(!bVocLoad)
     {
-        cerr << "Wrong path to vocabulary. " << endl;
-        cerr << "Failed to open at: " << strVocFile << endl;
-        exit(-1);
+        string m("Wrong path to vocabulary. Failed to open at: ");
+        m.append(strVocFile);
+        throw exception(m.c_str());
     }
-    cout << "Vocabulary loaded!" << endl << endl;
+    Print("Vocabulary loaded!");
 
     //Create the Map
     mpMap = new Map();
 
     //Create Drawers. These are used by the Viewer
     mpFrameDrawer = new FrameDrawer(mpMap, fsSettings);
-    mpMapDrawer = new MapDrawer(mpMap, fsSettings);
+    mpMapDrawer = new MapDrawer(&mMutexOutput, mpMap, fsSettings);
 
     //Initialize the Mapper
-    mpMapper = new Mapper(mpMap, mpVocabulary, mSensor == MONOCULAR);
+    mpMapper = new Mapper(&mMutexOutput, mpMap, mpVocabulary, mSensor == MONOCULAR);
 
     //Initialize the Tracking thread
     //(it will live in the main thread of execution, the one that called this constructor)
-    mpTracker = new Tracking(mpVocabulary, mpFrameDrawer, mpMapDrawer,
-       mpMapper, fsSettings, mSensor, new mutex());
+    mpTracker = new Tracking(&mMutexOutput, mpVocabulary, mpFrameDrawer, mpMapDrawer,
+       mpMapper, fsSettings, mSensor);
 
     //Initialize the Viewer thread and launch
     if(bUseViewer)
     {
-        mpViewer = new Viewer(mpFrameDrawer, mpMapDrawer, mpTracker);
+        mpViewer = new Viewer(&mMutexOutput, mpFrameDrawer, mpMapDrawer, mpTracker);
         mptViewer = new thread(&Viewer::Run, mpViewer);
         mpTracker->SetViewer(mpViewer);
     }
-
 }
 
 System::~System()
@@ -107,8 +109,7 @@ cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const
 {
     if(mSensor!=STEREO)
     {
-        cerr << "ERROR: you called TrackStereo but input sensor was not set to STEREO." << endl;
-        exit(-1);
+        throw exception("ERROR: you called TrackStereo but input sensor was not set to STEREO.");
     }   
 
     cv::Mat Tcw = mpTracker->GrabImageStereo(imLeft,imRight,timestamp);
@@ -124,8 +125,7 @@ cv::Mat System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const doub
 {
     if(mSensor!=RGBD)
     {
-        cerr << "ERROR: you called TrackRGBD but input sensor was not set to RGBD." << endl;
-        exit(-1);
+        throw exception("ERROR: you called TrackRGBD but input sensor was not set to RGBD.");
     }    
 
     cv::Mat Tcw = mpTracker->GrabImageRGBD(im,depthmap,timestamp);
@@ -141,7 +141,7 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
 {
     if(mSensor!=MONOCULAR)
     {
-        cerr << "ERROR: you called TrackMonocular but input sensor was not set to Monocular." << endl;
+        throw exception("ERROR: you called TrackMonocular but input sensor was not set to Monocular.");
         exit(-1);
     }
 
@@ -185,11 +185,13 @@ void System::Shutdown()
 
 void System::SaveTrajectoryTUM(const string &filename)
 {
-    cout << endl << "Saving camera trajectory to " << filename << " ..." << endl;
+    stringstream ss;
+    ss << endl << "Saving camera trajectory to " << filename << " ...";
+    Print(ss.str().c_str());
+
     if(mSensor==MONOCULAR)
     {
-        cerr << "ERROR: SaveTrajectoryTUM cannot be used for monocular." << endl;
-        return;
+        throw exception("ERROR: SaveTrajectoryTUM cannot be used for monocular.");
     }
 
     vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
@@ -240,13 +242,15 @@ void System::SaveTrajectoryTUM(const string &filename)
         f << setprecision(6) << *lT << " " <<  setprecision(9) << twc.at<float>(0) << " " << twc.at<float>(1) << " " << twc.at<float>(2) << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
     }
     f.close();
-    cout << endl << "trajectory saved!" << endl;
+    Print("trajectory saved!");
 }
 
 
 void System::SaveKeyFrameTrajectoryTUM(const string &filename)
 {
-    cout << endl << "Saving keyframe trajectory to " << filename << " ..." << endl;
+    stringstream ss;
+    ss << endl << "Saving keyframe trajectory to " << filename << " ...";
+    Print(ss.str().c_str());
 
     vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
     sort(vpKFs.begin(),vpKFs.end(),KeyFrame::lId);
@@ -277,16 +281,18 @@ void System::SaveKeyFrameTrajectoryTUM(const string &filename)
     }
 
     f.close();
-    cout << endl << "trajectory saved!" << endl;
+    Print("trajectory saved!");
 }
 
 void System::SaveTrajectoryKITTI(const string &filename)
 {
-    cout << endl << "Saving camera trajectory to " << filename << " ..." << endl;
+    stringstream ss;
+    ss << endl << "Saving camera trajectory to " << filename << " ...";
+    Print(ss.str().c_str());
+
     if(mSensor==MONOCULAR)
     {
-        cerr << "ERROR: SaveTrajectoryKITTI cannot be used for monocular." << endl;
-        return;
+        throw exception("ERROR: SaveTrajectoryKITTI cannot be used for monocular.");
     }
 
     vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
@@ -316,7 +322,7 @@ void System::SaveTrajectoryKITTI(const string &filename)
 
         while(pKF->isBad())
         {
-          //  cout << "bad parent" << endl;
+            //Print("bad parent");
             Trw = Trw*pKF->mTcp;
             pKF = pKF->GetParent();
         }
@@ -332,7 +338,7 @@ void System::SaveTrajectoryKITTI(const string &filename)
              Rwc.at<float>(2,0) << " " << Rwc.at<float>(2,1)  << " " << Rwc.at<float>(2,2) << " "  << twc.at<float>(2) << endl;
     }
     f.close();
-    cout << endl << "trajectory saved!" << endl;
+    Print("trajectory saved!");
 }
 
 int System::GetTrackingState()
@@ -356,6 +362,12 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
 bool System::IsQuitting()
 {
    return mpViewer->CheckFinish();
+}
+
+void System::Print(const char * message)
+{
+    unique_lock<mutex> lock(mMutexOutput);
+    cout << "System: " << message << endl;
 }
 
 } //namespace ORB_SLAM

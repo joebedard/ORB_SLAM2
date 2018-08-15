@@ -19,36 +19,26 @@
 */
 
 #include "LoopClosing.h"
-
 #include "Sim3Solver.h"
-
 #include "Converter.h"
-
 #include "Optimizer.h"
-
 #include "ORBmatcher.h"
-
 #include "Sleep.h"
-
-#include<mutex>
-#include<thread>
-
+#include <mutex>
+#include <thread>
 
 namespace ORB_SLAM2
 {
 
-LoopClosing::LoopClosing(Map *pMap, KeyFrameDatabase *pDB, ORBVocabulary *pVoc, const bool bFixScale):
-    mbResetRequested(false), mbFinishRequested(false), mbFinished(true), mpMap(pMap),
-    mpKeyFrameDB(pDB), mpORBVocabulary(pVoc), mpMatchedKF(NULL), mLastLoopKFid(0), mbRunningGBA(false), mbFinishedGBA(true),
-    mbStopGBA(false), mpThreadGBA(NULL), mbFixScale(bFixScale), mnFullBAIdx(0)
+LoopClosing::LoopClosing(mutex * pMutexOutput, Map *pMap, KeyFrameDatabase *pDB, ORBVocabulary *pVoc, const bool bFixScale):
+    mpMutexOutput(pMutexOutput), mbResetRequested(false), mbFinishRequested(false),
+    mbFinished(true), mpMap(pMap), mpKeyFrameDB(pDB),
+    mpORBVocabulary(pVoc), mpMatchedKF(NULL), mLastLoopKFid(0),
+    mbRunningGBA(false), mbFinishedGBA(true), mbStopGBA(false),
+    mpThreadGBA(NULL), mbFixScale(bFixScale), mnFullBAIdx(0)
 {
     mnCovisibilityConsistencyTh = 3;
 }
-
-/*void LoopClosing::SetTracker(Tracking *pTracker)
-{
-    mpTracker=pTracker;
-}*/
 
 void LoopClosing::SetLocalMapper(LocalMapping *pLocalMapper)
 {
@@ -56,7 +46,7 @@ void LoopClosing::SetLocalMapper(LocalMapping *pLocalMapper)
 }
 
 
-void LoopClosing::Run()
+void LoopClosing::Run() try
 {
     mbFinished =false;
 
@@ -87,6 +77,14 @@ void LoopClosing::Run()
     }
 
     SetFinish();
+}
+catch (const exception& e)
+{
+    std::cerr << std::endl << e.what() << std::endl;
+}
+catch (...)
+{
+    std::cerr << std::endl << "An exception was not caught in the LoopClosing thread." << std::endl;
 }
 
 void LoopClosing::InsertKeyFrame(KeyFrame *pKF)
@@ -403,7 +401,7 @@ bool LoopClosing::ComputeSim3()
 
 void LoopClosing::CorrectLoop()
 {
-    cout << "Loop detected!" << endl;
+    Print("Loop detected!");
 
     // Send a stop signal to Local Mapping
     // Avoid new keyframes are inserted while correcting the loop
@@ -646,7 +644,7 @@ void LoopClosing::ResetIfRequested()
 
 void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
 {
-    cout << "Starting Global Bundle Adjustment" << endl;
+    Print("Starting Global Bundle Adjustment");
 
     int idx =  mnFullBAIdx;
     Optimizer::GlobalBundleAdjustment(mpMap,10,&mbStopGBA,nLoopKF,false);
@@ -662,8 +660,8 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
 
         if(!mbStopGBA)
         {
-            cout << "Global Bundle Adjustment finished" << endl;
-            cout << "Updating map ..." << endl;
+            Print("Global Bundle Adjustment finished");
+            Print("Updating map ...");
             mpLocalMapper->RequestPause();
             // Wait until Local Mapping has effectively stopped
 
@@ -742,7 +740,7 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
 
             mpLocalMapper->Resume();
 
-            cout << "Map updated!" << endl;
+            Print("Map updated!");
         }
 
         mbFinishedGBA = true;
@@ -774,5 +772,10 @@ bool LoopClosing::isFinished()
     return mbFinished;
 }
 
+void LoopClosing::Print(const char * message)
+{
+    unique_lock<mutex> lock(*mpMutexOutput);
+    cout << "LoopClosing: " << message << endl;
+}
 
 } //namespace ORB_SLAM

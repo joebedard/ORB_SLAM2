@@ -23,8 +23,8 @@
 namespace ORB_SLAM2
 {
 
-   Mapper::Mapper(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular)
-      : mpMap(pMap), mpVocab(pVocab), mbMonocular(bMonocular), mInitialized(false)
+   Mapper::Mapper(mutex * pMutexOutput, Map * pMap, ORBVocabulary* pVocab, const bool bMonocular)
+      : mpMutexOutput(pMutexOutput), mpMap(pMap), mpVocab(pVocab), mbMonocular(bMonocular), mInitialized(false)
    {
       if (pMap == NULL)
          throw std::exception("pMap must not be NULL");
@@ -37,11 +37,11 @@ namespace ORB_SLAM2
       ResetTrackerStatus();
 
       //Initialize and start the Local Mapping thread
-      mpLocalMapper = new LocalMapping(mpMap, mpKeyFrameDB, mbMonocular, FIRST_MAPPOINT_ID_LOCALMAPPER, MAPPOINT_ID_SPAN);
+      mpLocalMapper = new LocalMapping(mpMutexOutput, mpMap, mpKeyFrameDB, mbMonocular, FIRST_MAPPOINT_ID_LOCALMAPPER, MAPPOINT_ID_SPAN);
       mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run, mpLocalMapper);
 
       //Initialize and start the Loop Closing thread
-      mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDB, mpVocab, !mbMonocular);
+      mpLoopCloser = new LoopClosing(mpMutexOutput, mpMap, mpKeyFrameDB, mpVocab, !mbMonocular);
       mptLoopClosing = new thread(&ORB_SLAM2::LoopClosing::Run, mpLoopCloser);
 
       mpLocalMapper->SetLoopCloser(mpLoopCloser);
@@ -56,30 +56,33 @@ namespace ORB_SLAM2
    void Mapper::Reset()
    {
       // Reset Local Mapping
-      cout << "Begin Local Mapper Reset ..." << endl;
+      Print("Begin Local Mapper Reset ...");
       mpLocalMapper->RequestReset();
-      cout << "... End Local Mapper Reset" << endl;
+      Print("... End Local Mapper Reset");
 
       // Reset Loop Closing
-      cout << "Begin Loop Closing Reset ..." << endl;
+      Print("Begin Loop Closing Reset ...");
       mpLoopCloser->RequestReset();
-      cout << "... End Loop Closing Reset" << endl;
+      Print("... End Loop Closing Reset");
 
       // Clear BoW Database
-      cout << "Begin Database Reset ..." << endl;
+      Print("Begin Database Reset ...");
       mpKeyFrameDB->clear();
-      cout << "... End Database Reset" << endl;
+      Print("... End Database Reset");
 
       // Clear Map (this erase MapPoints and KeyFrames)
-      cout << "Begin Map Reset ..." << endl;
-      mpMap->clear();
-      cout << "... End Map Reset" << endl;
+      Print("Begin Map Reset ...");
+      {
+          unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
+          mpMap->Clear();
+      }
+      Print("... End Map Reset");
 
       ResetTrackerStatus();
       NotifyReset();
       Frame::nNextId = 0;
       mInitialized = false;
-      cout << "Mapper Reset Complete" << endl;
+      Print("Reset Complete");
    }
 
    std::vector<KeyFrame*> Mapper::DetectRelocalizationCandidates(Frame* F)
@@ -136,28 +139,30 @@ namespace ORB_SLAM2
    {
       if (mpLocalMapper->InsertKeyFrame(pKF))
       {
-         // update TrackerStatus array with last Id(s)
+         // update TrackerStatus array with next KeyFrameId and MapPointId
 
          assert((pKF->GetId() - trackerId) % KEYFRAME_ID_SPAN == 0);
-         if (mTrackers[trackerId].nextKeyFrameId < pKF->GetId())
+         if (mTrackers[trackerId].nextKeyFrameId <= pKF->GetId())
          {
-            mTrackers[trackerId].nextKeyFrameId = pKF->GetId();
+            mTrackers[trackerId].nextKeyFrameId = pKF->GetId() + KEYFRAME_ID_SPAN;
          }
 
-         set<ORB_SLAM2::MapPoint*> mapPoints = pKF->GetMapPoints();
-         for (auto pMP : mapPoints)
+         if (!mbMonocular)
          {
-            assert((pMP->GetId() - trackerId) % MAPPOINT_ID_SPAN == 0);
-            if (mTrackers[trackerId].nextMapPointId < pMP->GetId())
-            {
-               mTrackers[trackerId].nextMapPointId = pMP->GetId();
-            }
+             // stereo and RGBD modes will create MapPoints
+             set<ORB_SLAM2::MapPoint*> mapPoints = pKF->GetMapPoints();
+             for (auto pMP : mapPoints)
+             {
+                 if (!pMP || pMP->Observations() < 1)
+                 {
+                    assert((pMP->GetId() - trackerId) % MAPPOINT_ID_SPAN == 0);
+                    if (mTrackers[trackerId].nextMapPointId <= pMP->GetId())
+                    {
+                        mTrackers[trackerId].nextMapPointId = pMP->GetId() + MAPPOINT_ID_SPAN;
+                    }
+                 }
+             }
          }
-
-         mTrackers[trackerId].nextKeyFrameId += KEYFRAME_ID_SPAN;
-         mTrackers[trackerId].nextMapPointId += MAPPOINT_ID_SPAN;
-
-         // add points to map
 
          return true;
       }
@@ -227,6 +232,12 @@ namespace ORB_SLAM2
          mTrackers[i].nextKeyFrameId = i;
          mTrackers[i].nextMapPointId = i;
       }
+   }
+
+   void Mapper::Print(const char * message)
+   {
+       unique_lock<mutex> lock(*mpMutexOutput);
+       cout << "Mapper: " << message << endl;
    }
 
 }

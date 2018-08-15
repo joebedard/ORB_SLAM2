@@ -39,7 +39,8 @@ class Mapper;
 class LocalMapping
 {
 public:
-    LocalMapping(Map* pMap, KeyFrameDatabase* pDB, const float bMonocular, unsigned long firstMapPointId, unsigned int mapPointIdSpan);
+    LocalMapping(mutex * pMutexOutput, Map* pMap, KeyFrameDatabase* pDB, const float bMonocular,
+        unsigned long firstMapPointId, unsigned int mapPointIdSpan);
 
     void SetLoopCloser(LoopClosing* pLoopCloser);
 
@@ -65,7 +66,7 @@ public:
     bool isFinished();
 
     int KeyframesInQueue(){
-        unique_lock<std::mutex> lock(mMutexNewKFs);
+        unique_lock<mutex> lock(mMutexNewKFs);
         return mlNewKeyFrames.size();
     }
 
@@ -88,41 +89,51 @@ protected:
 
     void ResetIfRequested();
     bool mbResetRequested;
-    std::mutex mMutexReset;
+    mutex mMutexReset;
 
     bool CheckFinish();
     void SetFinish();
     bool mbFinishRequested;
     bool mbFinished;
-    std::mutex mMutexFinish;
+    mutex mMutexFinish;
 
     Map* mpMap;
     KeyFrameDatabase* mpKeyFrameDB;
 
     LoopClosing* mpLoopCloser;
 
-    std::list<KeyFrame*> mlNewKeyFrames;
+    list<KeyFrame*> mlNewKeyFrames;
 
     KeyFrame* mpCurrentKeyFrame;
 
-    std::list<MapPoint*> mlpRecentAddedMapPoints;
+    list<MapPoint*> mlpRecentAddedMapPoints;
 
-    std::mutex mMutexNewKFs;
+    mutex mMutexNewKFs;
 
     bool mbAbortBA;
 
     bool mbAcceptKeyFrames;
-    std::mutex mMutexAccept;
+
+    mutex mMutexAccept;
 
  private:
     unsigned long mNextMapPointId;
+
     unsigned int mMapPointIdSpan;
+
     bool mbPaused;
+
     bool mbPauseRequested;
+
     bool mbNotPause;
-    std::mutex mMutexPause;
+
+    mutex mMutexPause;
+
+    mutex * mpMutexOutput;
 
     unsigned long NewMapPointId();
+
+    void Print(const char * message);
 };
 
 } //namespace ORB_SLAM

@@ -199,11 +199,11 @@ int main(int paramc, char * paramv[]) try
    //Create the Map
    Map * pMap = new Map();
 
-   //Initialize the Mapper
-   Mapper * pMapper = new Mapper(pMap, pVocab, false);
-
    //Create mutex for output synchronization
-   mutex * pMutexOutput = new mutex();
+   mutex mutexOutput;
+
+   //Initialize the Mapper
+   Mapper * pMapper = new Mapper(&mutexOutput, pMap, pVocab, false);
 
    vector<FrameDrawer *> vFrameDrawers;
    vector<MapDrawer *> vMapDrawers;
@@ -219,22 +219,22 @@ int main(int paramc, char * paramv[]) try
       FrameDrawer * frameDrawer = new FrameDrawer(pMap, settings);
       vFrameDrawers.push_back(frameDrawer);
 
-      MapDrawer * mapDrawer = new MapDrawer(pMap, settings);
+      MapDrawer * mapDrawer = new MapDrawer(&mutexOutput, pMap, settings);
       vMapDrawers.push_back(mapDrawer);
 
-      Tracking * tracker = new Tracking(pVocab, frameDrawer, mapDrawer, pMapper, settings, eSensor::STEREO, pMutexOutput);
+      Tracking * tracker = new Tracking(&mutexOutput, pVocab, frameDrawer, mapDrawer, pMapper, settings, eSensor::STEREO);
       vTrackers.push_back(tracker);
 
       mThreadParams[i].serial = pSerial;
       mThreadParams[i].tracker = tracker;
       mThreadParams[i].height = frameDrawer->GetHeight();
       mThreadParams[i].width = frameDrawer->GetWidth();
-      mThreadParams[i].mutexOutput = pMutexOutput;
+      mThreadParams[i].mutexOutput = &mutexOutput;
       mThreadParams[i].threadObj = new thread(RunTracker, i);
    }
 
    //Initialize and start the Viewer thread
-   Viewer viewer(vFrameDrawers, vMapDrawers, vTrackers);
+   Viewer viewer(&mutexOutput, vFrameDrawers, vMapDrawers, vTrackers);
    for (auto tracker : vTrackers)
    {
        tracker->SetViewer(&viewer);

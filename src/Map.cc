@@ -104,7 +104,7 @@ long unsigned int Map::GetMaxKFid()
     return mnMaxKFid;
 }
 
-void Map::clear()
+void Map::Clear()
 {
     unique_lock<mutex> lock(mMutexMap);
 

@@ -36,7 +36,7 @@ namespace ORB_SLAM2
    {
    public:
 
-      Mapper(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular);
+      Mapper(mutex * pMutexOutput, Map * pMap, ORBVocabulary* pVocab, const bool bMonocular);
 
       virtual long unsigned  KeyFramesInMap();
 
@@ -74,14 +74,16 @@ namespace ORB_SLAM2
 
    private:
       static const unsigned int MAX_TRACKERS = 2;
+
       static const unsigned int KEYFRAME_ID_SPAN = MAX_TRACKERS;
-      static const unsigned int MAPPOINT_ID_SPAN = MAX_TRACKERS + 1;
 
       /*
       The Local Mapper does not create KeyFrames, but it does create MapPoints. This is why the 
       MAPPOINT_ID_SPAN is one more than the KEYFRAME_ID_SPAN. This set of MapPoint Ids is reserved
       for the Local Mapper.
       */
+      static const unsigned int MAPPOINT_ID_SPAN = MAX_TRACKERS + 1;
+
       static const unsigned long FIRST_MAPPOINT_ID_LOCALMAPPER = MAX_TRACKERS;
 
       struct TrackerStatus {
@@ -89,29 +91,39 @@ namespace ORB_SLAM2
          unsigned long nextKeyFrameId;
          unsigned long nextMapPointId;
       };
+
       TrackerStatus mTrackers[MAX_TRACKERS];
 
       std::mutex mMutexLogin;
 
+      mutex * mpMutexOutput;
+
       ORBVocabulary * mpVocab;
+
       bool mbMonocular;
+
       KeyFrameDatabase * mpKeyFrameDB;
-      Map* mpMap;
 
-      // initialization variables
+      Map * mpMap;
+
       bool mInitialized;
-      LocalMapping* mpLocalMapper;
-      LoopClosing* mpLoopCloser;
 
-      // System threads: Local Mapping, Loop Closing
-      std::thread* mptLocalMapping;
-      std::thread* mptLoopClosing;
+      LocalMapping * mpLocalMapper;
+
+      LoopClosing * mpLoopCloser;
+
+      std::thread * mptLocalMapping;
+
+      std::thread * mptLoopClosing;
 
       std::map<Observer *, Observer *> mObservers;
 
       void NotifyReset();
 
       void ResetTrackerStatus();
+
+      void Mapper::Print(const char * message);
+
    };
 
 }

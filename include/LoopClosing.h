@@ -49,7 +49,7 @@ public:
 
 public:
 
-    LoopClosing(Map* pMap, KeyFrameDatabase* pDB, ORBVocabulary* pVoc,const bool bFixScale);
+    LoopClosing(mutex * pMutexOutput, Map* pMap, KeyFrameDatabase* pDB, ORBVocabulary* pVoc,const bool bFixScale);
 
     void SetLocalMapper(LocalMapping* pLocalMapper);
 
@@ -137,8 +137,13 @@ protected:
     // Fix scale in the stereo/RGB-D case
     bool mbFixScale;
 
-
     bool mnFullBAIdx;
+
+private:
+    mutex * mpMutexOutput;
+
+    void Print(const char * message);
+
 };
 
 } //namespace ORB_SLAM

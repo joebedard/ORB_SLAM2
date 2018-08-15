@@ -25,8 +25,8 @@ namespace ORB_SLAM2
 {
 
 
-MapDrawer::MapDrawer(Map* pMap, cv::FileStorage & fSettings)
-: mpMap(pMap)
+MapDrawer::MapDrawer(mutex * pMutexOutput, Map* pMap, cv::FileStorage & fSettings)
+: mpMutexOutput(pMutexOutput), mpMap(pMap)
 {
     mKeyFrameSize = fSettings["Viewer.KeyFrameSize"];
     mKeyFrameLineWidth = fSettings["Viewer.KeyFrameLineWidth"];
@@ -41,13 +41,21 @@ MapDrawer::MapDrawer(Map* pMap, cv::FileStorage & fSettings)
     mViewpointF = fSettings["Viewer.ViewpointF"];
 }
 
+void MapDrawer::Print(const char * message)
+{
+    unique_lock<mutex> lock(*mpMutexOutput);
+    cout << "MapDrawer " << message << endl;
+}
+
 void MapDrawer::DrawMapPoints()
 {
-   float currentColor[4];
-   glGetFloatv(GL_CURRENT_COLOR, currentColor);
+    float currentColor[4];
+    glGetFloatv(GL_CURRENT_COLOR, currentColor);
 
+    unique_lock<mutex> lock1(mpMap->mMutexMapUpdate);
     const vector<MapPoint*> &vpMPs = mpMap->GetAllMapPoints();
 
+    unique_lock<mutex> lock2(mMutexReferenceMapPoints);
     set<MapPoint*> spRefMPs(mvpReferenceMapPoints.begin(), mvpReferenceMapPoints.end());
 
     if(vpMPs.empty())
@@ -275,6 +283,7 @@ void MapDrawer::GetCurrentOpenGLCameraMatrix(pangolin::OpenGlMatrix &M)
 
 void MapDrawer::SetReferenceMapPoints(const std::vector<MapPoint*>& vpMPs)
 {
+   unique_lock<mutex> lock(mMutexReferenceMapPoints);
    mvpReferenceMapPoints = vpMPs;
 }
 

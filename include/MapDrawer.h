@@ -21,9 +21,9 @@
 #ifndef MAPDRAWER_H
 #define MAPDRAWER_H
 
-#include"Map.h"
-#include"MapPoint.h"
-#include"KeyFrame.h"
+#include "Map.h"
+#include "MapPoint.h"
+#include "KeyFrame.h"
 #include<pangolin/pangolin.h>
 
 #include<mutex>
@@ -34,9 +34,7 @@ namespace ORB_SLAM2
 class MapDrawer
 {
 public:
-    MapDrawer(Map* pMap, cv::FileStorage & fSettings);
-
-    Map* mpMap;
+    MapDrawer(mutex * pMutexOutput, Map* pMap, cv::FileStorage & fSettings);
 
     void DrawMapPoints();
     void DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph);
@@ -49,7 +47,10 @@ public:
     float GetViewpointY();
     float GetViewpointZ();
     float GetViewpointF();
+
 private:
+    mutex * mpMutexOutput;
+    Map * mpMap;
 
     float mKeyFrameSize;
     float mKeyFrameLineWidth;
@@ -62,10 +63,12 @@ private:
 
     std::mutex mMutexCamera;
 
+    mutex mMutexReferenceMapPoints;
     std::vector<MapPoint*> mvpReferenceMapPoints;
 
     float mViewpointX, mViewpointY, mViewpointZ, mViewpointF;
 
+    void Print(const char * message);
 };
 
 } //namespace ORB_SLAM

@@ -102,9 +102,6 @@ int main(int argc, char * argv[]) try
       return EXIT_FAILURE;
    }
 
-   // Create SLAM system. It initializes all system threads and gets ready to process frames.
-   ORB_SLAM2::System SLAM(strVocFile, strSettingsFile, ORB_SLAM2::eSensor::STEREO, true);
-
    // Vector for tracking time statistics
    vector<float> vTimesTrack;
    std::chrono::steady_clock::time_point tStart = std::chrono::steady_clock::now();
@@ -118,6 +115,9 @@ int main(int argc, char * argv[]) try
    // disable the projected IR pattern when using stereo IR images
    rs2::depth_sensor sensor = profile.get_device().first<rs2::depth_sensor>();
    sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 0);
+
+   // Create SLAM system. It initializes all system threads and gets ready to process frames.
+   ORB_SLAM2::System SLAM(strVocFile, strSettingsFile, ORB_SLAM2::eSensor::STEREO, true);
 
    using namespace cv;
    while (!SLAM.IsQuitting())
@@ -173,8 +173,13 @@ catch (const rs2::error & e)
    std::cerr << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
    return EXIT_FAILURE;
 }
-catch (const std::exception& e)
+catch (const exception& e)
 {
-   std::cerr << e.what() << std::endl;
-   return EXIT_FAILURE;
+    std::cerr << std::endl << e.what() << std::endl;
+    return EXIT_FAILURE;
+}
+catch (...)
+{
+    std::cerr << std::endl << "An exception was not caught in the main thread." << std::endl;
+    return EXIT_FAILURE;
 }

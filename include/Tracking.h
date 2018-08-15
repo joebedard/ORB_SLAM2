@@ -47,8 +47,8 @@ class Tracking
 {  
 
 public:
-    Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer,
-       Mapper* pMapper, cv::FileStorage & settings, eSensor sensor, mutex * mutexOutput);
+    Tracking(mutex * pMutexOutput, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer,
+       Mapper* pMapper, cv::FileStorage & settings, eSensor sensor);
 
     ~Tracking();
 
@@ -101,7 +101,6 @@ public:
     // in both cases, the map could still be updated by loop closure or bundle adjust
     bool mbOnlyTracking;
 
-
     // Reset the map
     void RequestReset();
 
@@ -127,10 +126,10 @@ protected:
     void UpdateLocalMap();
 
     // Reset mvpLocalMapPoints to all map points from mvpLocalKeyFrames
-    void UpdateLocalPoints();
+    void UpdateLocalMapPoints();
 
     // Reset mvpLocalKeyFrames to KeyFrames that share map points with the current frame
-    void UpdateLocalKeyFrames();
+    void UpdateLocalMapKeyFrames();
 
     bool TrackLocalMap();
     void SearchLocalPoints();
@@ -188,7 +187,7 @@ protected:
     bool mbRGB;
 
 private:
-   mutex * mMutexOutput;
+   mutex * mpMutexOutput;
    void Print(const char * message);
 
    eTrackingState mState;
@@ -234,16 +233,18 @@ private:
 
    void Logout();
 
+    void MapperObserverHandleReset();
+
     class MapperObserver : public Mapper::Observer
     {
+        Tracking * mpTracker;
     public:
         MapperObserver(Tracking * pTracker) : mpTracker(pTracker) {};
-        virtual void HandleReset();
-    private:
-        Tracking * mpTracker;
+        virtual void HandleReset() {mpTracker->MapperObserverHandleReset();};
     };
 
     MapperObserver mMapperObserver;
+
 };
 
 } //namespace ORB_SLAM

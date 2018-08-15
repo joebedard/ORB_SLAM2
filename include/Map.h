@@ -53,7 +53,7 @@ public:
 
     long unsigned int GetMaxKFid();
 
-    void clear();
+    void Clear();
 
     Map & operator=(const Map & map);
     
