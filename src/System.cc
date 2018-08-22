@@ -41,7 +41,8 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     ss1 << "   under certain conditions. See LICENSE.txt." << endl;
     Print(ss1.str().c_str());
 
-    stringstream ss2("Input sensor was set to: ");
+    stringstream ss2;
+    ss2 << "Input sensor was set to: ";
     if(mSensor==MONOCULAR)
         ss2 << "Monocular";
     else if(mSensor==STEREO)

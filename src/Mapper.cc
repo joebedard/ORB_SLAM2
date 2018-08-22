@@ -56,27 +56,27 @@ namespace ORB_SLAM2
    void Mapper::Reset()
    {
       // Reset Local Mapping
-      Print("Begin Local Mapper Reset ...");
+      Print("Begin Local Mapper Reset");
       mpLocalMapper->RequestReset();
-      Print("... End Local Mapper Reset");
+      Print("End Local Mapper Reset");
 
       // Reset Loop Closing
-      Print("Begin Loop Closing Reset ...");
+      Print("Begin Loop Closing Reset");
       mpLoopCloser->RequestReset();
-      Print("... End Loop Closing Reset");
+      Print("End Loop Closing Reset");
 
       // Clear BoW Database
-      Print("Begin Database Reset ...");
+      Print("Begin Database Reset");
       mpKeyFrameDB->clear();
-      Print("... End Database Reset");
+      Print("End Database Reset");
 
       // Clear Map (this erase MapPoints and KeyFrames)
-      Print("Begin Map Reset ...");
+      Print("Begin Map Reset");
       {
           unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
           mpMap->Clear();
       }
-      Print("... End Map Reset");
+      Print("End Map Reset");
 
       ResetTrackerStatus();
       NotifyReset();
