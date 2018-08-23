@@ -28,21 +28,21 @@
 namespace ORB_SLAM2
 {
 
-Viewer::Viewer(mutex * pMutex, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking) :
+Viewer::Viewer(mutex * pMutex, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, bool embeddedFrameDrawer) :
     mpMutexOutput(pMutex), mbFinishRequested(false), mbFinished(true), 
     mbStopped(true), mbStopRequested(false), mbResetting(false),
-    mWindowTitle("ORB-SLAM2 Viewer")
+    mWindowTitle("ORB-SLAM2 Viewer"), mEmbeddedFrameDrawers(embeddedFrameDrawer)
 {
    mvFrameDrawers.push_back(pFrameDrawer);
    mvMapDrawers.push_back(pMapDrawer);
    mvTrackers.push_back(pTracking);
 }
 
-Viewer::Viewer(mutex * pMutex, vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers) :
+Viewer::Viewer(mutex * pMutex, vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers, bool embeddedFrameDrawers) :
     mvFrameDrawers(vFrameDrawers), mvMapDrawers(vMapDrawers), mvTrackers(vTrackers),
     mpMutexOutput(pMutex), mbFinishRequested(false), mbFinished(true), 
     mbStopped(true), mbStopRequested(false), mbResetting(false),
-    mWindowTitle("ORB-SLAM2 Viewer")
+    mWindowTitle("ORB-SLAM2 Viewer"), mEmbeddedFrameDrawers(embeddedFrameDrawers)
 {
 }
 
@@ -57,6 +57,10 @@ void Viewer::Run() try
     mbStopped = false;
 
     pangolin::CreateWindowAndBind(mWindowTitle, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+    GLint maxTextureBufferSize;
+    glGetIntegerv(GL_MAX_TEXTURE_BUFFER_SIZE, &maxTextureBufferSize);
+    //maxTextureBufferSize = 1241 * 376; // force mono_kiti to resize the frame
 
     // 3D Mouse handler requires depth testing to be enabled
     glEnable(GL_DEPTH_TEST);
@@ -81,9 +85,21 @@ void Viewer::Run() try
 
     pangolin::Var<bool> menuReset("menu.Reset",false,false);
 
-    pangolin::View & d_multi = pangolin::Display("multiview")
-       .SetBounds(0.0, 1.0, pangolin::Attach::Pix(MENU_WIDTH), 1.0, MULTIVIEW_ASPECT)
-       .SetLayout(pangolin::LayoutEqual);
+    pangolin::View & d_multiviewMaps = pangolin::Display("multiviewMaps");
+    pangolin::View & d_multiviewTrackers = pangolin::Display("multiviewTrackers");
+    if (mEmbeddedFrameDrawers)
+    {
+        d_multiviewMaps.SetBounds(0.5, 1.0, pangolin::Attach::Pix(MENU_WIDTH), 1.0)
+            .SetLayout(pangolin::LayoutEqualHorizontal);
+
+        d_multiviewTrackers.SetBounds(0.0, 0.5, pangolin::Attach::Pix(MENU_WIDTH), 1.0)
+            .SetLayout(pangolin::LayoutEqualHorizontal);
+    }
+    else
+    {
+        d_multiviewMaps.SetBounds(0.0, 1.0, pangolin::Attach::Pix(MENU_WIDTH), 1.0)
+            .SetLayout(pangolin::LayoutEqualHorizontal);
+    }
 
     vector<pangolin::OpenGlRenderState *> vMapStates;
     vector<pangolin::View *> vMapViews;
@@ -96,34 +112,47 @@ void Viewer::Run() try
 
         // Define Camera Render Object (for view / scene browsing)
         auto s_cam = new pangolin::OpenGlRenderState(
-            pangolin::ProjectionMatrix(MULTIVIEW_WIDTH, WINDOW_HEIGHT, viewpointF, viewpointF, 512, 389, 0.1, 1000),
+            pangolin::ProjectionMatrix(MULTIVIEW_WIDTH, WINDOW_HEIGHT, viewpointF, viewpointF, MULTIVIEW_WIDTH / 2, WINDOW_HEIGHT / 2, 0.1, 1000),
             pangolin::ModelViewLookAt(viewpointX, viewpointY, viewpointZ, 0, 0, 0, 0.0, -1.0, 0.0)
         );
         vMapStates.push_back(s_cam);
 
         // Add named OpenGL viewport to window and provide 3D Handler
-        string name("mapView"); name.append(to_string(i));
+        string name("Map View "); name.append(to_string(i));
         pangolin::View & d_cam = pangolin::Display(name)
-           //.SetBounds(0.0, 1.0, pangolin::Attach::Pix(175), 1.0, -1024.0f/768.0f)
            .SetAspect(MULTIVIEW_ASPECT)
            .SetHandler(new pangolin::Handler3D(*s_cam));
         vMapViews.push_back(&d_cam);
 
-        d_multi.AddDisplay(d_cam);
+        d_multiviewMaps.AddDisplay(d_cam);
     }
 
     vector<pangolin::View *> vImageViews;
     vector<pangolin::GlTexture *> vImageTextures;
+    vector<string> vTrackerWindowNames;
     for (int i = 0; i < mvFrameDrawers.size(); ++i)
     {
-       FrameDrawer * fd = mvFrameDrawers[i];
-       vImageTextures.push_back(new pangolin::GlTexture(fd->GetWidth(), fd->GetHeight(), GL_RGB, true, 0, GL_BGR, GL_UNSIGNED_BYTE));
-       string name("trackerView"); name.append(to_string(i));
-       pangolin::View& d_img = pangolin::Display(name)
-          //.SetAspect((float)fd->GetWidth() / (float)fd->GetHeight());
-          .SetAspect(MULTIVIEW_ASPECT);
-       d_multi.AddDisplay(d_img);
-       vImageViews.push_back(&d_img);
+        FrameDrawer * fd = mvFrameDrawers[i];
+        string name("Tracker View "); name.append(to_string(i));
+        if (mEmbeddedFrameDrawers)
+        {
+            if (maxTextureBufferSize < fd->GetFrameWidth() * fd->GetFrameHeight())
+            {
+                vImageTextures.push_back(new pangolin::GlTexture(fd->GetFrameWidth() / 2, fd->GetFrameHeight(), GL_RGB, true, 0, GL_BGR, GL_UNSIGNED_BYTE));
+            }
+            else
+            {
+                vImageTextures.push_back(new pangolin::GlTexture(fd->GetFrameWidth(), fd->GetFrameHeight(), GL_RGB, true, 0, GL_BGR, GL_UNSIGNED_BYTE));
+            }
+            pangolin::View& d_img = pangolin::Display(name)
+                .SetAspect((double)fd->GetFrameWidth() / (double)fd->GetFrameHeight());
+            d_multiviewTrackers.AddDisplay(d_img);
+            vImageViews.push_back(&d_img);
+        }
+        else
+        {
+            vTrackerWindowNames.push_back(name);
+        }
     }
 
     pangolin::OpenGlMatrix Twc;
@@ -138,7 +167,7 @@ void Viewer::Run() try
     // check for OpenGL errors in initialization
     CheckGlDieOnError();
 
-    while(1)
+    while (true)
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -188,16 +217,37 @@ void Viewer::Run() try
 
         for (int i = 0; i < mvFrameDrawers.size(); ++i)
         {
-            cv::Mat im = mvFrameDrawers[i]->DrawFrame();
-            cv::Mat flipped = cv::Mat(im.rows, im.cols, CV_8UC3, cv::Scalar(0, 0, 0));
-            cv::flip(im, flipped, 0);
-            vImageTextures[i]->Upload( (void *)flipped.data, GL_BGR, GL_UNSIGNED_BYTE);
-            vImageViews[i]->Activate();
-            vImageTextures[i]->RenderToViewport();
+            FrameDrawer * fd = mvFrameDrawers[i];
+            cv::Mat im = fd->DrawFrame();
+            if (mEmbeddedFrameDrawers)
+            {
+                cv::Mat flipped = cv::Mat(im.rows, im.cols, CV_8UC3, cv::Scalar(0, 0, 0));
+                cv::flip(im, flipped, 0);
+                if (maxTextureBufferSize < fd->GetFrameWidth() * fd->GetFrameHeight())
+                {
+                    cv::Mat squished = cv::Mat(flipped.rows, flipped.cols / 2, CV_8UC3, cv::Scalar(0, 0, 0));
+                    cv::resize(flipped, squished, cv::Size(flipped.cols / 2, flipped.rows), cv::INTER_AREA);
+                    vImageTextures[i]->Upload((void *)squished.data, GL_BGR, GL_UNSIGNED_BYTE);
+                }
+                else
+                {
+                    vImageTextures[i]->Upload((void *)flipped.data, GL_BGR, GL_UNSIGNED_BYTE);
+                }
+                vImageViews[i]->Activate();
+                vImageTextures[i]->RenderToViewport();
+            }
+            else
+            {
+                cv::imshow(vTrackerWindowNames[i], im);
+            }
         }
 
         pangolin::FinishFrame();
         //CheckGlDieOnError();
+        if (!mEmbeddedFrameDrawers)
+        {
+            cv::waitKey(1);
+        }
 
         if (pangolin::ShouldQuit())
         {
@@ -238,6 +288,10 @@ void Viewer::Run() try
     }
 
     SetFinish();
+    if (!mEmbeddedFrameDrawers)
+    {
+        cv::destroyAllWindows();
+    }
     pangolin::Quit();
 }
 catch (const exception& e)

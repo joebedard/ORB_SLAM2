@@ -47,13 +47,17 @@ public:
     // Draw last processed frame.
     cv::Mat DrawFrame();
 
-    int GetHeight();
+    int GetImageHeight();
 
-    int GetWidth();
+    int GetImageWidth();
+
+    int GetFrameHeight();
+
+    int GetFrameWidth();
 
 protected:
 
-    void DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText);
+    void DrawTextInfo(cv::Mat &im, eTrackingState state, cv::Mat &imText);
 
     // Info of the frame to be drawn
     cv::Mat mIm;
@@ -73,8 +77,9 @@ protected:
 private:
    // 1/fps in ms
    double mT;
-   int mImageWidth, mImageHeight;
+   int mImageWidth, mImageHeight, mTextInfoHeight;
 
+   stringstream StateToString(eTrackingState state);
 };
 
 } //namespace ORB_SLAM

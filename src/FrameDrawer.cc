@@ -45,6 +45,11 @@ FrameDrawer::FrameDrawer(Map* pMap, cv::FileStorage & fSettings) : mpMap(pMap)
       throw new exception("Camera.height is not set.");
 
    mState = NO_IMAGES_YET;
+   stringstream s = StateToString(mState);
+   int baseline = 0;
+   cv::Size textSize = cv::getTextSize(s.str(), cv::FONT_HERSHEY_PLAIN, 1, 1, &baseline);
+   mTextInfoHeight = textSize.height + 10;
+
    mIm = cv::Mat(mImageHeight, mImageWidth, CV_8UC3, cv::Scalar(0, 0, 0));
 }
 
@@ -55,7 +60,7 @@ cv::Mat FrameDrawer::DrawFrame()
     vector<int> vMatches; // Initialization: correspondeces with reference keypoints
     vector<cv::KeyPoint> vCurrentKeys; // KeyPoints in current frame
     vector<bool> vbVO, vbMap; // Tracked MapPoints in current frame
-    int state; // Tracking state
+    eTrackingState state; // Tracking state
 
     //Copy variables within scoped mutex
     {
@@ -136,48 +141,59 @@ cv::Mat FrameDrawer::DrawFrame()
     return imWithInfo;
 }
 
-int FrameDrawer::GetHeight()
+int FrameDrawer::GetImageHeight()
 {
-   return mImageHeight;
+    return mImageHeight;
 }
 
-int FrameDrawer::GetWidth()
+int FrameDrawer::GetImageWidth()
 {
-   return mImageWidth;
+    return mImageWidth;
 }
 
-void FrameDrawer::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
+int FrameDrawer::GetFrameHeight()
+{
+    return mImageHeight + mTextInfoHeight;
+}
+
+int FrameDrawer::GetFrameWidth()
+{
+    return mImageWidth;
+}
+
+stringstream FrameDrawer::StateToString(eTrackingState state)
 {
     stringstream s;
-    if(nState == NO_IMAGES_YET)
+    if (state == NO_IMAGES_YET)
         s << " WAITING FOR IMAGES";
-    else if(nState == NOT_INITIALIZED)
+    else if (state == NOT_INITIALIZED)
         s << " TRYING TO INITIALIZE ";
-    else if(nState == TRACKING_OK)
+    else if (state == TRACKING_OK)
     {
-        if(!mbOnlyTracking)
+        if (!mbOnlyTracking)
             s << "SLAM MODE |  ";
         else
             s << "LOCALIZATION | ";
         int nKFs = mpMap->KeyFramesInMap();
         int nMPs = mpMap->MapPointsInMap();
         s << "KFs: " << nKFs << ", MPs: " << nMPs << ", Matches: " << mnTracked;
-        if(mnTrackedVO>0)
+        if (mnTrackedVO>0)
             s << ", + VO matches: " << mnTrackedVO;
     }
-    else if(nState == TRACKING_LOST)
+    else if (state == TRACKING_LOST)
     {
         s << " TRACK LOST. TRYING TO RELOCALIZE ";
     }
+    return s;
+}
 
-    int baseline=0;
-    cv::Size textSize = cv::getTextSize(s.str(),cv::FONT_HERSHEY_PLAIN,1,1,&baseline);
-
-    imText = cv::Mat(im.rows+textSize.height+10,im.cols,im.type());
-    im.copyTo(imText.rowRange(0,im.rows).colRange(0,im.cols));
-    imText.rowRange(im.rows,imText.rows) = cv::Mat::zeros(textSize.height+10,im.cols,im.type());
-    cv::putText(imText,s.str(),cv::Point(5,imText.rows-5),cv::FONT_HERSHEY_PLAIN,1,cv::Scalar(255,255,255),1,8);
-
+void FrameDrawer::DrawTextInfo(cv::Mat &im, eTrackingState state, cv::Mat &imText)
+{
+    stringstream s = StateToString(state);
+    imText = cv::Mat(im.rows + mTextInfoHeight, im.cols, im.type());
+    im.copyTo(imText.rowRange(0, im.rows).colRange(0, im.cols));
+    imText.rowRange(im.rows, imText.rows) = cv::Mat::zeros(mTextInfoHeight, im.cols, im.type());
+    cv::putText(imText, s.str(), cv::Point(5, imText.rows - 5), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255, 255, 255), 1, 8);
 }
 
 void FrameDrawer::Update(Tracking *pTracker)

@@ -96,7 +96,7 @@ void RunTracker(int threadId) try
    int width = mThreadParams[threadId].width;
 
    // Declare RealSense pipeline, encapsulating the actual device and sensors
-   rs2::pipeline pipe;  //ok to create more than one in different threads?
+   rs2::pipeline pipe;  //ok to create more than one pipe in different threads?
 
    // create and resolve custom configuration for RealSense
    rs2::config customConfig;
@@ -104,8 +104,12 @@ void RunTracker(int threadId) try
    customConfig.enable_stream(RS2_STREAM_INFRARED, 1, width, height, RS2_FORMAT_Y8, 30);
    customConfig.enable_stream(RS2_STREAM_INFRARED, 2, width, height, RS2_FORMAT_Y8, 30);
    if (!customConfig.can_resolve(pipe))
-      throw exception("Can not resolve RealSense config.");
-
+   {
+      stringstream ss;
+      ss << "Can not resolve RealSense config for camera with serial number " << mThreadParams[threadId].serial;
+      throw exception(ss.str().c_str());
+   }
+    
    rs2::pipeline_profile profile = pipe.start(customConfig);
    rs2::depth_sensor sensor = profile.get_device().first<rs2::depth_sensor>();
 
@@ -227,8 +231,8 @@ int main(int paramc, char * paramv[]) try
 
       mThreadParams[i].serial = pSerial;
       mThreadParams[i].tracker = tracker;
-      mThreadParams[i].height = frameDrawer->GetHeight();
-      mThreadParams[i].width = frameDrawer->GetWidth();
+      mThreadParams[i].height = frameDrawer->GetImageHeight();
+      mThreadParams[i].width = frameDrawer->GetImageWidth();
       mThreadParams[i].mutexOutput = &mutexOutput;
       mThreadParams[i].threadObj = new thread(RunTracker, i);
    }
