@@ -34,6 +34,8 @@ MapPoint::MapPoint(long unsigned int id, const cv::Mat &Pos, KeyFrame *pRefKF):
     mnCorrectedReference(0), mnBAGlobalForKF(0), mpRefKF(pRefKF), mnVisible(1), mnFound(1), mbBad(false),
     mpReplaced(static_cast<MapPoint*>(NULL)), mfMinDistance(0), mfMaxDistance(0), mnId(id)
 {
+    if (Pos.empty())
+        throw exception("MapPoint::SetWorldPos([])!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     Pos.copyTo(mWorldPos);
     mNormalVector = cv::Mat::zeros(3,1,CV_32F);
 }
@@ -42,6 +44,8 @@ void MapPoint::SetWorldPos(const cv::Mat &Pos)
 {
     unique_lock<mutex> lock2(mGlobalMutex);
     unique_lock<mutex> lock(mMutexPos);
+    if (Pos.empty())
+        throw exception("MapPoint::SetWorldPos([])!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     Pos.copyTo(mWorldPos);
 }
 

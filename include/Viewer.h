@@ -25,6 +25,7 @@
 #include "FrameDrawer.h"
 #include "MapDrawer.h"
 #include "Tracking.h"
+#include "SyncPrint.h"
 
 #include <mutex>
 
@@ -35,12 +36,12 @@ class Tracking;
 class FrameDrawer;
 class MapDrawer;
 
-class Viewer
+class Viewer : SyncPrint
 {
 public:
-    Viewer(mutex * pMutex, FrameDrawer * pFrameDrawer, MapDrawer * pMapDrawer, Tracking * pTracking, bool embeddedFrameDrawer = false);
+    Viewer(FrameDrawer * pFrameDrawer, MapDrawer * pMapDrawer, Tracking * pTracking, Mapper * pMapper, bool embeddedFrameDrawer = false);
 
-    Viewer(mutex * pMutex, vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers, bool embeddedFrameDrawers = true);
+    Viewer(vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers, Mapper * pMapper, bool embeddedFrameDrawers = true);
 
     // Main thread function. Draw points, keyframes, the current camera pose and the last processed
     // frame. Drawing is refreshed according to the camera fps. We use Pangolin.
@@ -58,10 +59,7 @@ public:
 
     void Release();
 
-    void Print(const char * message);
-
 private:
-    mutex * mpMutexOutput;
 
     string mWindowTitle;
 
@@ -72,6 +70,7 @@ private:
     vector<FrameDrawer*> mvFrameDrawers;
     vector<MapDrawer *> mvMapDrawers;
     vector<Tracking*> mvTrackers;
+    Mapper * mpMapper;
 
     void SetFinish();
     bool mbFinishRequested;

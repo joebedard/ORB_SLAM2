@@ -25,6 +25,7 @@
 #include "Map.h"
 #include "LoopClosing.h"
 #include "KeyFrameDatabase.h"
+#include "SyncPrint.h"
 
 #include <mutex>
 
@@ -36,10 +37,10 @@ class LoopClosing;
 class Map;
 class Mapper;
 
-class LocalMapping
+class LocalMapping : SyncPrint
 {
 public:
-    LocalMapping(mutex * pMutexOutput, Map* pMap, KeyFrameDatabase* pDB, const float bMonocular,
+    LocalMapping(Map* pMap, KeyFrameDatabase* pDB, const float bMonocular,
         unsigned long firstMapPointId, unsigned int mapPointIdSpan);
 
     void SetLoopCloser(LoopClosing* pLoopCloser);
@@ -129,11 +130,7 @@ protected:
 
     mutex mMutexPause;
 
-    mutex * mpMutexOutput;
-
     unsigned long NewMapPointId();
-
-    void Print(const char * message);
 };
 
 } //namespace ORB_SLAM

@@ -38,9 +38,9 @@ using namespace std;
 namespace ORB_SLAM2
 {
 
-Tracking::Tracking(mutex * pMutexOutput, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer,
+Tracking::Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer,
     Mapper* pMapper, cv::FileStorage & fSettings, eSensor sensor) :
-    mpMutexOutput(pMutexOutput), mId(-1), mSensor(sensor),
+    SyncPrint("Tracking: "), mId(-1), mSensor(sensor),
     mbOnlyTracking(false), mpORBVocabulary(pVoc), mbReset(false),
     mpMapper(pMapper), mpInitializer(static_cast<Initializer*>(NULL)), mpViewer(NULL),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mnLastRelocFrameId(0),
@@ -58,15 +58,14 @@ Tracking::~Tracking()
     mpMapper->LogoutTracker(mId);
 }
 
-void Tracking::Print(const char * message)
+void Tracking::PrintPrefix(ostream & out)
 {
-    unique_lock<mutex> lock(*mpMutexOutput);
-    cout << "Tracking: Id=" << mId << " " << message << endl;
+    SyncPrint::PrintPrefix(out);
+    out << "Id=" << mId << " ";
 }
 
 void Tracking::LoadCameraParameters(cv::FileStorage & fSettings, eSensor sensor)
 { 
-    unique_lock<mutex> lock(*mpMutexOutput);
     // Load camera parameters from settings file
 
     float fx = fSettings["Camera.fx"];
@@ -104,27 +103,29 @@ void Tracking::LoadCameraParameters(cv::FileStorage & fSettings, eSensor sensor)
     mMinFrames = 0;
     mMaxFrames = fps;
 
-    cout << endl << "Camera Parameters: " << endl;
-    cout << "- fx: " << fx << endl;
-    cout << "- fy: " << fy << endl;
-    cout << "- cx: " << cx << endl;
-    cout << "- cy: " << cy << endl;
-    cout << "- k1: " << DistCoef.at<float>(0) << endl;
-    cout << "- k2: " << DistCoef.at<float>(1) << endl;
+    stringstream ss;
+    ss << "\n" << "Camera Parameters: " << "\n";
+    ss << "- fx: " << fx << "\n";
+    ss << "- fy: " << fy << "\n";
+    ss << "- cx: " << cx << "\n";
+    ss << "- cy: " << cy << "\n";
+    ss << "- k1: " << DistCoef.at<float>(0) << "\n";
+    ss << "- k2: " << DistCoef.at<float>(1) << "\n";
     if(DistCoef.rows==5)
-        cout << "- k3: " << DistCoef.at<float>(4) << endl;
-    cout << "- p1: " << DistCoef.at<float>(2) << endl;
-    cout << "- p2: " << DistCoef.at<float>(3) << endl;
-    cout << "- fps: " << fps << endl;
+        ss << "- k3: " << DistCoef.at<float>(4) << "\n";
+    ss << "- p1: " << DistCoef.at<float>(2) << "\n";
+    ss << "- p2: " << DistCoef.at<float>(3) << "\n";
+    ss << "- fps: " << fps << "\n";
 
 
     int nRGB = fSettings["Camera.RGB"];
     mbRGB = nRGB;
 
     if(mbRGB)
-        cout << "- color order: RGB (ignored if grayscale)" << endl;
+        ss << "- color order: RGB (ignored if grayscale)" << "\n";
     else
-        cout << "- color order: BGR (ignored if grayscale)" << endl;
+        ss << "- color order: BGR (ignored if grayscale)" << "\n";
+    Print(ss);
 
     // Load ORB parameters
 
@@ -142,17 +143,18 @@ void Tracking::LoadCameraParameters(cv::FileStorage & fSettings, eSensor sensor)
     if(sensor==MONOCULAR)
         mpIniORBextractor = new ORBextractor(2*nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
 
-    cout << endl  << "ORB Extractor Parameters: " << endl;
-    cout << "- Number of Features: " << nFeatures << endl;
-    cout << "- Scale Levels: " << nLevels << endl;
-    cout << "- Scale Factor: " << fScaleFactor << endl;
-    cout << "- Initial Fast Threshold: " << fIniThFAST << endl;
-    cout << "- Minimum Fast Threshold: " << fMinThFAST << endl;
+    ss.clear();
+    ss << "\n"  << "ORB Extractor Parameters: " << "\n";
+    ss << "- Number of Features: " << nFeatures << "\n";
+    ss << "- Scale Levels: " << nLevels << "\n";
+    ss << "- Scale Factor: " << fScaleFactor << "\n";
+    ss << "- Initial Fast Threshold: " << fIniThFAST << "\n";
+    ss << "- Minimum Fast Threshold: " << fMinThFAST << "\n";
 
     if(sensor==STEREO || sensor==RGBD)
     {
         mThDepth = mbf*(float)fSettings["ThDepth"]/fx;
-        cout << endl << "Depth Threshold (Close/Far Points): " << mThDepth << endl;
+        ss << "\n" << "Depth Threshold (Close/Far Points): " << mThDepth << "\n";
     }
 
     if(sensor==RGBD)
@@ -163,6 +165,8 @@ void Tracking::LoadCameraParameters(cv::FileStorage & fSettings, eSensor sensor)
         else
             mDepthMapFactor = 1.0f/mDepthMapFactor;
     }
+
+    Print(ss);
 }
 
 void Tracking::SetViewer(Viewer *pViewer)
@@ -281,11 +285,13 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
 
 void Tracking::Track()
 {
-    mLastProcessedState = mState;
-
     // Get Map Mutex -> Map cannot be changed
     unique_lock<mutex> lock(mpMapper->GetMap()->mMutexMapUpdate);
 
+    Print("begin Track");
+    mLastProcessedState = mState;
+
+    Print("if (!mpMapper->GetInitialized())");
     if (!mpMapper->GetInitialized())
     {
         if (0 == mId)
@@ -295,16 +301,18 @@ void Tracking::Track()
             else
                 MonocularInitialization();
 
-            mpFrameDrawer->Update(this);
+            mpFrameDrawer->Update(this, mpMapper->GetMap());
 
             if (!mpMapper->GetInitialized())
             {
+                Print("end Track 1");
                 return;
             }
         }
         else
         {
-          return;
+            Print("end Track 2");
+            return;
         }
     }
     else
@@ -313,6 +321,7 @@ void Tracking::Track()
         bool bOK;
 
         // Initial camera pose estimation using motion model or relocalization (if tracking is lost)
+        Print("if (mState == TRACKING_OK)");
         if (mState == TRACKING_OK)
         {
             // Mapping might have changed some MapPoints tracked in last frame
@@ -346,7 +355,7 @@ void Tracking::Track()
            mState = TRACKING_LOST;
 
         // Update drawer
-        mpFrameDrawer->Update(this);
+        mpFrameDrawer->Update(this, mpMapper->GetMap());
 
         // If tracking was good, check if we insert a keyframe
         if(bOK)
@@ -399,6 +408,7 @@ void Tracking::Track()
             {
                 Print("Tracking lost soon after initialisation, reseting...");
                 RequestReset();
+                Print("end Track 3");
                 return;
             }
         }
@@ -410,30 +420,43 @@ void Tracking::Track()
     }
 
     // Store frame pose information to retrieve the complete camera trajectory afterwards.
+    Print("if (mState == TRACKING_OK)");
     if (mState == TRACKING_OK)
     {
+        Print("cv::Mat Tcr = mCurrentFrame.mTcw*mCurrentFrame.mpReferenceKF->GetPoseInverse();");
         cv::Mat Tcr = mCurrentFrame.mTcw*mCurrentFrame.mpReferenceKF->GetPoseInverse();
+        //Print("mlRelativeFramePoses.push_back(Tcr);");
         mlRelativeFramePoses.push_back(Tcr);
+        //Print("mlpReferences.push_back(mpReferenceKF);");
         mlpReferences.push_back(mpReferenceKF);
+        //Print("mlFrameTimes.push_back(mCurrentFrame.mTimeStamp);");
         mlFrameTimes.push_back(mCurrentFrame.mTimeStamp);
+        //Print("mlbLost.push_back(mState == TRACKING_LOST);");
         mlbLost.push_back(mState == TRACKING_LOST);
     }
     else
     {
         // This can happen if tracking is lost
+        Print("if (!mlRelativeFramePoses.empty())");
         if (!mlRelativeFramePoses.empty())
         {
+            Print("mlRelativeFramePoses.push_back(mlRelativeFramePoses.back());");
             mlRelativeFramePoses.push_back(mlRelativeFramePoses.back());
+            //Print("mlpReferences.push_back(mlpReferences.back());");
             mlpReferences.push_back(mlpReferences.back());
+            //Print("mlFrameTimes.push_back(mlFrameTimes.back());");
             mlFrameTimes.push_back(mlFrameTimes.back());
+            //Print("mlbLost.push_back(mState == TRACKING_LOST);");
             mlbLost.push_back(mState == TRACKING_LOST);
         }
     }
+    Print("end Track 4");
 }
 
 
 void Tracking::StereoInitialization()
 {
+    Print("begin StereoInitialization");
     if(mCurrentFrame.N>500)
     {
         Map * pMap = mpMapper->GetMap();
@@ -487,10 +510,12 @@ void Tracking::StereoInitialization()
             mpMapDrawer->SetReferenceMapPoints(mvpLocalMapPoints);
         }
     }
+    Print("end StereoInitialization");
 }
 
 void Tracking::MonocularInitialization()
 {
+    Print("begin MonocularInitialization");
     if(!mpInitializer)
     {
         // Set Reference Frame
@@ -508,7 +533,7 @@ void Tracking::MonocularInitialization()
             mpInitializer =  new Initializer(mCurrentFrame,1.0,200);
 
             fill(mvIniMatches.begin(),mvIniMatches.end(),-1);
-
+            Print("end MonocularInitialization 1");
             return;
         }
     }
@@ -520,6 +545,7 @@ void Tracking::MonocularInitialization()
             delete mpInitializer;
             mpInitializer = static_cast<Initializer*>(NULL);
             fill(mvIniMatches.begin(),mvIniMatches.end(),-1);
+            Print("end MonocularInitialization 2");
             return;
         }
 
@@ -532,6 +558,7 @@ void Tracking::MonocularInitialization()
         {
             delete mpInitializer;
             mpInitializer = static_cast<Initializer*>(NULL);
+            Print("end MonocularInitialization 3");
             return;
         }
 
@@ -560,6 +587,7 @@ void Tracking::MonocularInitialization()
             CreateInitialMapMonocular();
         }
     }
+    Print("end MonocularInitialization 4");
 }
 
 void Tracking::CreateInitialMapMonocular()
@@ -676,6 +704,7 @@ void Tracking::CreateInitialMapMonocular()
 
 void Tracking::CheckReplacedInLastFrame()
 {
+    Print("begin CheckReplacedInLastFrame");
     for(int i =0; i<mLastFrame.N; i++)
     {
         MapPoint* pMP = mLastFrame.mvpMapPoints[i];
@@ -689,11 +718,13 @@ void Tracking::CheckReplacedInLastFrame()
             }
         }
     }
+    Print("end CheckReplacedInLastFrame");
 }
 
 
 bool Tracking::TrackReferenceKeyFrame()
 {
+    Print("begin TrackReferenceKeyFrame");
     // Compute Bag of Words vector
     mCurrentFrame.ComputeBoW();
 
@@ -706,6 +737,7 @@ bool Tracking::TrackReferenceKeyFrame()
 
     if(nmatches<15)
     {
+        Print("end TrackReferenceKeyFrame 1");
         return false;
     }
 
@@ -735,6 +767,7 @@ bool Tracking::TrackReferenceKeyFrame()
         }
     }
 
+    Print("end TrackReferenceKeyFrame 2");
     return nmatchesMap>=10;
 }
 
@@ -748,6 +781,7 @@ void Tracking::UpdateLastFrame()
 
 bool Tracking::TrackWithMotionModel()
 {
+    Print("begin TrackWithMotionModel");
     ORBmatcher matcher(0.9,true);
 
     // Update last frame pose according to its reference keyframe
@@ -775,6 +809,7 @@ bool Tracking::TrackWithMotionModel()
 
     if(nmatches<20)
     {
+        Print("end TrackWithMotionModel 1");
         return false;
     }
 
@@ -801,12 +836,13 @@ bool Tracking::TrackWithMotionModel()
                 nmatchesMap++;
         }
     }    
-
+    Print("end TrackWithMotionModel 2");
     return nmatchesMap>=10;
 }
 
 bool Tracking::TrackLocalMap()
 {
+    Print("begin TrackLocalMap");
     // We have an estimation of the camera pose and some map points tracked in the frame.
     // We retrieve the local map and try to find matches to points in the local map.
 
@@ -841,30 +877,36 @@ bool Tracking::TrackLocalMap()
     // More restrictive if there was a relocalization recently
     if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mnMatchesInliers<50)
     {
+        Print("end TrackLocalMap 1");
         return false;
     }
 
     if(mnMatchesInliers<30)
     {
+        Print("end TrackLocalMap 2");
         return false;
     }
     else
     {
-       return true;
+        Print("end TrackLocalMap 3");
+        return true;
     }
 }
 
 
 bool Tracking::NeedNewKeyFrame()
 {
+    Print("begin NeedNewKeyFrame");
     if(mbOnlyTracking)
     {
+        Print("end NeedNewKeyFrame 1");
         return false;
     }
 
     // If Local Mapping is freezed by a Loop Closure do not insert keyframes
     if(mpMapper->GetPauseRequested())
     {
+        Print("end NeedNewKeyFrame 2");
         return false;
     }
 
@@ -873,6 +915,7 @@ bool Tracking::NeedNewKeyFrame()
     // Do not insert keyframes if not enough frames have passed from last relocalisation
     if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && nKFs>mMaxFrames)
     {
+        Print("end NeedNewKeyFrame 3");
         return false;
     }
 
@@ -921,6 +964,7 @@ bool Tracking::NeedNewKeyFrame()
     // Condition 2: Few tracked points compared to reference keyframe. Lots of visual odometry compared to map matches.
     const bool c2 = ((mnMatchesInliers < (nRefMatches * thRefRatio)) || bNeedToInsertClose) && (mnMatchesInliers > 15);
 
+    Print("end NeedNewKeyFrame 4");
     return ((c1a || c1b || c1c) && c2);
 }
 
@@ -1129,6 +1173,7 @@ void Tracking::UpdateLocalMapKeyFrames()
 
 bool Tracking::Relocalization()
 {
+    Print("begin Relocalization");
     // Compute Bag of Words Vector
     mCurrentFrame.ComputeBoW();
 
@@ -1138,6 +1183,7 @@ bool Tracking::Relocalization()
     
     if(vpCandidateKFs.empty())
     {
+        Print("end Relocalization 1");
         return false;
     }
 
@@ -1282,10 +1328,12 @@ bool Tracking::Relocalization()
 
     if(!bMatch)
     {
+        Print("end Relocalization 2");
         return false;
     }
     else
     {
+        Print("end Relocalization 3");
         mnLastRelocFrameId = mCurrentFrame.mnId;
         return true;
     }
@@ -1379,16 +1427,19 @@ void Tracking::CheckModeChange()
 
 void Tracking::CheckReset()
 {
+    Print("begin Reset");
    unique_lock<mutex> lock(mMutexReset);
    if (mbReset)
    {
       Reset();
       mbReset = false;
    }
+   Print("end Reset");
 }
 
 KeyFrame * Tracking::CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor sensorType)
 {
+    Print("begin CreateNewKeyFrame");
     KeyFrame* pKF = new KeyFrame(NewKeyFrameId(), currentFrame);
     Map * pMap = mpMapper->GetMap();
 
@@ -1452,6 +1503,7 @@ KeyFrame * Tracking::CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor 
                     break;
             }
         }
+        Print("end CreateNewKeyFrame 1");
         return pKF;
     }
     else
@@ -1470,14 +1522,15 @@ KeyFrame * Tracking::CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor 
                     pNewMP->EraseObservation(pKF, pMap);
                     pKF->EraseMapPointMatch(i);
                     pMap->EraseMapPoint(pNewMP);
-                    delete pNewMP;
+                    //delete pNewMP;
                 }
 
                 if (vDepthIdx[j].first > currentFrame.mThDepth && j > 99)
                     break;
             }
-            delete pKF;
+            //delete pKF;
         }
+        Print("end CreateNewKeyFrame 2");
         return NULL;
     }
 }
@@ -1499,29 +1552,38 @@ unsigned long Tracking::NewMapPointId()
 void Tracking::Login()
 {
     mId = mpMapper->LoginTracker(mNextKeyFrameId, mKeyFrameIdSpan, mNextMapPointId, mMapPointIdSpan);
+    mpMapDrawer->SetId(mId);
     assert(mKeyFrameIdSpan != 0);
     assert(mKeyFrameIdSpan != 0);
-    unique_lock<mutex> lock(*mpMutexOutput);
-    cout << "Tracking: Login Complete" << endl;
-    cout << "   Tracker Id =         " << mId << endl;
-    cout << "   First Keyframe Id =  " << mNextKeyFrameId << endl;
-    cout << "   Keyframe Id Span =   " << mKeyFrameIdSpan << endl;
-    cout << "   First Map Point Id = " << mNextMapPointId << endl;
-    cout << "   Map Point Id Span =  " << mMapPointIdSpan << endl;
+    stringstream ss;
+    ss << "Tracking: Login Complete \n";
+    ss << "   Tracker Id =         " << mId << "\n";
+    ss << "   First Keyframe Id =  " << mNextKeyFrameId << "\n";
+    ss << "   Keyframe Id Span =   " << mKeyFrameIdSpan << "\n";
+    ss << "   First Map Point Id = " << mNextMapPointId << "\n";
+    ss << "   Map Point Id Span =  " << mMapPointIdSpan << "\n";
+    Print(ss);
 }
 
 void Tracking::Logout()
 {
     unsigned int tempId = mId;
-    mId = -1;
+    mId = -1; //set to max positive integer
+    mpMapDrawer->SetId(mId);
     mpMapper->LogoutTracker(tempId);
-    unique_lock<mutex> lock(*mpMutexOutput);
-    cout << "Tracking: Logout Complete" << endl;
-    cout << "   Tracker Id = " << tempId << endl;
+    stringstream ss;
+    ss << "Tracking: Logout Complete \n";
+    ss << "   Tracker Id = " << tempId << "\n";
+    Print(ss);
 }
 
 void Tracking::MapperObserverHandleReset()
 {
+    if (mpFrameDrawer)
+        mpFrameDrawer->Reset();
+    if (mpMapDrawer)
+        mpMapDrawer->Reset();
+
     Logout();
     Login();
 

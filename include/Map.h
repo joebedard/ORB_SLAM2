@@ -23,6 +23,7 @@
 
 #include "MapPoint.h"
 #include "KeyFrame.h"
+#include "SyncPrint.h"
 #include <set>
 
 #include <mutex>
@@ -33,7 +34,7 @@ namespace ORB_SLAM2
 class MapPoint;
 class KeyFrame;
 
-class Map
+class Map : SyncPrint
 {
 public:
     Map();

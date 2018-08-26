@@ -28,21 +28,23 @@
 namespace ORB_SLAM2
 {
 
-Viewer::Viewer(mutex * pMutex, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, bool embeddedFrameDrawer) :
-    mpMutexOutput(pMutex), mbFinishRequested(false), mbFinished(true), 
+Viewer::Viewer(FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, Mapper * pMapper, bool embeddedFrameDrawer) :
+    SyncPrint("Viewer: "), mbFinishRequested(false), mbFinished(true), 
     mbStopped(true), mbStopRequested(false), mbResetting(false),
-    mWindowTitle("ORB-SLAM2 Viewer"), mEmbeddedFrameDrawers(embeddedFrameDrawer)
+    mWindowTitle("ORB-SLAM2 Viewer"), mEmbeddedFrameDrawers(embeddedFrameDrawer),
+    mpMapper(pMapper)
 {
    mvFrameDrawers.push_back(pFrameDrawer);
    mvMapDrawers.push_back(pMapDrawer);
    mvTrackers.push_back(pTracking);
 }
 
-Viewer::Viewer(mutex * pMutex, vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers, bool embeddedFrameDrawers) :
+Viewer::Viewer(vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers, Mapper * pMapper, bool embeddedFrameDrawers) :
     mvFrameDrawers(vFrameDrawers), mvMapDrawers(vMapDrawers), mvTrackers(vTrackers),
-    mpMutexOutput(pMutex), mbFinishRequested(false), mbFinished(true), 
+    SyncPrint("Viewer: "), mbFinishRequested(false), mbFinished(true), 
     mbStopped(true), mbStopRequested(false), mbResetting(false),
-    mWindowTitle("ORB-SLAM2 Viewer"), mEmbeddedFrameDrawers(embeddedFrameDrawers)
+    mWindowTitle("ORB-SLAM2 Viewer"), mEmbeddedFrameDrawers(embeddedFrameDrawers),
+    mpMapper(pMapper)
 {
 }
 
@@ -221,6 +223,7 @@ void Viewer::Run() try
             cv::Mat im = fd->DrawFrame();
             if (mEmbeddedFrameDrawers)
             {
+                Print("cv::Mat flipped = cv::Mat(im.rows, im.cols, CV_8UC3, cv::Scalar(0, 0, 0));");
                 cv::Mat flipped = cv::Mat(im.rows, im.cols, CV_8UC3, cv::Scalar(0, 0, 0));
                 cv::flip(im, flipped, 0);
                 if (maxTextureBufferSize < fd->GetFrameWidth() * fd->GetFrameHeight())
@@ -270,7 +273,7 @@ void Viewer::Run() try
             }
             bFollow = true;
             menuFollowCamera = true;
-            mvTrackers[0]->RequestReset();
+            mpMapper->Reset();
             mbResetting = false;
             menuReset = false;
         }
@@ -294,15 +297,25 @@ void Viewer::Run() try
     }
     pangolin::Quit();
 }
-catch (const exception& e)
+catch (const exception & e)
 {
-    unique_lock<mutex> lock(*mpMutexOutput);
-    std::cerr << std::endl << e.what() << std::endl;
+    Print(string("Exception in Viewer thread: ") + e.what());
+    SetFinish();
+    if (!mEmbeddedFrameDrawers)
+    {
+        cv::destroyAllWindows();
+    }
+    pangolin::Quit();
 }
 catch (...)
 {
-    unique_lock<mutex> lock(*mpMutexOutput);
-    std::cerr << std::endl << "An exception was not caught in the Viewer thread." << std::endl;
+    Print("An exception was not caught in the Viewer thread.");
+    SetFinish();
+    if (!mEmbeddedFrameDrawers)
+    {
+        cv::destroyAllWindows();
+    }
+    pangolin::Quit();
 }
 
 void Viewer::RequestFinish()
@@ -364,12 +377,6 @@ void Viewer::Release()
 {
     unique_lock<mutex> lock(mMutexStop);
     mbStopped = false;
-}
-
-void Viewer::Print(const char * message)
-{
-    unique_lock<mutex> lock(*mpMutexOutput);
-    cout << "Viewer: " << message << endl;
 }
 
 }

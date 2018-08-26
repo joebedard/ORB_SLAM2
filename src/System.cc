@@ -76,21 +76,21 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mpMap = new Map();
 
     //Create Drawers. These are used by the Viewer
-    mpFrameDrawer = new FrameDrawer(mpMap, fsSettings);
-    mpMapDrawer = new MapDrawer(&mMutexOutput, mpMap, fsSettings);
+    mpFrameDrawer = new FrameDrawer(fsSettings);
+    mpMapDrawer = new MapDrawer(mpMap, fsSettings);
 
     //Initialize the Mapper
-    mpMapper = new Mapper(&mMutexOutput, mpMap, mpVocabulary, mSensor == MONOCULAR);
+    mpMapper = new Mapper(mpMap, mpVocabulary, mSensor == MONOCULAR);
 
     //Initialize the Tracking thread
     //(it will live in the main thread of execution, the one that called this constructor)
-    mpTracker = new Tracking(&mMutexOutput, mpVocabulary, mpFrameDrawer, mpMapDrawer,
+    mpTracker = new Tracking(mpVocabulary, mpFrameDrawer, mpMapDrawer,
        mpMapper, fsSettings, mSensor);
 
     //Initialize the Viewer thread and launch
     if(bUseViewer)
     {
-        mpViewer = new Viewer(&mMutexOutput, mpFrameDrawer, mpMapDrawer, mpTracker);
+        mpViewer = new Viewer(mpFrameDrawer, mpMapDrawer, mpTracker, mpMapper);
         mptViewer = new thread(&Viewer::Run, mpViewer);
         mpTracker->SetViewer(mpViewer);
     }
@@ -363,12 +363,6 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
 bool System::IsQuitting()
 {
    return mpViewer->CheckFinish();
-}
-
-void System::Print(const char * message)
-{
-    unique_lock<mutex> lock(mMutexOutput);
-    cout << "System: " << message << endl;
 }
 
 } //namespace ORB_SLAM

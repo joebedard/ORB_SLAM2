@@ -24,6 +24,7 @@
 #include "Tracking.h"
 #include "Map.h"
 #include "Enums.h"
+#include "SyncPrint.h"
 
 #include<opencv2/core/core.hpp>
 #include<opencv2/features2d/features2d.hpp>
@@ -36,13 +37,15 @@ namespace ORB_SLAM2
 
 class Tracking;
 
-class FrameDrawer
+class FrameDrawer : SyncPrint
 {
 public:
-    FrameDrawer(Map* pMap, cv::FileStorage & fSettings);
+    FrameDrawer(cv::FileStorage & fSettings);
+
+    void Reset();
 
     // Update info from the last processed frame.
-    void Update(Tracking *pTracker);
+    void Update(Tracking *pTracker, Map * pMap);
 
     // Draw last processed frame.
     cv::Mat DrawFrame();
@@ -70,16 +73,15 @@ protected:
     vector<int> mvIniMatches;
     eTrackingState mState;
 
-    Map* mpMap;
-
     std::mutex mMutex;
 
 private:
    // 1/fps in ms
    double mT;
-   int mImageWidth, mImageHeight, mTextInfoHeight;
+   int mImageWidth, mImageHeight, mTextInfoHeight, mnKFs, mnMPs;
 
    stringstream StateToString(eTrackingState state);
+
 };
 
 } //namespace ORB_SLAM

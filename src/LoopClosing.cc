@@ -30,8 +30,8 @@
 namespace ORB_SLAM2
 {
 
-LoopClosing::LoopClosing(mutex * pMutexOutput, Map *pMap, KeyFrameDatabase *pDB, ORBVocabulary *pVoc, const bool bFixScale):
-    mpMutexOutput(pMutexOutput), mbResetRequested(false), mbFinishRequested(false),
+LoopClosing::LoopClosing(Map *pMap, KeyFrameDatabase *pDB, ORBVocabulary *pVoc, const bool bFixScale):
+    SyncPrint("LoopClosing: "), mbResetRequested(false), mbFinishRequested(false),
     mbFinished(true), mpMap(pMap), mpKeyFrameDB(pDB),
     mpORBVocabulary(pVoc), mpMatchedKF(NULL), mLastLoopKFid(0),
     mbRunningGBA(false), mbFinishedGBA(true), mbStopGBA(false),
@@ -68,14 +68,17 @@ void LoopClosing::Run() try
             }
         }       
 
+        //Print("ResetIfRequested();");
         ResetIfRequested();
 
+        //Print("if(CheckFinish())");
         if(CheckFinish())
             break;
 
         sleep(5000);
     }
 
+    Print("SetFinish();");
     SetFinish();
 }
 catch (const exception& e)
@@ -89,9 +92,11 @@ catch (...)
 
 void LoopClosing::InsertKeyFrame(KeyFrame *pKF)
 {
+    Print("begin InsertKeyFrame");
     unique_lock<mutex> lock(mMutexLoopQueue);
     if(pKF->GetId()!=0)
         mlpLoopKeyFrameQueue.push_back(pKF);
+    Print("end InsertKeyFrame");
 }
 
 bool LoopClosing::CheckNewKeyFrames()
@@ -102,6 +107,7 @@ bool LoopClosing::CheckNewKeyFrames()
 
 bool LoopClosing::DetectLoop()
 {
+    Print("begin DetectLoop");
     {
         unique_lock<mutex> lock(mMutexLoopQueue);
         mpCurrentKF = mlpLoopKeyFrameQueue.front();
@@ -115,6 +121,7 @@ bool LoopClosing::DetectLoop()
     {
         mpKeyFrameDB->add(mpCurrentKF);
         mpCurrentKF->SetErase(mpMap, mpKeyFrameDB);
+        Print("end DetectLoop 1");
         return false;
     }
 
@@ -146,6 +153,7 @@ bool LoopClosing::DetectLoop()
         mpKeyFrameDB->add(mpCurrentKF);
         mvConsistentGroups.clear();
         mpCurrentKF->SetErase(mpMap, mpKeyFrameDB);
+        Print("end DetectLoop 2");
         return false;
     }
 
@@ -217,19 +225,23 @@ bool LoopClosing::DetectLoop()
     if(mvpEnoughConsistentCandidates.empty())
     {
         mpCurrentKF->SetErase(mpMap, mpKeyFrameDB);
+        Print("end DetectLoop 3");
         return false;
     }
     else
     {
+        Print("end DetectLoop 4");
         return true;
     }
 
     mpCurrentKF->SetErase(mpMap, mpKeyFrameDB);
+    Print("end DetectLoop 5");
     return false;
 }
 
 bool LoopClosing::ComputeSim3()
 {
+    Print("begin ComputeSim3");
     // For each consistent loop candidate we try to compute a Sim3
 
     const int nInitialCandidates = mvpEnoughConsistentCandidates.size();
@@ -346,6 +358,7 @@ bool LoopClosing::ComputeSim3()
         for(int i=0; i<nInitialCandidates; i++)
              mvpEnoughConsistentCandidates[i]->SetErase(mpMap, mpKeyFrameDB);
         mpCurrentKF->SetErase(mpMap, mpKeyFrameDB);
+        Print("end ComputeSim3 1");
         return false;
     }
 
@@ -387,6 +400,7 @@ bool LoopClosing::ComputeSim3()
         for(int i=0; i<nInitialCandidates; i++)
             if(mvpEnoughConsistentCandidates[i]!=mpMatchedKF)
                 mvpEnoughConsistentCandidates[i]->SetErase(mpMap, mpKeyFrameDB);
+        Print("end ComputeSim3 2");
         return true;
     }
     else
@@ -394,6 +408,7 @@ bool LoopClosing::ComputeSim3()
         for(int i=0; i<nInitialCandidates; i++)
             mvpEnoughConsistentCandidates[i]->SetErase(mpMap, mpKeyFrameDB);
         mpCurrentKF->SetErase(mpMap, mpKeyFrameDB);
+        Print("end ComputeSim3 3");
         return false;
     }
 
@@ -770,12 +785,6 @@ bool LoopClosing::isFinished()
 {
     unique_lock<mutex> lock(mMutexFinish);
     return mbFinished;
-}
-
-void LoopClosing::Print(const char * message)
-{
-    unique_lock<mutex> lock(*mpMutexOutput);
-    cout << "LoopClosing: " << message << endl;
 }
 
 } //namespace ORB_SLAM

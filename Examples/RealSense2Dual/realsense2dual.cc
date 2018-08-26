@@ -34,6 +34,7 @@
 #include <ORBVocabulary.h>
 #include <FrameDrawer.h>
 #include <Map.h>
+#include <SyncPrint.h>
 
 using namespace std;
 using namespace ORB_SLAM2;
@@ -47,7 +48,6 @@ struct ThreadParam
    Tracking * tracker;
    int height;
    int width;
-   mutex * mutexOutput;
    vector<float> timesTrack;
    thread * threadObj;
 };
@@ -145,19 +145,17 @@ void RunTracker(int threadId) try
 }
 catch (const rs2::error & e)
 {
-   unique_lock<mutex> lock(*mThreadParams[threadId].mutexOutput);
-   std::cerr << std::endl << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
+   SyncPrint::Print("RealSense error calling ", e.get_failed_function() + "(" + e.get_failed_args() + "):\n    " + e.what());
    mThreadParams[threadId].returnCode = EXIT_FAILURE;
 }
 catch (const exception& e)
 {
-   unique_lock<mutex> lock(*mThreadParams[threadId].mutexOutput);
-   std::cerr << std::endl << e.what() << std::endl;
+   SyncPrint::Print("Exception in RunTracker: ", e.what());
    mThreadParams[threadId].returnCode = EXIT_FAILURE;
 }
 catch (...)
 {
-   std::cerr << std::endl << "An exception was not caught in thread " << threadId << "." << std::endl;
+   SyncPrint::Print("An exception was not caught in RunTracker ", to_string(threadId));
    mThreadParams[threadId].returnCode = EXIT_FAILURE;
 }
 
@@ -177,9 +175,11 @@ void printStatistics()
             totaltime += vTimesTrack[i];
          }
 
-         cout << "tracking time statistics for thread " << i << ":" << endl;
-         cout << "   median tracking time: " << vTimesTrack[vTimesTrack.size() / 2] << endl;
-         cout << "   mean tracking time: " << totaltime / vTimesTrack.size() << endl;
+         stringstream ss;
+         ss << "tracking time statistics for thread " << i << ":\n";
+         ss << "   median tracking time: " << vTimesTrack[vTimesTrack.size() / 2] << "\n";
+         ss << "   mean tracking time: " << totaltime / vTimesTrack.size() << "\n";
+         SyncPrint::Print(NULL, ss);
       }
    }
 }
@@ -188,26 +188,22 @@ int main(int paramc, char * paramv[]) try
 {
    ParseParams(paramc, paramv);
 
+   //Create the Map
+   Map * pMap = new Map();
+
    //Load ORB Vocabulary
-   cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
+   SyncPrint::Print(NULL, "Loading ORB Vocabulary. This could take a while...");
    ORBVocabulary * pVocab = new ORBVocabulary();
    bool bVocLoad = pVocab->loadFromTextFile(mVocFile);
    if (!bVocLoad)
    {
-      cerr << "Wrong path to vocabulary. " << endl;
-      cerr << "Failed to open at: " << mVocFile << endl;
+      SyncPrint::Print("Failed to open vocabulary file at: ", mVocFile);
       exit(-1);
    }
-   cout << "Vocabulary loaded!" << endl << endl;
-
-   //Create the Map
-   Map * pMap = new Map();
-
-   //Create mutex for output synchronization
-   mutex mutexOutput;
+   SyncPrint::Print(NULL, "Vocabulary loaded!");
 
    //Initialize the Mapper
-   Mapper * pMapper = new Mapper(&mutexOutput, pMap, pVocab, false);
+   Mapper * pMapper = new Mapper(pMap, pVocab, false);
 
    vector<FrameDrawer *> vFrameDrawers;
    vector<MapDrawer *> vMapDrawers;
@@ -220,25 +216,24 @@ int main(int paramc, char * paramv[]) try
       string * pSerial = new string();
       ParseSettings(settings, paramv[i + 2], *pSerial);
 
-      FrameDrawer * frameDrawer = new FrameDrawer(pMap, settings);
+      FrameDrawer * frameDrawer = new FrameDrawer(settings);
       vFrameDrawers.push_back(frameDrawer);
 
-      MapDrawer * mapDrawer = new MapDrawer(&mutexOutput, pMap, settings);
+      MapDrawer * mapDrawer = new MapDrawer(pMap, settings);
       vMapDrawers.push_back(mapDrawer);
 
-      Tracking * tracker = new Tracking(&mutexOutput, pVocab, frameDrawer, mapDrawer, pMapper, settings, eSensor::STEREO);
+      Tracking * tracker = new Tracking(pVocab, frameDrawer, mapDrawer, pMapper, settings, eSensor::STEREO);
       vTrackers.push_back(tracker);
 
       mThreadParams[i].serial = pSerial;
       mThreadParams[i].tracker = tracker;
       mThreadParams[i].height = frameDrawer->GetImageHeight();
       mThreadParams[i].width = frameDrawer->GetImageWidth();
-      mThreadParams[i].mutexOutput = &mutexOutput;
       mThreadParams[i].threadObj = new thread(RunTracker, i);
    }
 
    //Initialize and start the Viewer thread
-   Viewer viewer(&mutexOutput, vFrameDrawers, vMapDrawers, vTrackers);
+   Viewer viewer(vFrameDrawers, vMapDrawers, vTrackers, pMapper);
    for (auto tracker : vTrackers)
    {
        tracker->SetViewer(&viewer);
@@ -261,16 +256,16 @@ int main(int paramc, char * paramv[]) try
 }
 catch (const rs2::error & e)
 {
-   std::cerr << std::endl << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
-   return EXIT_FAILURE;
+    SyncPrint::Print("RealSense error calling ", e.get_failed_function() + "(" + e.get_failed_args() + "):\n    " + e.what());
+    return EXIT_FAILURE;
 }
 catch (const exception& e)
 {
-   std::cerr << std::endl << e.what() << std::endl;
-   return EXIT_FAILURE;
+    SyncPrint::Print("Exception in main thread: ", e.what());
+    return EXIT_FAILURE;
 }
 catch (...)
 {
-   std::cerr << std::endl << "An exception was not caught in the main thread." << std::endl;
+   SyncPrint::Print(NULL, "An exception was not caught in the main thread.");
    return EXIT_FAILURE;
 }

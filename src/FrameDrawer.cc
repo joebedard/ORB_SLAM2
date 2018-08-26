@@ -29,7 +29,9 @@
 namespace ORB_SLAM2
 {
 
-FrameDrawer::FrameDrawer(Map* pMap, cv::FileStorage & fSettings) : mpMap(pMap)
+FrameDrawer::FrameDrawer(cv::FileStorage & fSettings) :
+    SyncPrint("FrameDrawer: "), mnKFs(0), mnMPs(0),
+    N(0), mState(NO_IMAGES_YET), mbOnlyTracking(false)
 {
    float fps = fSettings["Camera.fps"];
    if (fps < 1.0f)
@@ -44,13 +46,31 @@ FrameDrawer::FrameDrawer(Map* pMap, cv::FileStorage & fSettings) : mpMap(pMap)
    if (0 == mImageHeight)
       throw new exception("Camera.height is not set.");
 
-   mState = NO_IMAGES_YET;
    stringstream s = StateToString(mState);
    int baseline = 0;
    cv::Size textSize = cv::getTextSize(s.str(), cv::FONT_HERSHEY_PLAIN, 1, 1, &baseline);
    mTextInfoHeight = textSize.height + 10;
 
-   mIm = cv::Mat(mImageHeight, mImageWidth, CV_8UC3, cv::Scalar(0, 0, 0));
+   mIm = cv::Mat(GetFrameHeight(), GetFrameWidth(), CV_8UC3, cv::Scalar(0, 0, 0));
+}
+
+void FrameDrawer::Reset()
+{
+    unique_lock<mutex> lock(mMutex);
+
+    mnKFs = 0;
+    mnMPs = 0;
+    N = 0;
+    mState = NO_IMAGES_YET;
+    mbOnlyTracking = false;
+
+    mIm = cv::Mat(GetFrameHeight(), GetFrameWidth(), CV_8UC3, cv::Scalar(0, 0, 0));
+
+    mvCurrentKeys.clear();
+    mvbVO.clear();
+    mvbMap.clear();
+    mvIniKeys.clear();
+    mvIniMatches.clear();
 }
 
 cv::Mat FrameDrawer::DrawFrame()
@@ -174,9 +194,7 @@ stringstream FrameDrawer::StateToString(eTrackingState state)
             s << "SLAM MODE |  ";
         else
             s << "LOCALIZATION | ";
-        int nKFs = mpMap->KeyFramesInMap();
-        int nMPs = mpMap->MapPointsInMap();
-        s << "KFs: " << nKFs << ", MPs: " << nMPs << ", Matches: " << mnTracked;
+        s << "KFs: " << mnKFs << ", MPs: " << mnMPs << ", Matches: " << mnTracked;
         if (mnTrackedVO>0)
             s << ", + VO matches: " << mnTrackedVO;
     }
@@ -196,8 +214,9 @@ void FrameDrawer::DrawTextInfo(cv::Mat &im, eTrackingState state, cv::Mat &imTex
     cv::putText(imText, s.str(), cv::Point(5, imText.rows - 5), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255, 255, 255), 1, 8);
 }
 
-void FrameDrawer::Update(Tracking *pTracker)
+void FrameDrawer::Update(Tracking *pTracker, Map * pMap)
 {
+    Print("begin Update");
     unique_lock<mutex> lock(mMutex);
     pTracker->mImGray.copyTo(mIm);
     mvCurrentKeys=pTracker->mCurrentFrame.mvKeys;
@@ -206,6 +225,8 @@ void FrameDrawer::Update(Tracking *pTracker)
     mvbMap = vector<bool>(N,false);
     mbOnlyTracking = pTracker->mbOnlyTracking;
 
+    mnKFs = pMap->KeyFramesInMap();
+    mnMPs = pMap->MapPointsInMap();
 
     if(pTracker->mLastProcessedState == NOT_INITIALIZED)
     {
@@ -230,6 +251,7 @@ void FrameDrawer::Update(Tracking *pTracker)
         }
     }
     mState = pTracker->mLastProcessedState;
+    Print("end Update");
 }
 
 } //namespace ORB_SLAM

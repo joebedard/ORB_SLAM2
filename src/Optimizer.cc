@@ -30,12 +30,17 @@
 #include<Eigen/StdVector>
 
 #include "Converter.h"
+#include "SyncPrint.h"
 
 #include<mutex>
 
 namespace ORB_SLAM2
 {
 
+void Optimizer::Print(const char * message)
+{
+    SyncPrint::Print("Optimizer: ", message);
+}
 
 void Optimizer::GlobalBundleAdjustment(Map* pMap, int nIterations, bool* pbStopFlag, const unsigned long nLoopKF, const bool bRobust)
 {
@@ -451,6 +456,8 @@ int Optimizer::PoseOptimization(Frame *pFrame)
 
 void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap)
 {    
+    Print("begin LocalBundleAdjustment");
+
     // Local KeyFrames: First Breath Search from Current Keyframe
     list<KeyFrame*> lLocalKeyFrames;
 
@@ -466,6 +473,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
             lLocalKeyFrames.push_back(pKFi);
     }
 
+    Print("// Local MapPoints seen in Local KeyFrames");
     // Local MapPoints seen in Local KeyFrames
     list<MapPoint*> lLocalMapPoints;
     for(list<KeyFrame*>::iterator lit=lLocalKeyFrames.begin() , lend=lLocalKeyFrames.end(); lit!=lend; lit++)
@@ -484,6 +492,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         }
     }
 
+    Print("// Fixed Keyframes. Keyframes that see Local MapPoints but that are not Local Keyframes");
     // Fixed Keyframes. Keyframes that see Local MapPoints but that are not Local Keyframes
     list<KeyFrame*> lFixedCameras;
     for(list<MapPoint*>::iterator lit=lLocalMapPoints.begin(), lend=lLocalMapPoints.end(); lit!=lend; lit++)
@@ -502,6 +511,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         }
     }
 
+    Print("// Setup optimizer");
     // Setup optimizer
     g2o::SparseOptimizer optimizer;
     g2o::BlockSolver_6_3::LinearSolverType * linearSolver;
@@ -518,6 +528,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
 
     unsigned long maxKFid = 0;
 
+    Print("// Set Local KeyFrame vertices");
     // Set Local KeyFrame vertices
     for(list<KeyFrame*>::iterator lit=lLocalKeyFrames.begin(), lend=lLocalKeyFrames.end(); lit!=lend; lit++)
     {
@@ -531,6 +542,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
             maxKFid=pKFi->GetId();
     }
 
+    Print("// Set Fixed KeyFrame vertices");
     // Set Fixed KeyFrame vertices
     for(list<KeyFrame*>::iterator lit=lFixedCameras.begin(), lend=lFixedCameras.end(); lit!=lend; lit++)
     {
@@ -568,6 +580,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     const float thHuberMono = sqrt(5.991);
     const float thHuberStereo = sqrt(7.815);
 
+    Print("for(list<MapPoint*>::iterator lit=lLocalMapPoints.begin(), lend=lLocalMapPoints.end(); lit!=lend; lit++)");
     for(list<MapPoint*>::iterator lit=lLocalMapPoints.begin(), lend=lLocalMapPoints.end(); lit!=lend; lit++)
     {
         MapPoint* pMP = *lit;
@@ -652,8 +665,11 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     }
 
     if(pbStopFlag)
-        if(*pbStopFlag)
+        if (*pbStopFlag)
+        {
+            Print("end LocalBundleAdjustment 1");
             return;
+        }
 
     optimizer.initializeOptimization();
     optimizer.optimize(5);
@@ -664,6 +680,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         if(*pbStopFlag)
             bDoMore = false;
 
+    Print("if(bDoMore)");
     if(bDoMore)
     {
 
@@ -710,6 +727,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     vector<pair<KeyFrame*,MapPoint*> > vToErase;
     vToErase.reserve(vpEdgesMono.size()+vpEdgesStereo.size());
 
+    Print("// Check inlier observations       ");
     // Check inlier observations       
     for(size_t i=0, iend=vpEdgesMono.size(); i<iend;i++)
     {
@@ -726,6 +744,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         }
     }
 
+    Print("for(size_t i=0, iend=vpEdgesStereo.size(); i<iend;i++)");
     for(size_t i=0, iend=vpEdgesStereo.size(); i<iend;i++)
     {
         g2o::EdgeStereoSE3ProjectXYZ* e = vpEdgesStereo[i];
@@ -742,8 +761,10 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     }
 
     // Get Map Mutex
+    Print("unique_lock<mutex> lock(pMap->mMutexMapUpdate);");
     unique_lock<mutex> lock(pMap->mMutexMapUpdate);
 
+    Print("if(!vToErase.empty())");
     if(!vToErase.empty())
     {
         for(size_t i=0;i<vToErase.size();i++)
@@ -755,6 +776,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         }
     }
 
+    Print("// Recover optimized data");
     // Recover optimized data
 
     //Keyframes
@@ -774,6 +796,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         pMP->SetWorldPos(Converter::toCvMat(vPoint->estimate()));
         pMP->UpdateNormalAndDepth();
     }
+    Print("end LocalBundleAdjustment 2");
 }
 
 

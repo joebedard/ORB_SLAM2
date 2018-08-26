@@ -28,8 +28,8 @@
 namespace ORB_SLAM2
 {
 
-LocalMapping::LocalMapping(mutex * pMutexOutput, Map *pMap, KeyFrameDatabase* pDB, const float bMonocular, unsigned long firstMapPointId, unsigned int mapPointIdSpan) :
-    mpMutexOutput(pMutexOutput), mbMonocular(bMonocular), mbResetRequested(false),
+LocalMapping::LocalMapping(Map *pMap, KeyFrameDatabase* pDB, const float bMonocular, unsigned long firstMapPointId, unsigned int mapPointIdSpan) :
+    SyncPrint("LocalMapping: "), mbMonocular(bMonocular), mbResetRequested(false),
     mbFinishRequested(false), mbFinished(true), mpMap(pMap),
     mpKeyFrameDB(pDB), mbAbortBA(false), mbPaused(false),
     mbPauseRequested(false), mbNotPause(false), mbAcceptKeyFrames(true),
@@ -49,9 +49,11 @@ void LocalMapping::Run() try
     while(1)
     {
         // Check if there are keyframes in the queue
+        Print("if(CheckNewKeyFrames())");
         if(CheckNewKeyFrames())
         {
             // Tracking will see that Local Mapping is busy
+            Print("SetAcceptKeyFrames(false);");
             SetAcceptKeyFrames(false);
 
             // BoW conversion and insertion in Map
@@ -71,11 +73,14 @@ void LocalMapping::Run() try
 
             mbAbortBA = false;
 
+            Print("if(!CheckNewKeyFrames() && !PauseRequested())");
             if(!CheckNewKeyFrames() && !PauseRequested())
             {
                 // Local BA
-                if(mpMap->KeyFramesInMap()>2)
+                if (mpMap->KeyFramesInMap() > 2)
+                {
                     Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap);
+                }
 
                 // Check redundant local Keyframes
                 KeyFrameCulling();
@@ -84,11 +89,13 @@ void LocalMapping::Run() try
             mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
 
             // Tracking will see that Local Mapping is not busy
+            Print("SetAcceptKeyFrames(true);");
             SetAcceptKeyFrames(true);
         }
         else if(Pause())
         {
             // Safe area to stop
+            Print("while(IsPaused() && !CheckFinish())");
             while(IsPaused() && !CheckFinish())
             {
                 sleep(3000);
@@ -97,8 +104,10 @@ void LocalMapping::Run() try
                 break;
         }
 
+        //Print("ResetIfRequested();");
         ResetIfRequested();
 
+        //Print("if(CheckFinish())");
         if(CheckFinish())
             break;
 
@@ -153,6 +162,7 @@ bool LocalMapping::CheckNewKeyFrames()
 
 void LocalMapping::ProcessNewKeyFrame()
 {
+    Print("begin ProcessNewKeyFrame");
     {
         unique_lock<mutex> lock(mMutexNewKFs);
         mpCurrentKeyFrame = mlNewKeyFrames.front();
@@ -191,10 +201,12 @@ void LocalMapping::ProcessNewKeyFrame()
 
     // Insert Keyframe in Map
     mpMap->AddKeyFrame(mpCurrentKeyFrame);
+    Print("end ProcessNewKeyFrame");
 }
 
 void LocalMapping::MapPointCulling()
 {
+    Print("begin MapPointCulling");
     // Check Recent Added MapPoints
     list<MapPoint*>::iterator lit = mlpRecentAddedMapPoints.begin();
     const unsigned long int nCurrentKFid = mpCurrentKeyFrame->GetId();
@@ -212,26 +224,36 @@ void LocalMapping::MapPointCulling()
         if(pMP->isBad())
         {
             lit = mlpRecentAddedMapPoints.erase(lit);
+            Print(to_string(pMP->GetId()) + "=MapPointId erased 1");
         }
         else if(pMP->GetFoundRatio()<0.25f )
         {
             pMP->SetBadFlag(mpMap);
             lit = mlpRecentAddedMapPoints.erase(lit);
+            Print(to_string(pMP->GetId()) + "=MapPointId erased 2");
         }
         else if(((int)nCurrentKFid-(int)pMP->mnFirstKFid)>=2 && pMP->Observations()<=cnThObs)
         {
             pMP->SetBadFlag(mpMap);
             lit = mlpRecentAddedMapPoints.erase(lit);
+            Print(to_string(pMP->GetId()) + "=MapPointId erased 3");
         }
-        else if(((int)nCurrentKFid-(int)pMP->mnFirstKFid)>=3)
+        else if (((int)nCurrentKFid - (int)pMP->mnFirstKFid) >= 3)
+        {
             lit = mlpRecentAddedMapPoints.erase(lit);
+            Print(to_string(pMP->GetId()) + "=MapPointId erased 4");
+        }
         else
+        {
             lit++;
+        }
     }
+    Print("end MapPointCulling");
 }
 
 void LocalMapping::CreateNewMapPoints()
 {
+    Print("begin CreateNewMapPoints");
     // Retrieve neighbor keyframes in covisibility graph
     int nn = 10;
     if(mbMonocular)
@@ -262,8 +284,11 @@ void LocalMapping::CreateNewMapPoints()
     // Search matches with epipolar restriction and triangulate
     for(size_t i=0; i<vpNeighKFs.size(); i++)
     {
-        if(i>0 && CheckNewKeyFrames())
+        if (i > 0 && CheckNewKeyFrames())
+        {
+            Print("end CreateNewMapPoints 1");
             return;
+        }
 
         KeyFrame* pKF2 = vpNeighKFs[i];
 
@@ -458,6 +483,9 @@ void LocalMapping::CreateNewMapPoints()
 
             // Triangulation is succesfull
             MapPoint* pMP = new MapPoint(NewMapPointId(), x3D, mpCurrentKeyFrame);
+            stringstream ss;
+            ss << pMP->GetId() << "=MapPointId " << x3D;
+            Print(ss);
 
             pMP->AddObservation(mpCurrentKeyFrame,idx1);            
             pMP->AddObservation(pKF2,idx2);
@@ -475,10 +503,12 @@ void LocalMapping::CreateNewMapPoints()
             nnew++;
         }
     }
+    Print("end CreateNewMapPoints 2");
 }
 
 void LocalMapping::SearchInNeighbors()
 {
+    Print("begin SearchInNeighbors");
     // Retrieve neighbor keyframes
     int nn = 10;
     if(mbMonocular)
@@ -559,6 +589,7 @@ void LocalMapping::SearchInNeighbors()
 
     // Update connections in covisibility graph
     mpCurrentKeyFrame->UpdateConnections();
+    Print("end SearchInNeighbors");
 }
 
 cv::Mat LocalMapping::ComputeF12(KeyFrame *&pKF1, KeyFrame *&pKF2)
@@ -594,7 +625,7 @@ bool LocalMapping::Pause()
     if(mbPauseRequested && !mbNotPause)
     {
         mbPaused = true;
-        cout << "Local Mapping STOP" << endl;
+        Print("PAUSE");
         return true;
     }
 
@@ -625,7 +656,7 @@ void LocalMapping::Resume()
         delete *lit;
     mlNewKeyFrames.clear();
 
-    cout << "Local Mapping RELEASE" << endl;
+    Print("RESUME");
 }
 
 bool LocalMapping::AcceptKeyFrames()
@@ -659,6 +690,7 @@ void LocalMapping::InterruptBA()
 
 void LocalMapping::KeyFrameCulling()
 {
+    Print("begin KeyFrameCulling");
     // Check redundant keyframes (only local keyframes)
     // A keyframe is considered redundant if the 90% of the MapPoints it sees, are seen
     // in at least other 3 keyframes (in the same or finer scale)
@@ -723,6 +755,7 @@ void LocalMapping::KeyFrameCulling()
             pKF->SetBadFlag(mpMap, mpKeyFrameDB);
         }
     }
+    Print("end KeyFrameCulling");
 }
 
 cv::Mat LocalMapping::SkewSymmetricMatrix(const cv::Mat &v)
@@ -792,12 +825,6 @@ unsigned long LocalMapping::NewMapPointId()
     unsigned long temp = mNextMapPointId;
     mNextMapPointId += mMapPointIdSpan;
     return temp;
-}
-
-void LocalMapping::Print(const char * message)
-{
-    unique_lock<mutex> lock(*mpMutexOutput);
-    cout << "LocalMapping: " << message << endl;
 }
 
 } //namespace ORB_SLAM

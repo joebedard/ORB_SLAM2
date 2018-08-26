@@ -24,6 +24,7 @@
 #include "Map.h"
 #include "MapPoint.h"
 #include "KeyFrame.h"
+#include "SyncPrint.h"
 #include<pangolin/pangolin.h>
 
 #include<mutex>
@@ -31,10 +32,12 @@
 namespace ORB_SLAM2
 {
 
-class MapDrawer
+class MapDrawer : SyncPrint
 {
 public:
-    MapDrawer(mutex * pMutexOutput, Map* pMap, cv::FileStorage & fSettings);
+    MapDrawer(Map* pMap, cv::FileStorage & fSettings);
+    void Reset();
+    void SetId(int id);
 
     void DrawMapPoints();
     void DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph);
@@ -48,8 +51,11 @@ public:
     float GetViewpointZ();
     float GetViewpointF();
 
+protected:
+    virtual void PrintPrefix(ostream & out) override;
+
 private:
-    mutex * mpMutexOutput;
+    unsigned int mId;
     Map * mpMap;
 
     float mKeyFrameSize;
@@ -68,7 +74,6 @@ private:
 
     float mViewpointX, mViewpointY, mViewpointZ, mViewpointF;
 
-    void Print(const char * message);
 };
 
 } //namespace ORB_SLAM

@@ -25,8 +25,8 @@
 #include "LocalMapping.h"
 #include "Map.h"
 #include "ORBVocabulary.h"
-//#include "Tracking.h"
 #include "KeyFrameDatabase.h"
+#include "SyncPrint.h"
 
 #include <thread>
 #include <mutex>
@@ -39,7 +39,7 @@ class LocalMapping;
 class KeyFrameDatabase;
 
 
-class LoopClosing
+class LoopClosing : SyncPrint
 {
 public:
 
@@ -49,7 +49,7 @@ public:
 
 public:
 
-    LoopClosing(mutex * pMutexOutput, Map* pMap, KeyFrameDatabase* pDB, ORBVocabulary* pVoc,const bool bFixScale);
+    LoopClosing(Map* pMap, KeyFrameDatabase* pDB, ORBVocabulary* pVoc,const bool bFixScale);
 
     void SetLocalMapper(LocalMapping* pLocalMapper);
 
@@ -138,11 +138,6 @@ protected:
     bool mbFixScale;
 
     bool mnFullBAIdx;
-
-private:
-    mutex * mpMutexOutput;
-
-    void Print(const char * message);
 
 };
 

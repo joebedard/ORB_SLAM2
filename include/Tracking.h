@@ -35,6 +35,7 @@
 #include "Map.h"
 #include "MapDrawer.h"
 #include "Enums.h"
+#include "SyncPrint.h"
 #include <mutex>
 
 namespace ORB_SLAM2
@@ -43,11 +44,11 @@ namespace ORB_SLAM2
 class Viewer;
 class FrameDrawer;
 
-class Tracking
+class Tracking : SyncPrint
 {  
 
 public:
-    Tracking(mutex * pMutexOutput, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer,
+    Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer,
        Mapper* pMapper, cv::FileStorage & settings, eSensor sensor);
 
     ~Tracking();
@@ -186,9 +187,9 @@ protected:
     //Color order (true RGB, false BGR, ignored if grayscale)
     bool mbRGB;
 
+    virtual void PrintPrefix(ostream & out) override;
+
 private:
-   mutex * mpMutexOutput;
-   void Print(const char * message);
 
    eTrackingState mState;
 
@@ -241,10 +242,19 @@ private:
     public:
         MapperObserver(Tracking * pTracker) : mpTracker(pTracker) {};
         virtual void HandleReset() {mpTracker->MapperObserverHandleReset();};
-    };
+    } mMapperObserver;
 
-    MapperObserver mMapperObserver;
+    //MapperObserver mMapperObserver;
 
+    //class PrivateSyncPrint : protected SyncPrint
+    //{
+    //protected:
+    //    virtual const string & GetPrintPrefix() override
+    //    {
+    //        return "Tracking: Id=" + to_string(mId) + " ";
+    //    }
+
+    //} mPrint;
 };
 
 } //namespace ORB_SLAM

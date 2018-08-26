@@ -23,8 +23,9 @@
 namespace ORB_SLAM2
 {
 
-   Mapper::Mapper(mutex * pMutexOutput, Map * pMap, ORBVocabulary* pVocab, const bool bMonocular)
-      : mpMutexOutput(pMutexOutput), mpMap(pMap), mpVocab(pVocab), mbMonocular(bMonocular), mInitialized(false)
+   Mapper::Mapper(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular) :
+      SyncPrint("Mapper: "), mpMap(pMap), mpVocab(pVocab), 
+      mbMonocular(bMonocular), mInitialized(false)
    {
       if (pMap == NULL)
          throw std::exception("pMap must not be NULL");
@@ -37,11 +38,11 @@ namespace ORB_SLAM2
       ResetTrackerStatus();
 
       //Initialize and start the Local Mapping thread
-      mpLocalMapper = new LocalMapping(mpMutexOutput, mpMap, mpKeyFrameDB, mbMonocular, FIRST_MAPPOINT_ID_LOCALMAPPER, MAPPOINT_ID_SPAN);
+      mpLocalMapper = new LocalMapping(mpMap, mpKeyFrameDB, mbMonocular, FIRST_MAPPOINT_ID_LOCALMAPPER, MAPPOINT_ID_SPAN);
       mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run, mpLocalMapper);
 
       //Initialize and start the Loop Closing thread
-      mpLoopCloser = new LoopClosing(mpMutexOutput, mpMap, mpKeyFrameDB, mpVocab, !mbMonocular);
+      mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDB, mpVocab, !mbMonocular);
       mptLoopClosing = new thread(&ORB_SLAM2::LoopClosing::Run, mpLoopCloser);
 
       mpLocalMapper->SetLoopCloser(mpLoopCloser);
@@ -55,6 +56,8 @@ namespace ORB_SLAM2
 
    void Mapper::Reset()
    {
+      unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
+
       // Reset Local Mapping
       Print("Begin Local Mapper Reset");
       mpLocalMapper->RequestReset();
@@ -72,10 +75,7 @@ namespace ORB_SLAM2
 
       // Clear Map (this erase MapPoints and KeyFrames)
       Print("Begin Map Reset");
-      {
-          unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
-          mpMap->Clear();
-      }
+      mpMap->Clear();
       Print("End Map Reset");
 
       ResetTrackerStatus();
@@ -232,12 +232,6 @@ namespace ORB_SLAM2
          mTrackers[i].nextKeyFrameId = i;
          mTrackers[i].nextMapPointId = i;
       }
-   }
-
-   void Mapper::Print(const char * message)
-   {
-       unique_lock<mutex> lock(*mpMutexOutput);
-       cout << "Mapper: " << message << endl;
    }
 
 }

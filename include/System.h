@@ -106,7 +106,6 @@ public:
     // LoadMap(const string &filename);
 
 private:
-    mutex mMutexOutput;
 
    // Temporarily make these 3 functions private until they are really needed publicly
    // Information from most recent processed frame

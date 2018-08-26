@@ -94,6 +94,7 @@ include/ORBVocabulary.h
 include/PnPsolver.h
 include/Sim3Solver.h
 include/Sleep.h
+include/SyncPrint.h
 include/System.h
 include/Tracking.h
 include/Viewer.h
@@ -114,6 +115,7 @@ src/ORBextractor.cc
 src/ORBmatcher.cc
 src/PnPsolver.cc
 src/Sim3Solver.cc
+src/SyncPrint.cc
 src/System.cc
 src/Tracking.cc
 src/Viewer.cc

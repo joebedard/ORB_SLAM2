@@ -32,11 +32,11 @@ namespace ORB_SLAM2
    class LoopClosing;
 
    // interface for all Mapping functionality
-   class Mapper
+   class Mapper : SyncPrint
    {
    public:
 
-      Mapper(mutex * pMutexOutput, Map * pMap, ORBVocabulary* pVocab, const bool bMonocular);
+      Mapper(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular);
 
       virtual long unsigned  KeyFramesInMap();
 
@@ -96,8 +96,6 @@ namespace ORB_SLAM2
 
       std::mutex mMutexLogin;
 
-      mutex * mpMutexOutput;
-
       ORBVocabulary * mpVocab;
 
       bool mbMonocular;
@@ -121,8 +119,6 @@ namespace ORB_SLAM2
       void NotifyReset();
 
       void ResetTrackerStatus();
-
-      void Mapper::Print(const char * message);
 
    };
 
