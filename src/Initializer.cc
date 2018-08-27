@@ -28,9 +28,8 @@ namespace ORB_SLAM2
 {
 
 Initializer::Initializer(const Frame &ReferenceFrame, float sigma, int iterations)
+    : mK(ReferenceFrame.mFC->K)
 {
-    mK = ReferenceFrame.mK.clone();
-
     mvKeys1 = ReferenceFrame.mvKeysUn;
 
     mSigma = sigma;

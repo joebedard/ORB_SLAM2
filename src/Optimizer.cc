@@ -307,10 +307,10 @@ int Optimizer::PoseOptimization(Frame *pFrame)
                 e->setRobustKernel(rk);
                 rk->setDelta(deltaMono);
 
-                e->fx = pFrame->fx;
-                e->fy = pFrame->fy;
-                e->cx = pFrame->cx;
-                e->cy = pFrame->cy;
+                e->fx = pFrame->mFC->fx;
+                e->fy = pFrame->mFC->fy;
+                e->cx = pFrame->mFC->cx;
+                e->cy = pFrame->mFC->cy;
                 cv::Mat Xw = pMP->GetWorldPos();
                 e->Xw[0] = Xw.at<float>(0);
                 e->Xw[1] = Xw.at<float>(1);
@@ -344,10 +344,10 @@ int Optimizer::PoseOptimization(Frame *pFrame)
                 e->setRobustKernel(rk);
                 rk->setDelta(deltaStereo);
 
-                e->fx = pFrame->fx;
-                e->fy = pFrame->fy;
-                e->cx = pFrame->cx;
-                e->cy = pFrame->cy;
+                e->fx = pFrame->mFC->fx;
+                e->fy = pFrame->mFC->fy;
+                e->cx = pFrame->mFC->cx;
+                e->cy = pFrame->mFC->cy;
                 e->bf = pFrame->mbf;
                 cv::Mat Xw = pMP->GetWorldPos();
                 e->Xw[0] = Xw.at<float>(0);

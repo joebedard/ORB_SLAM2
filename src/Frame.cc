@@ -27,10 +27,6 @@ namespace ORB_SLAM2
 {
 
 long unsigned int Frame::nNextId=0;
-bool Frame::mbInitialComputations=true;
-float Frame::cx, Frame::cy, Frame::fx, Frame::fy, Frame::invfx, Frame::invfy;
-float Frame::mnMinX, Frame::mnMinY, Frame::mnMaxX, Frame::mnMaxY;
-float Frame::mfGridElementWidthInv, Frame::mfGridElementHeightInv;
 
 Frame::Frame()
 {}
@@ -38,7 +34,7 @@ Frame::Frame()
 //Copy Constructor
 Frame::Frame(const Frame &frame)
     :mpORBvocabulary(frame.mpORBvocabulary), mpORBextractorLeft(frame.mpORBextractorLeft), mpORBextractorRight(frame.mpORBextractorRight),
-     mTimeStamp(frame.mTimeStamp), mK(frame.mK.clone()), mDistCoef(frame.mDistCoef.clone()),
+     mTimeStamp(frame.mTimeStamp), mFC(frame.mFC),
      mbf(frame.mbf), mb(frame.mb), mThDepth(frame.mThDepth), N(frame.N), mvKeys(frame.mvKeys),
      mvKeysRight(frame.mvKeysRight), mvKeysUn(frame.mvKeysUn),  mvuRight(frame.mvuRight),
      mvDepth(frame.mvDepth), mBowVec(frame.mBowVec), mFeatVec(frame.mFeatVec),
@@ -58,8 +54,8 @@ Frame::Frame(const Frame &frame)
 }
 
 
-Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
-    :mpORBvocabulary(voc),mpORBextractorLeft(extractorLeft),mpORBextractorRight(extractorRight), mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),
+Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, FrameCalibration * FC, const float &bf, const float &thDepth)
+    :mpORBvocabulary(voc),mpORBextractorLeft(extractorLeft),mpORBextractorRight(extractorRight), mTimeStamp(timeStamp), mFC(FC), mbf(bf), mThDepth(thDepth),
      mpReferenceKF(static_cast<KeyFrame*>(NULL))
 {
     // Frame ID
@@ -92,33 +88,14 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     mvpMapPoints = vector<MapPoint*>(N,static_cast<MapPoint*>(NULL));    
     mvbOutlier = vector<bool>(N,false);
 
-
-    // This is done only for the first Frame (or after a change in the calibration)
-    if(mbInitialComputations)
-    {
-        ComputeImageBounds(imLeft);
-
-        mfGridElementWidthInv=static_cast<float>(FRAME_GRID_COLS)/(mnMaxX-mnMinX);
-        mfGridElementHeightInv=static_cast<float>(FRAME_GRID_ROWS)/(mnMaxY-mnMinY);
-
-        fx = K.at<float>(0,0);
-        fy = K.at<float>(1,1);
-        cx = K.at<float>(0,2);
-        cy = K.at<float>(1,2);
-        invfx = 1.0f/fx;
-        invfy = 1.0f/fy;
-
-        mbInitialComputations=false;
-    }
-
-    mb = mbf/fx;
+    mb = mbf/mFC->fx;
 
     AssignFeaturesToGrid();
 }
 
-Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
+Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, FrameCalibration * FC, const float &bf, const float &thDepth)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
-     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
+     mTimeStamp(timeStamp), mFC(FC), mbf(bf), mThDepth(thDepth)
 {
     // Frame ID
     mnId=nNextId++;
@@ -147,33 +124,15 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     mvpMapPoints = vector<MapPoint*>(N,static_cast<MapPoint*>(NULL));
     mvbOutlier = vector<bool>(N,false);
 
-    // This is done only for the first Frame (or after a change in the calibration)
-    if(mbInitialComputations)
-    {
-        ComputeImageBounds(imGray);
-
-        mfGridElementWidthInv=static_cast<float>(FRAME_GRID_COLS)/static_cast<float>(mnMaxX-mnMinX);
-        mfGridElementHeightInv=static_cast<float>(FRAME_GRID_ROWS)/static_cast<float>(mnMaxY-mnMinY);
-
-        fx = K.at<float>(0,0);
-        fy = K.at<float>(1,1);
-        cx = K.at<float>(0,2);
-        cy = K.at<float>(1,2);
-        invfx = 1.0f/fx;
-        invfy = 1.0f/fy;
-
-        mbInitialComputations=false;
-    }
-
-    mb = mbf/fx;
+    mb = mbf / mFC->fx;
 
     AssignFeaturesToGrid();
 }
 
 
-Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
+Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, FrameCalibration * FC, const float &bf, const float &thDepth)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
-     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
+     mTimeStamp(timeStamp), mFC(FC), mbf(bf), mThDepth(thDepth)
 {
     // Frame ID
     mnId=nNextId++;
@@ -204,25 +163,7 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     mvpMapPoints = vector<MapPoint*>(N,static_cast<MapPoint*>(NULL));
     mvbOutlier = vector<bool>(N,false);
 
-    // This is done only for the first Frame (or after a change in the calibration)
-    if(mbInitialComputations)
-    {
-        ComputeImageBounds(imGray);
-
-        mfGridElementWidthInv=static_cast<float>(FRAME_GRID_COLS)/static_cast<float>(mnMaxX-mnMinX);
-        mfGridElementHeightInv=static_cast<float>(FRAME_GRID_ROWS)/static_cast<float>(mnMaxY-mnMinY);
-
-        fx = K.at<float>(0,0);
-        fy = K.at<float>(1,1);
-        cx = K.at<float>(0,2);
-        cy = K.at<float>(1,2);
-        invfx = 1.0f/fx;
-        invfy = 1.0f/fy;
-
-        mbInitialComputations=false;
-    }
-
-    mb = mbf/fx;
+    mb = mbf / mFC->fx;
 
     AssignFeaturesToGrid();
 }
@@ -284,13 +225,13 @@ bool Frame::isInFrustum(MapPoint *pMP, float viewingCosLimit)
         return false;
 
     // Project in image and check it is not outside
-    const float invz = 1.0f/PcZ;
-    const float u=fx*PcX*invz+cx;
-    const float v=fy*PcY*invz+cy;
+    const float invz = 1.0f / PcZ;
+    const float u = mFC->fx*PcX*invz + mFC->cx;
+    const float v = mFC->fy*PcY*invz + mFC->cy;
 
-    if(u<mnMinX || u>mnMaxX)
+    if (u<mFC->minX || u>mFC->maxX)
         return false;
-    if(v<mnMinY || v>mnMaxY)
+    if (v<mFC->minY || v>mFC->maxY)
         return false;
 
     // Check distance is in the scale invariance region of the MapPoint
@@ -329,20 +270,20 @@ vector<size_t> Frame::GetFeaturesInArea(const float &x, const float  &y, const f
     vector<size_t> vIndices;
     vIndices.reserve(N);
 
-    const int nMinCellX = max(0,(int)floor((x-mnMinX-r)*mfGridElementWidthInv));
-    if(nMinCellX>=FRAME_GRID_COLS)
+    const int nMinCellX = max(0, (int)floor((x - mFC->minX - r) * mFC->gridElementWidthInv));
+    if (nMinCellX >= FRAME_GRID_COLS)
         return vIndices;
 
-    const int nMaxCellX = min((int)FRAME_GRID_COLS-1,(int)ceil((x-mnMinX+r)*mfGridElementWidthInv));
-    if(nMaxCellX<0)
+    const int nMaxCellX = min((int)FRAME_GRID_COLS - 1, (int)ceil((x - mFC->minX + r) * mFC->gridElementWidthInv));
+    if (nMaxCellX < 0)
         return vIndices;
 
-    const int nMinCellY = max(0,(int)floor((y-mnMinY-r)*mfGridElementHeightInv));
-    if(nMinCellY>=FRAME_GRID_ROWS)
+    const int nMinCellY = max(0, (int)floor((y - mFC->minY - r) * mFC->gridElementHeightInv));
+    if (nMinCellY >= FRAME_GRID_ROWS)
         return vIndices;
 
-    const int nMaxCellY = min((int)FRAME_GRID_ROWS-1,(int)ceil((y-mnMinY+r)*mfGridElementHeightInv));
-    if(nMaxCellY<0)
+    const int nMaxCellY = min((int)FRAME_GRID_ROWS - 1, (int)ceil((y - mFC->minY + r) * mFC->gridElementHeightInv));
+    if (nMaxCellY < 0)
         return vIndices;
 
     const bool bCheckLevels = (minLevel>0) || (maxLevel>=0);
@@ -381,8 +322,8 @@ vector<size_t> Frame::GetFeaturesInArea(const float &x, const float  &y, const f
 
 bool Frame::PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY)
 {
-    posX = round((kp.pt.x-mnMinX)*mfGridElementWidthInv);
-    posY = round((kp.pt.y-mnMinY)*mfGridElementHeightInv);
+    posX = round((kp.pt.x - mFC->minX) * mFC->gridElementWidthInv);
+    posY = round((kp.pt.y - mFC->minY) * mFC->gridElementHeightInv);
 
     //Keypoint's coordinates are undistorted, which could cause to go out of the image
     if(posX<0 || posX>=FRAME_GRID_COLS || posY<0 || posY>=FRAME_GRID_ROWS)
@@ -403,7 +344,7 @@ void Frame::ComputeBoW()
 
 void Frame::UndistortKeyPoints()
 {
-    if(mDistCoef.at<float>(0)==0.0)
+    if (mFC->distCoef.at<float>(0) == 0.0)
     {
         mvKeysUn=mvKeys;
         return;
@@ -419,7 +360,7 @@ void Frame::UndistortKeyPoints()
 
     // Undistort points
     mat=mat.reshape(2);
-    cv::undistortPoints(mat,mat,mK,mDistCoef,cv::Mat(),mK);
+    cv::undistortPoints(mat, mat, mFC->K, mFC->distCoef, cv::Mat(), mFC->K);
     mat=mat.reshape(1);
 
     // Fill undistorted keypoint vector
@@ -430,36 +371,6 @@ void Frame::UndistortKeyPoints()
         kp.pt.x=mat.at<float>(i,0);
         kp.pt.y=mat.at<float>(i,1);
         mvKeysUn[i]=kp;
-    }
-}
-
-void Frame::ComputeImageBounds(const cv::Mat &imLeft)
-{
-    if(mDistCoef.at<float>(0)!=0.0)
-    {
-        cv::Mat mat(4,2,CV_32F);
-        mat.at<float>(0,0)=0.0; mat.at<float>(0,1)=0.0;
-        mat.at<float>(1,0)=imLeft.cols; mat.at<float>(1,1)=0.0;
-        mat.at<float>(2,0)=0.0; mat.at<float>(2,1)=imLeft.rows;
-        mat.at<float>(3,0)=imLeft.cols; mat.at<float>(3,1)=imLeft.rows;
-
-        // Undistort corners
-        mat=mat.reshape(2);
-        cv::undistortPoints(mat,mat,mK,mDistCoef,cv::Mat(),mK);
-        mat=mat.reshape(1);
-
-        mnMinX = min(mat.at<float>(0,0),mat.at<float>(2,0));
-        mnMaxX = max(mat.at<float>(1,0),mat.at<float>(3,0));
-        mnMinY = min(mat.at<float>(0,1),mat.at<float>(1,1));
-        mnMaxY = max(mat.at<float>(2,1),mat.at<float>(3,1));
-
-    }
-    else
-    {
-        mnMinX = 0.0f;
-        mnMaxX = imLeft.cols;
-        mnMinY = 0.0f;
-        mnMaxY = imLeft.rows;
     }
 }
 
@@ -673,8 +584,8 @@ cv::Mat Frame::UnprojectStereo(const int &i)
     {
         const float u = mvKeysUn[i].pt.x;
         const float v = mvKeysUn[i].pt.y;
-        const float x = (u-cx)*z*invfx;
-        const float y = (v-cy)*z*invfy;
+        const float x = (u - mFC->cx) * z * mFC->invfx;
+        const float y = (v - mFC->cy) * z * mFC->invfy;
         cv::Mat x3Dc = (cv::Mat_<float>(3,1) << x, y, z);
         return mRwc*x3Dc+mOw;
     }

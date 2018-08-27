@@ -29,13 +29,12 @@
 #include "ORBVocabulary.h"
 #include "KeyFrame.h"
 #include "ORBextractor.h"
+#include "FrameCalibration.h"
 
 #include <opencv2/opencv.hpp>
 
 namespace ORB_SLAM2
 {
-#define FRAME_GRID_ROWS 48
-#define FRAME_GRID_COLS 64
 
 class MapPoint;
 class KeyFrame;
@@ -49,13 +48,13 @@ public:
     Frame(const Frame &frame);
 
     // Constructor for stereo cameras.
-    Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
+    Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, FrameCalibration * FC, const float &bf, const float &thDepth);
 
     // Constructor for RGB-D cameras.
-    Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
+    Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, FrameCalibration * FC, const float &bf, const float &thDepth);
 
     // Constructor for Monocular cameras.
-    Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
+    Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, FrameCalibration * FC, const float &bf, const float &thDepth);
 
     // Extract ORB on the image. 0 for left image and 1 for right image.
     void ExtractORB(int flag, const cv::Mat &im);
@@ -109,14 +108,7 @@ public:
     double mTimeStamp;
 
     // Calibration matrix and OpenCV distortion parameters.
-    cv::Mat mK;
-    static float fx;
-    static float fy;
-    static float cx;
-    static float cy;
-    static float invfx;
-    static float invfy;
-    cv::Mat mDistCoef;
+    FrameCalibration * mFC;
 
     // Stereo baseline multiplied by fx.
     float mbf;
@@ -162,8 +154,6 @@ public:
     std::vector<bool> mvbOutlier;
 
     // Keypoints are assigned to cells in a grid to reduce matching complexity when projecting MapPoints.
-    static float mfGridElementWidthInv;
-    static float mfGridElementHeightInv;
     std::vector<std::size_t> mGrid[FRAME_GRID_COLS][FRAME_GRID_ROWS];
 
     // Camera pose.
@@ -184,14 +174,6 @@ public:
     vector<float> mvInvScaleFactors;
     vector<float> mvLevelSigma2;
     vector<float> mvInvLevelSigma2;
-
-    // Undistorted Image Bounds (computed once).
-    static float mnMinX;
-    static float mnMaxX;
-    static float mnMinY;
-    static float mnMaxY;
-
-    static bool mbInitialComputations;
 
 
 private:

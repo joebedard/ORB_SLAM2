@@ -1372,12 +1372,12 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
                 if(invzc<0)
                     continue;
 
-                float u = CurrentFrame.fx*xc*invzc+CurrentFrame.cx;
-                float v = CurrentFrame.fy*yc*invzc+CurrentFrame.cy;
+                float u = CurrentFrame.mFC->fx * xc * invzc + CurrentFrame.mFC->cx;
+                float v = CurrentFrame.mFC->fy * yc * invzc + CurrentFrame.mFC->cy;
 
-                if(u<CurrentFrame.mnMinX || u>CurrentFrame.mnMaxX)
+                if (u<CurrentFrame.mFC->minX || u>CurrentFrame.mFC->maxX)
                     continue;
-                if(v<CurrentFrame.mnMinY || v>CurrentFrame.mnMaxY)
+                if (v<CurrentFrame.mFC->minY || v>CurrentFrame.mFC->maxY)
                     continue;
 
                 int nLastOctave = LastFrame.mvKeys[i].octave;
@@ -1506,12 +1506,12 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, KeyFrame *pKF, const set
                 const float yc = x3Dc.at<float>(1);
                 const float invzc = 1.0/x3Dc.at<float>(2);
 
-                const float u = CurrentFrame.fx*xc*invzc+CurrentFrame.cx;
-                const float v = CurrentFrame.fy*yc*invzc+CurrentFrame.cy;
+                const float u = CurrentFrame.mFC->fx * xc * invzc + CurrentFrame.mFC->cx;
+                const float v = CurrentFrame.mFC->fy * yc * invzc + CurrentFrame.mFC->cy;
 
-                if(u<CurrentFrame.mnMinX || u>CurrentFrame.mnMaxX)
+                if (u<CurrentFrame.mFC->minX || u>CurrentFrame.mFC->maxX)
                     continue;
-                if(v<CurrentFrame.mnMinY || v>CurrentFrame.mnMaxY)
+                if (v<CurrentFrame.mFC->minY || v>CurrentFrame.mFC->maxY)
                     continue;
 
                 // Compute predicted scale level

@@ -77,6 +77,7 @@ add_library(${PROJECT_NAME} STATIC
 include/Converter.h
 include/Enums.h
 include/Frame.h
+include/FrameCalibration.h
 include/FrameDrawer.h
 include/Initializer.h
 include/KeyFrame.h
@@ -100,6 +101,7 @@ include/Tracking.h
 include/Viewer.h
 src/Converter.cc
 src/Frame.cc
+src/FrameCalibration.cc
 src/FrameDrawer.cc
 src/Initializer.cc
 src/KeyFrame.cc

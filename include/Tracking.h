@@ -36,6 +36,8 @@
 #include "MapDrawer.h"
 #include "Enums.h"
 #include "SyncPrint.h"
+#include "FrameCalibration.h"
+
 #include <mutex>
 
 namespace ORB_SLAM2
@@ -59,11 +61,6 @@ public:
     cv::Mat GrabImageMonocular(const cv::Mat &im, const double &timestamp);
 
     void SetViewer(Viewer* pViewer);
-
-    // Load new settings
-    // The focal lenght should be similar or scale prediction will fail when projecting points
-    // TODO: Modify MapPoint::PredictScale to take into account focal lenght
-    void ChangeCalibration(const string &strSettingPath);
 
     // This stops local mapping thread (map building) and performs only camera tracking.
     void ActivateLocalizationMode();
@@ -213,6 +210,8 @@ private:
    unsigned long mNextMapPointId; 
 
    unsigned int mMapPointIdSpan;
+
+   FrameCalibration * mFC;
 
    void LoadCameraParameters(cv::FileStorage & settings, eSensor sensor);
 

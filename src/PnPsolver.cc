@@ -100,10 +100,10 @@ PnPsolver::PnPsolver(const Frame &F, const vector<MapPoint*> &vpMapPointMatches)
     }
 
     // Set camera calibration parameters
-    fu = F.fx;
-    fv = F.fy;
-    uc = F.cx;
-    vc = F.cy;
+    fu = F.mFC->fx;
+    fv = F.mFC->fy;
+    uc = F.mFC->cx;
+    vc = F.mFC->cy;
 
     SetRansacParameters();
 }
