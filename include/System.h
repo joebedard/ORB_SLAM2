@@ -35,6 +35,7 @@
 #include "Viewer.h"
 #include "Mapper.h"
 #include "Enums.h"
+#include "SyncPrint.h"
 
 namespace ORB_SLAM2
 {
@@ -45,7 +46,7 @@ class Map;
 class Tracking;
 class Mapper;
 
-class System
+class System : SyncPrint
 {
 public:
 
@@ -149,7 +150,6 @@ private:
     std::vector<cv::KeyPoint> mTrackedKeyPointsUn;
     std::mutex mMutexState;
 
-    void Print(const char * message);
 };
 
 }// namespace ORB_SLAM

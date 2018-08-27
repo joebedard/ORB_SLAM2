@@ -39,7 +39,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     ss1 << "   This program comes with ABSOLUTELY NO WARRANTY;" << endl;
     ss1 << "   This is free software, and you are welcome to redistribute it" << endl;
     ss1 << "   under certain conditions. See LICENSE.txt." << endl;
-    Print(ss1.str().c_str());
+    Print(ss1);
 
     stringstream ss2;
     ss2 << "Input sensor was set to: ";
@@ -49,7 +49,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         ss2 << "Stereo";
     else if(mSensor==RGBD)
         ss2 << "RGB-D";
-    Print(ss2.str().c_str());
+    Print(ss2);
 
     //Check settings file
     cv::FileStorage fsSettings(strSettingsFile.c_str(), cv::FileStorage::READ);
@@ -188,7 +188,7 @@ void System::SaveTrajectoryTUM(const string &filename)
 {
     stringstream ss;
     ss << endl << "Saving camera trajectory to " << filename << " ...";
-    Print(ss.str().c_str());
+    Print(ss);
 
     if(mSensor==MONOCULAR)
     {
@@ -251,7 +251,7 @@ void System::SaveKeyFrameTrajectoryTUM(const string &filename)
 {
     stringstream ss;
     ss << endl << "Saving keyframe trajectory to " << filename << " ...";
-    Print(ss.str().c_str());
+    Print(ss);
 
     vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
     sort(vpKFs.begin(),vpKFs.end(),KeyFrame::lId);
@@ -289,7 +289,7 @@ void System::SaveTrajectoryKITTI(const string &filename)
 {
     stringstream ss;
     ss << endl << "Saving camera trajectory to " << filename << " ...";
-    Print(ss.str().c_str());
+    Print(ss);
 
     if(mSensor==MONOCULAR)
     {
