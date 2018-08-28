@@ -25,7 +25,7 @@
 #include<opencv2/core/core.hpp>
 #include<opencv2/features2d/features2d.hpp>
 
-#include "Mapper.h"
+#include "MapperServer.h"
 #include "Viewer.h"
 #include "FrameDrawer.h"
 #include "Frame.h"
@@ -51,7 +51,7 @@ class Tracking : SyncPrint
 
 public:
     Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer,
-       Mapper* pMapper, cv::FileStorage & settings, eSensor sensor);
+       MapperServer* pMapper, cv::FileStorage & settings, eSensor sensor);
 
     ~Tracking();
 
@@ -199,7 +199,7 @@ private:
    std::mutex mMutexReset;
    bool mbReset;
 
-   Mapper * mpMapper;
+   MapperServer * mpMapper;
 
    unsigned int mId;
 
@@ -235,25 +235,16 @@ private:
 
     void MapperObserverHandleReset();
 
-    class MapperObserver : public Mapper::Observer
+    class MapperObserver : public MapperServer::Observer
     {
         Tracking * mpTracker;
     public:
         MapperObserver(Tracking * pTracker) : mpTracker(pTracker) {};
         virtual void HandleReset() {mpTracker->MapperObserverHandleReset();};
-    } mMapperObserver;
+    };
 
-    //MapperObserver mMapperObserver;
+    MapperObserver mMapperObserver;
 
-    //class PrivateSyncPrint : protected SyncPrint
-    //{
-    //protected:
-    //    virtual const string & GetPrintPrefix() override
-    //    {
-    //        return "Tracking: Id=" + to_string(mId) + " ";
-    //    }
-
-    //} mPrint;
 };
 
 } //namespace ORB_SLAM

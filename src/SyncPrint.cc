@@ -18,6 +18,8 @@
 
 #include "SyncPrint.h"
 
+#ifdef ENABLE_SYNCPRINT
+
 namespace ORB_SLAM2
 {
 
@@ -97,3 +99,5 @@ void SyncPrint::PrintPrefix(ostream & out)
 }
 
 }
+
+#endif // ENABLE_SYNCPRINT

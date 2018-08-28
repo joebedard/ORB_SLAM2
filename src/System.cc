@@ -80,7 +80,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mpMapDrawer = new MapDrawer(mpMap, fsSettings);
 
     //Initialize the Mapper
-    mpMapper = new Mapper(mpMap, mpVocabulary, mSensor == MONOCULAR);
+    mpMapper = new MapperServer(mpMap, mpVocabulary, mSensor == MONOCULAR);
 
     //Initialize the Tracking thread
     //(it will live in the main thread of execution, the one that called this constructor)

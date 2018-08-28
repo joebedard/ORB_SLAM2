@@ -56,7 +56,7 @@ namespace ORB_SLAM2
 
    void MapperServer::Reset()
    {
-      unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
+      ResetTrackerStatus();
 
       // Reset Local Mapping
       Print("Begin Local Mapper Reset");
@@ -80,7 +80,6 @@ namespace ORB_SLAM2
       mpMap->Clear();
       Print("End Map Reset");
 
-      ResetTrackerStatus();
       mInitialized = false;
       Print("Reset Complete");
    }
@@ -117,7 +116,7 @@ namespace ORB_SLAM2
       }
    }
 
-   void MapperServer::Initialize(unsigned int trackerId)
+   void MapperServer::Initialize(unsigned int trackerId, vector<MapPoint *> mapPoints, vector<KeyFrame *> keyframes)
    {
       if (mInitialized)
          throw exception("The mapper may only be initialized once.");
@@ -125,49 +124,74 @@ namespace ORB_SLAM2
       if (trackerId != 0)
          throw exception("Only the first Tracker (id=0) may initialize the map.");
 
-      auto allKFs = mpMap->GetAllKeyFrames();
-      for (auto it = allKFs.begin(); it != allKFs.end(); it++)
+      if (!mTrackers[trackerId].connected)
+          throw exception(string("Tracker is not logged in! Id=").append(to_string(trackerId)).c_str());
+
+      // stereo and RGBD modes will create MapPoints
+      for (auto it : mapPoints)
       {
-         if (!InsertKeyFrame(trackerId, *it))
-             throw exception("Unable to InsertKeyFrame during Initialize.");
+          mpMap->AddMapPoint(it);
       }
+
+      mpMap->mvpKeyFrameOrigins.push_back(keyframes[0]);
+
+      for (auto it : keyframes)
+      {
+          // Insert KeyFrame in the map
+          mpMap->AddKeyFrame(it);
+      }
+
+      // all points are already added to the map
+      vector<MapPoint *> noAdditionalPoints;
+
+      for (auto it : keyframes)
+      {
+          if (!InsertKeyFrame(trackerId, noAdditionalPoints, it))
+          {
+             mpMap->Clear();
+             throw exception("Unable to InsertKeyFrame during Initialize.");
+          }
+      }
+
+      // stereo and RGBD modes will create MapPoints
+      UpdateTrackerIds(trackerId, mapPoints);
 
       mInitialized = true;
    }
 
-   bool MapperServer::InsertKeyFrame(unsigned int trackerId, KeyFrame *pKF)
+   bool MapperServer::InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> mapPoints, KeyFrame *pKF)
    {
-      if (mpLocalMapper->InsertKeyFrame(pKF))
+      if (!mTrackers[trackerId].connected)
+         throw exception(string("Tracker is not logged in! Id=").append(to_string(trackerId)).c_str());
+
+      if (mpLocalMapper->InsertKeyFrame(mapPoints, pKF))
       {
          // update TrackerStatus array with next KeyFrameId and MapPointId
-
          assert((pKF->GetId() - trackerId) % KEYFRAME_ID_SPAN == 0);
          if (mTrackers[trackerId].nextKeyFrameId <= pKF->GetId())
          {
             mTrackers[trackerId].nextKeyFrameId = pKF->GetId() + KEYFRAME_ID_SPAN;
          }
 
-         if (!mbMonocular)
-         {
-             // stereo and RGBD modes will create MapPoints
-             set<ORB_SLAM2::MapPoint*> mapPoints = pKF->GetMapPoints();
-             for (auto pMP : mapPoints)
-             {
-                 if (!pMP || pMP->Observations() < 1)
-                 {
-                    assert((pMP->GetId() - trackerId) % MAPPOINT_ID_SPAN == 0);
-                    if (mTrackers[trackerId].nextMapPointId <= pMP->GetId())
-                    {
-                        mTrackers[trackerId].nextMapPointId = pMP->GetId() + MAPPOINT_ID_SPAN;
-                    }
-                 }
-             }
-         }
+         // stereo and RGBD modes will create MapPoints
+         UpdateTrackerIds(trackerId, mapPoints);
 
          return true;
       }
       else
          return false;
+   }
+
+   void MapperServer::UpdateTrackerIds(unsigned int trackerId, vector<MapPoint *> mapPoints)
+   {
+       for (auto pMP : mapPoints)
+       {
+           assert((pMP->GetId() - trackerId) % MAPPOINT_ID_SPAN == 0);
+           if (mTrackers[trackerId].nextMapPointId <= pMP->GetId())
+           {
+               mTrackers[trackerId].nextMapPointId = pMP->GetId() + MAPPOINT_ID_SPAN;
+           }
+       }
    }
 
    unsigned int MapperServer::LoginTracker(unsigned long  & firstKeyFrameId, unsigned int & keyFrameIdSpan, unsigned long & firstMapPointId, unsigned int & mapPointIdSpan)
@@ -226,6 +250,7 @@ namespace ORB_SLAM2
    void MapperServer::ResetTrackerStatus()
    {
       unique_lock<mutex> lock(mMutexLogin);
+
       for (int i = 0; i < MAX_TRACKERS; ++i)
       {
          mTrackers[i].connected = false;

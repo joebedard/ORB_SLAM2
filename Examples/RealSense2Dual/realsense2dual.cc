@@ -34,6 +34,7 @@
 #include <ORBVocabulary.h>
 #include <FrameDrawer.h>
 #include <Map.h>
+#include <MapperServer.h>
 #include <SyncPrint.h>
 
 using namespace std;
@@ -203,7 +204,7 @@ int main(int paramc, char * paramv[]) try
    SyncPrint::Print(NULL, "Vocabulary loaded!");
 
    //Initialize the Mapper
-   Mapper * pMapper = new Mapper(pMap, pVocab, false);
+   MapperServer * pMapper = new MapperServer(pMap, pVocab, false);
 
    vector<FrameDrawer *> vFrameDrawers;
    vector<MapDrawer *> vMapDrawers;

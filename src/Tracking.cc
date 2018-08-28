@@ -39,7 +39,7 @@ namespace ORB_SLAM2
 {
 
 Tracking::Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer,
-    Mapper* pMapper, cv::FileStorage & fSettings, eSensor sensor) :
+    MapperServer* pMapper, cv::FileStorage & fSettings, eSensor sensor) :
     SyncPrint("Tracking: "), mId(-1), mSensor(sensor),
     mbOnlyTracking(false), mpORBVocabulary(pVoc), mbReset(false),
     mpMapper(pMapper), mpInitializer(static_cast<Initializer*>(NULL)), mpViewer(NULL),
@@ -470,18 +470,16 @@ void Tracking::StereoInitialization()
     Print("begin StereoInitialization");
     if(mCurrentFrame.N>500)
     {
-        Map * pMap = mpMapper->GetMap();
-
         // Set Frame pose to the origin
         mCurrentFrame.SetPose(cv::Mat::eye(4,4,CV_32F));
 
         // Create KeyFrame
         KeyFrame* pKFini = new KeyFrame(NewKeyFrameId(), mCurrentFrame);
-
-        // Insert KeyFrame in the map
-        pMap->AddKeyFrame(pKFini);
+        vector<KeyFrame *> keyframes;
+        keyframes.push_back(pKFini);
 
         // Create MapPoints and associate to KeyFrame
+        vector<MapPoint *> points;
         for(int i=0; i<mCurrentFrame.N;i++)
         {
             float z = mCurrentFrame.mvDepth[i];
@@ -493,13 +491,13 @@ void Tracking::StereoInitialization()
                 pKFini->AddMapPoint(pNewMP,i);
                 pNewMP->ComputeDistinctiveDescriptors();
                 pNewMP->UpdateNormalAndDepth();
-                pMap->AddMapPoint(pNewMP);
+                points.push_back(pNewMP);
                 mCurrentFrame.mvpMapPoints[i]=pNewMP;
             }
         }
 
         stringstream ss;
-        ss << "New map created with " << pMap->MapPointsInMap() << " points";
+        ss << "New map created with " << points.size() << " points";
         Print(ss.str().c_str());
 
         mCurrentFrame.mpReferenceKF = pKFini;
@@ -508,11 +506,10 @@ void Tracking::StereoInitialization()
         mpLastKeyFrame = pKFini;
 
         mvpLocalKeyFrames.push_back(pKFini);
-        mvpLocalMapPoints = pMap->GetAllMapPoints();
+        mvpLocalMapPoints = points;
         mpReferenceKF = pKFini;
 
-        pMap->mvpKeyFrameOrigins.push_back(pKFini);
-        mpMapper->Initialize(mId);
+        mpMapper->Initialize(mId, points, keyframes);
         mState = TRACKING_OK;
 
         if (mpMapDrawer)
@@ -603,7 +600,7 @@ void Tracking::MonocularInitialization()
 
 void Tracking::CreateInitialMapMonocular()
 {
-    Map * pMap = mpMapper->GetMap();
+    Map * pMap = new Map();
     
     // Create KeyFrames
     KeyFrame* pKFini = new KeyFrame(NewKeyFrameId(), mInitialFrame);
@@ -615,8 +612,12 @@ void Tracking::CreateInitialMapMonocular()
     // Insert KFs in the map
     pMap->AddKeyFrame(pKFini);
     pMap->AddKeyFrame(pKFcur);
+    vector<KeyFrame *> keyframes;
+    keyframes.push_back(pKFini);
+    keyframes.push_back(pKFcur);
 
     // Create MapPoints and asscoiate to keyframes
+    vector<MapPoint *> points;
     for(size_t i=0; i<mvIniMatches.size();i++)
     {
         if(mvIniMatches[i]<0)
@@ -642,6 +643,7 @@ void Tracking::CreateInitialMapMonocular()
 
         //Add to Map
         pMap->AddMapPoint(pMP);
+        points.push_back(pMP);
     }
 
     // Update Connections
@@ -650,7 +652,7 @@ void Tracking::CreateInitialMapMonocular()
 
     // Bundle Adjustment
     stringstream ss;
-    ss << "New Map created with " << pMap->MapPointsInMap() << " points";
+    ss << "New Map created with " << points.size() << " points";
     Print(ss.str().c_str());
 
     Optimizer::GlobalBundleAdjustment(pMap, 20);
@@ -689,9 +691,8 @@ void Tracking::CreateInitialMapMonocular()
         }
     }
 
-    mvpLocalMapPoints = pMap->GetAllMapPoints();
-    pMap->mvpKeyFrameOrigins.push_back(pKFini);
-    mpMapper->Initialize(mId);
+    mvpLocalMapPoints = points;
+    mpMapper->Initialize(mId, points, keyframes);
 
     mCurrentFrame.SetPose(pKFcur->GetPose());
     mnLastFrameIdMadeIntoKeyFrame = mCurrentFrame.mnId;
@@ -710,6 +711,7 @@ void Tracking::CreateInitialMapMonocular()
         mpMapDrawer->SetReferenceMapPoints(mvpLocalMapPoints);
     }
 
+    delete pMap;
     mState = TRACKING_OK;
 }
 
@@ -1368,7 +1370,11 @@ void Tracking::Reset()
             sleep(3000);
     }
 
-    mpMapper->Reset();
+    {
+        unique_lock<mutex> lock(mpMapper->GetMap()->mMutexMapUpdate);
+        mpMapper->Reset();
+    }
+
 
     Frame::nNextId = 0;
 
@@ -1421,13 +1427,13 @@ KeyFrame * Tracking::CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor 
 {
     Print("begin CreateNewKeyFrame");
     KeyFrame* pKF = new KeyFrame(NewKeyFrameId(), currentFrame);
-    Map * pMap = mpMapper->GetMap();
 
     // Some KeyPoints (features) don't yet have MapPoints, se we create them.
     // We sort points by the measured depth by the stereo/RGBD sensor.
     // We create all those MapPoints whose depth < mThDepth.
     // If there are less than 100 close points we create the 100 closest.
     vector<pair<float, int> > vDepthIdx;
+    vector<MapPoint *> points;
 
     if (sensorType != MONOCULAR)
     {
@@ -1459,7 +1465,7 @@ KeyFrame * Tracking::CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor 
                     pKF->AddMapPoint(pNewMP, i);
                     pNewMP->ComputeDistinctiveDescriptors();
                     pNewMP->UpdateNormalAndDepth();
-                    pMap->AddMapPoint(pNewMP);
+                    points.push_back(pNewMP);
                 }
 
                 if (vDepthIdx[j].first > currentFrame.mThDepth && j > 99)
@@ -1468,7 +1474,7 @@ KeyFrame * Tracking::CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor 
         }
     }
 
-    if (mpMapper->InsertKeyFrame(mId, pKF))
+    if (mpMapper->InsertKeyFrame(mId, points, pKF))
     {
         if (sensorType != MONOCULAR)
         {
@@ -1489,27 +1495,7 @@ KeyFrame * Tracking::CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor 
     else
     {
         // delete KeyFrame and MapPoints
-        if (sensorType != MONOCULAR)
-        {
-            for (size_t j = 0; j<vDepthIdx.size();j++)
-            {
-                int i = vDepthIdx[j].second;
-                MapPoint* pMP = currentFrame.mvpMapPoints[i];
-                if (!pMP || pMP->Observations() < 1)
-                {
-                    cv::Mat x3D = currentFrame.UnprojectStereo(i);
-                    MapPoint* pNewMP = pKF->GetMapPoint(i);
-                    pNewMP->EraseObservation(pKF, pMap);
-                    pKF->EraseMapPointMatch(i);
-                    pMap->EraseMapPoint(pNewMP);
-                    //delete pNewMP;
-                }
-
-                if (vDepthIdx[j].first > currentFrame.mThDepth && j > 99)
-                    break;
-            }
-            //delete pKF;
-        }
+        delete pKF;
         Print("end CreateNewKeyFrame 2");
         return NULL;
     }

@@ -35,7 +35,7 @@ namespace ORB_SLAM2
 class Tracking;
 class LoopClosing;
 class Map;
-class Mapper;
+class MapperServer;
 
 class LocalMapping : SyncPrint
 {
@@ -48,7 +48,7 @@ public:
     // Main function
     void Run();
 
-    bool InsertKeyFrame(KeyFrame* pKF);
+    bool InsertKeyFrame(vector<MapPoint *> mapPoints, KeyFrame* pKF);
 
     // Thread Synch
     void RequestPause();

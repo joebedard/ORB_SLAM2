@@ -24,6 +24,7 @@
 #include "LocalMapping.h"
 #include "LoopClosing.h"
 #include "Enums.h"
+#include "MapperServer.h"
 
 namespace ORB_SLAM2
 {
@@ -52,7 +53,7 @@ namespace ORB_SLAM2
 
       bool InsertKeyFrame(unsigned int trackerId, KeyFrame* pKF);
 
-      virtual void Initialize(unsigned int trackerId);
+      virtual void Initialize(unsigned int trackerId, vector<KeyFrame *> keyframes, vector<MapPoint *> mapPoints);
 
       virtual bool GetInitialized();
 
@@ -106,6 +107,7 @@ namespace ORB_SLAM2
 
       bool mInitialized;
 
+      /* server
       LocalMapping * mpLocalMapper;
 
       LoopClosing * mpLoopCloser;
@@ -113,6 +115,9 @@ namespace ORB_SLAM2
       std::thread * mptLocalMapping;
 
       std::thread * mptLoopClosing;
+      */
+
+      MapperServer server;
 
       std::map<Observer *, Observer *> mObservers;
 

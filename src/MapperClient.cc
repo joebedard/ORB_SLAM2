@@ -23,9 +23,13 @@
 namespace ORB_SLAM2
 {
 
-   MapperClient::MapperClient(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular) :
-      SyncPrint("MapperClient: "), mpMap(pMap), mpVocab(pVocab), 
-      mbMonocular(bMonocular), mInitialized(false)
+   MapperClient::MapperClient(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular)
+      : SyncPrint("MapperClient: ")
+      , mpMap(pMap)
+      , mpVocab(pVocab)
+      , mbMonocular(bMonocular)
+      , mInitialized(false)
+      , server(new Map(), pVocab, bMonocular)
    {
       if (pMap == NULL)
          throw std::exception("pMap must not be NULL");
@@ -34,19 +38,6 @@ namespace ORB_SLAM2
          throw std::exception("pVocab must not be NULL");
 
       mpKeyFrameDB = new KeyFrameDatabase(*pVocab);
-
-      ResetTrackerStatus();
-
-      //Initialize and start the Local Mapping thread
-      mpLocalMapper = new LocalMapping(mpMap, mpKeyFrameDB, mbMonocular, FIRST_MAPPOINT_ID_LOCALMAPPER, MAPPOINT_ID_SPAN);
-      mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run, mpLocalMapper);
-
-      //Initialize and start the Loop Closing thread
-      mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDB, mpVocab, !mbMonocular);
-      mptLoopClosing = new thread(&ORB_SLAM2::LoopClosing::Run, mpLoopCloser);
-
-      mpLocalMapper->SetLoopCloser(mpLoopCloser);
-      mpLoopCloser->SetLocalMapper(mpLocalMapper);
    }
 
    long unsigned MapperClient::KeyFramesInMap()
@@ -56,7 +47,8 @@ namespace ORB_SLAM2
 
    void MapperClient::Reset()
    {
-      unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
+      /* server
+      ResetTrackerStatus();
 
       // Reset Local Mapping
       Print("Begin Local Mapper Reset");
@@ -67,6 +59,8 @@ namespace ORB_SLAM2
       Print("Begin Loop Closing Reset");
       mpLoopCloser->RequestReset();
       Print("End Loop Closing Reset");
+      */
+      server.Reset();
 
       NotifyReset();
 
@@ -80,7 +74,6 @@ namespace ORB_SLAM2
       mpMap->Clear();
       Print("End Map Reset");
 
-      ResetTrackerStatus();
       mInitialized = false;
       Print("Reset Complete");
    }
@@ -97,16 +90,19 @@ namespace ORB_SLAM2
 
    bool MapperClient::GetPauseRequested()
    {
-      return mpLocalMapper->PauseRequested();
+      // server return mpLocalMapper->PauseRequested();
+      return false; // client
    }
    
    bool MapperClient::AcceptKeyFrames()
    {
-      return mpLocalMapper->AcceptKeyFrames();
+      // server return mpLocalMapper->AcceptKeyFrames();
+      return true; // client
    }
    
    void MapperClient::Shutdown()
    {
+      /* server 
       mpLocalMapper->RequestFinish();
       mpLoopCloser->RequestFinish();
 
@@ -115,10 +111,13 @@ namespace ORB_SLAM2
       {
          sleep(5000);
       }
+      */
    }
 
-   void MapperClient::Initialize(unsigned int trackerId)
+   void MapperClient::Initialize(unsigned int trackerId, vector<KeyFrame *> keyframes, vector<MapPoint *> mapPoints)
    {
+      // all client
+
       if (mInitialized)
          throw exception("The mapper may only be initialized once.");
 
@@ -137,6 +136,10 @@ namespace ORB_SLAM2
 
    bool MapperClient::InsertKeyFrame(unsigned int trackerId, KeyFrame *pKF)
    {
+      // client: serialize KF and MPs and then send to server
+      return true;
+
+      /* server
       if (mpLocalMapper->InsertKeyFrame(pKF))
       {
          // update TrackerStatus array with next KeyFrameId and MapPointId
@@ -168,12 +171,17 @@ namespace ORB_SLAM2
       }
       else
          return false;
+      */
    }
 
    unsigned int MapperClient::LoginTracker(unsigned long  & firstKeyFrameId, unsigned int & keyFrameIdSpan, unsigned long & firstMapPointId, unsigned int & mapPointIdSpan)
    {
       unique_lock<mutex> lock(mMutexLogin);
 
+      // client: login and get Id values and return them
+      return -1;
+
+      /* server 
       unsigned int id;
       for (id = 0; id < MAX_TRACKERS; ++id)
       {
@@ -193,30 +201,36 @@ namespace ORB_SLAM2
       mapPointIdSpan = MAPPOINT_ID_SPAN;
 
       return id;
+      */
    }
 
    void MapperClient::LogoutTracker(unsigned int id)
    {
+      // client: logout of server
+
+      /* server
       mTrackers[id].connected = false;
+      */
    }
 
    Map * MapperClient::GetMap()
    {
-       return mpMap;
+       return mpMap; //client/server
    }
 
    void MapperClient::AddObserver(Observer * ob)
    {
-       mObservers[ob] = ob;
+       mObservers[ob] = ob; //client/server
    }
 
    void MapperClient::RemoveObserver(Observer * ob)
    {
-       mObservers.erase(ob);
+       mObservers.erase(ob); //client/server
    }
 
    void MapperClient::NotifyReset()
    {
+      // all client/server
       for (auto it : mObservers)
       {
          it.second->HandleReset();
@@ -225,6 +239,7 @@ namespace ORB_SLAM2
 
    void MapperClient::ResetTrackerStatus()
    {
+      // all server
       unique_lock<mutex> lock(mMutexLogin);
       for (int i = 0; i < MAX_TRACKERS; ++i)
       {

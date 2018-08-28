@@ -125,7 +125,7 @@ catch (...)
     std::cerr << std::endl << "An exception was not caught in the LocalMapping thread." << std::endl;
 }
 
-bool LocalMapping::InsertKeyFrame(KeyFrame *pKF)
+bool LocalMapping::InsertKeyFrame(vector<MapPoint *> mapPoints, KeyFrame *pKF)
 {
     if (!SetNotPause(true))
         return false;
@@ -145,6 +145,10 @@ bool LocalMapping::InsertKeyFrame(KeyFrame *pKF)
     }
 
     unique_lock<mutex> lock(mMutexNewKFs);
+    for (auto pMP : mapPoints)
+    {
+        mpMap->AddMapPoint(pMP);
+    }
     mlNewKeyFrames.push_back(pKF);
     mbAbortBA=true;
 

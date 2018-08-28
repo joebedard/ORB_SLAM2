@@ -56,8 +56,6 @@ namespace ORB_SLAM2
 
    void Mapper::Reset()
    {
-      unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
-
       ResetTrackerStatus();
 
       // Reset Local Mapping
@@ -138,7 +136,7 @@ namespace ORB_SLAM2
 
    bool Mapper::InsertKeyFrame(unsigned int trackerId, KeyFrame *pKF)
    {
-      if (mpLocalMapper->InsertKeyFrame(pKF))
+      if (mpLocalMapper->InsertKeyFrame(vector<MapPoint *>(), pKF))
       {
          // update TrackerStatus array with next KeyFrameId and MapPointId
 

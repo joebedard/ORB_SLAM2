@@ -33,7 +33,7 @@
 #include "KeyFrameDatabase.h"
 #include "ORBVocabulary.h"
 #include "Viewer.h"
-#include "Mapper.h"
+#include "MapperServer.h"
 #include "Enums.h"
 #include "SyncPrint.h"
 
@@ -44,7 +44,7 @@ class Viewer;
 class FrameDrawer;
 class Map;
 class Tracking;
-class Mapper;
+class MapperServer;
 
 class System : SyncPrint
 {
@@ -128,7 +128,7 @@ private:
     Map * mpMap;
 
     // The Mapper encapsulates all mapping functionality of the system
-    Mapper* mpMapper;
+    MapperServer * mpMapper;
 
     // Tracker. It receives a frame and computes the associated camera pose.
     // It also decides when to insert a new keyframe, create some new MapPoints and

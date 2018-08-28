@@ -15,8 +15,8 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MAPPER_H
-#define MAPPER_H
+#ifndef MAPPERSERVER_H
+#define MAPPERSERVER_H
 
 #include "Map.h"
 #include "KeyFrame.h"
@@ -50,9 +50,9 @@ namespace ORB_SLAM2
 
       virtual void Shutdown();
 
-      bool InsertKeyFrame(unsigned int trackerId, KeyFrame* pKF);
+      bool InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> mapPoints, KeyFrame* pKF);
 
-      virtual void Initialize(unsigned int trackerId);
+      virtual void Initialize(unsigned int trackerId, vector<MapPoint *> mapPoints, vector<KeyFrame *> keyframes);
 
       virtual bool GetInitialized();
 
@@ -120,8 +120,9 @@ namespace ORB_SLAM2
 
       void ResetTrackerStatus();
 
+      void UpdateTrackerIds(unsigned int trackerId, vector<MapPoint *> mapPoints);
    };
 
 }
 
-#endif // MAPPER_H
+#endif // MAPPERSERVER_H

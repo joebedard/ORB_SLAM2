@@ -28,6 +28,10 @@ namespace ORB_SLAM2
 
 using namespace std;
 
+//#define ENABLE_SYNCPRINT
+
+#ifdef ENABLE_SYNCPRINT
+
 class SyncPrint
 {
 public:
@@ -65,6 +69,50 @@ private:
     const string mPrefix;
 
 };
+
+#endif //ENABLE_SYNCPRINT
+
+#ifndef ENABLE_SYNCPRINT
+
+class SyncPrint
+{
+public:
+
+    SyncPrint() {}
+
+    SyncPrint(const char * prefix) {}
+
+    SyncPrint(const string & prefix) {}
+
+    static void Print(const char * prefix, const char * message) {}
+
+    static void Print(const char * prefix, string & message) {}
+
+    static void Print(string & prefix, string & message) {}
+
+    static void Print(const char * prefix, stringstream & message) {}
+
+    static void Print(stringstream prefix, stringstream & message) {}
+
+    void Print(const char * message) {}
+
+    void Print(string & message) {}
+
+    void Print(stringstream & message) {}
+
+protected:
+
+    virtual void PrintPrefix(ostream & out) {}
+
+private:
+
+    static mutex mMutexOutput;
+
+    const string mPrefix;
+
+};
+
+#endif // ENABLE_SYNCPRINT
 
 } // namespace ORB_SLAM2
 
