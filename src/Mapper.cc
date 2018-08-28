@@ -58,6 +58,8 @@ namespace ORB_SLAM2
    {
       unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
 
+      ResetTrackerStatus();
+
       // Reset Local Mapping
       Print("Begin Local Mapper Reset");
       mpLocalMapper->RequestReset();
@@ -80,7 +82,6 @@ namespace ORB_SLAM2
       mpMap->Clear();
       Print("End Map Reset");
 
-      ResetTrackerStatus();
       mInitialized = false;
       Print("Reset Complete");
    }
