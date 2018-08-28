@@ -116,7 +116,7 @@ namespace ORB_SLAM2
       }
    }
 
-   void MapperServer::Initialize(unsigned int trackerId, vector<MapPoint *> mapPoints, vector<KeyFrame *> keyframes)
+   void MapperServer::Initialize(unsigned int trackerId, vector<MapPoint*> & mapPoints, vector<KeyFrame*> & keyframes)
    {
       if (mInitialized)
          throw exception("The mapper may only be initialized once.");
@@ -159,7 +159,7 @@ namespace ORB_SLAM2
       mInitialized = true;
    }
 
-   bool MapperServer::InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> mapPoints, KeyFrame *pKF)
+   bool MapperServer::InsertKeyFrame(unsigned int trackerId, vector<MapPoint*> & mapPoints, KeyFrame *pKF)
    {
       if (!mTrackers[trackerId].connected)
          throw exception(string("Tracker is not logged in! Id=").append(to_string(trackerId)).c_str());

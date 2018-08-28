@@ -36,8 +36,6 @@ namespace ORB_SLAM2
 
       if (pVocab == NULL)
          throw std::exception("pVocab must not be NULL");
-
-      mpKeyFrameDB = new KeyFrameDatabase(*pVocab);
    }
 
    long unsigned MapperClient::KeyFramesInMap()
@@ -47,27 +45,12 @@ namespace ORB_SLAM2
 
    void MapperClient::Reset()
    {
-      /* server
-      ResetTrackerStatus();
-
-      // Reset Local Mapping
-      Print("Begin Local Mapper Reset");
-      mpLocalMapper->RequestReset();
-      Print("End Local Mapper Reset");
-
-      // Reset Loop Closing
-      Print("Begin Loop Closing Reset");
-      mpLoopCloser->RequestReset();
-      Print("End Loop Closing Reset");
-      */
-      server.Reset();
+      // TODO - add an observer to the server
+       Print("Begin Server Reset");
+       server.Reset();
+       Print("End Server Reset");
 
       NotifyReset();
-
-      // Clear BoW Database
-      Print("Begin Database Reset");
-      mpKeyFrameDB->clear();
-      Print("End Database Reset");
 
       // Clear Map (this erase MapPoints and KeyFrames)
       Print("Begin Map Reset");
@@ -80,7 +63,7 @@ namespace ORB_SLAM2
 
    std::vector<KeyFrame*> MapperClient::DetectRelocalizationCandidates(Frame* F)
    {
-      return mpKeyFrameDB->DetectRelocalizationCandidates(F);
+      return server.DetectRelocalizationCandidates(F);
    }
       
    bool MapperClient::GetInitialized()
@@ -90,88 +73,49 @@ namespace ORB_SLAM2
 
    bool MapperClient::GetPauseRequested()
    {
-      // server return mpLocalMapper->PauseRequested();
-      return false; // client
+      // temporary until network synchronization
+      return false;
    }
    
    bool MapperClient::AcceptKeyFrames()
    {
-      // server return mpLocalMapper->AcceptKeyFrames();
-      return true; // client
+       // temporary until network synchronization
+       return true;
    }
    
    void MapperClient::Shutdown()
    {
-      /* server 
-      mpLocalMapper->RequestFinish();
-      mpLoopCloser->RequestFinish();
-
-      // Wait until all thread have effectively stopped
-      while (!mpLocalMapper->isFinished() || !mpLoopCloser->isFinished() || mpLoopCloser->isRunningGBA())
-      {
-         sleep(5000);
-      }
-      */
    }
 
-   void MapperClient::Initialize(unsigned int trackerId, vector<KeyFrame *> keyframes, vector<MapPoint *> mapPoints)
+   void MapperClient::Initialize(unsigned int trackerId, vector<MapPoint*> & mapPoints, vector<KeyFrame*> & keyframes)
    {
-      // all client
-
       if (mInitialized)
          throw exception("The mapper may only be initialized once.");
 
       if (trackerId != 0)
          throw exception("Only the first Tracker (id=0) may initialize the map.");
 
-      auto allKFs = mpMap->GetAllKeyFrames();
-      for (auto it = allKFs.begin(); it != allKFs.end(); it++)
-      {
-         if (!InsertKeyFrame(trackerId, *it))
-             throw exception("Unable to InsertKeyFrame during Initialize.");
-      }
+      server.Initialize(trackerId, mapPoints, keyframes);
 
       mInitialized = true;
    }
 
-   bool MapperClient::InsertKeyFrame(unsigned int trackerId, KeyFrame *pKF)
+   bool MapperClient::InsertKeyFrame(unsigned int trackerId, vector<MapPoint*> & mapPoints, KeyFrame *pKF)
    {
-      // client: serialize KF and MPs and then send to server
-      return true;
+       // client: serialize KF and MPs and then send to server
+       if (server.InsertKeyFrame(trackerId, mapPoints, pKF))
+       {
+           for (auto pMP : mapPoints)
+           {
+               mpMap->AddMapPoint(pMP);
+           }
+           mpMap->AddKeyFrame(pKF);
 
-      /* server
-      if (mpLocalMapper->InsertKeyFrame(pKF))
-      {
-         // update TrackerStatus array with next KeyFrameId and MapPointId
+           return true;
+       }
+       else
+           return false;
 
-         assert((pKF->GetId() - trackerId) % KEYFRAME_ID_SPAN == 0);
-         if (mTrackers[trackerId].nextKeyFrameId <= pKF->GetId())
-         {
-            mTrackers[trackerId].nextKeyFrameId = pKF->GetId() + KEYFRAME_ID_SPAN;
-         }
-
-         if (!mbMonocular)
-         {
-             // stereo and RGBD modes will create MapPoints
-             set<ORB_SLAM2::MapPoint*> mapPoints = pKF->GetMapPoints();
-             for (auto pMP : mapPoints)
-             {
-                 if (!pMP || pMP->Observations() < 1)
-                 {
-                    assert((pMP->GetId() - trackerId) % MAPPOINT_ID_SPAN == 0);
-                    if (mTrackers[trackerId].nextMapPointId <= pMP->GetId())
-                    {
-                        mTrackers[trackerId].nextMapPointId = pMP->GetId() + MAPPOINT_ID_SPAN;
-                    }
-                 }
-             }
-         }
-
-         return true;
-      }
-      else
-         return false;
-      */
    }
 
    unsigned int MapperClient::LoginTracker(unsigned long  & firstKeyFrameId, unsigned int & keyFrameIdSpan, unsigned long & firstMapPointId, unsigned int & mapPointIdSpan)
@@ -179,73 +123,36 @@ namespace ORB_SLAM2
       unique_lock<mutex> lock(mMutexLogin);
 
       // client: login and get Id values and return them
-      return -1;
-
-      /* server 
-      unsigned int id;
-      for (id = 0; id < MAX_TRACKERS; ++id)
-      {
-         if (!mTrackers[id].connected)
-         {
-            mTrackers[id].connected = true;
-            break;
-         }
-      }
-
-      if (id >= MAX_TRACKERS)
-         throw std::exception("Maximum number of trackers reached. Additional trackers are not supported.");
-
-      firstKeyFrameId = mTrackers[id].nextKeyFrameId;
-      keyFrameIdSpan = KEYFRAME_ID_SPAN;
-      firstMapPointId = mTrackers[id].nextMapPointId;
-      mapPointIdSpan = MAPPOINT_ID_SPAN;
-
-      return id;
-      */
+      return server.LoginTracker(firstKeyFrameId, keyFrameIdSpan, firstMapPointId, mapPointIdSpan);
    }
 
    void MapperClient::LogoutTracker(unsigned int id)
    {
-      // client: logout of server
+       unique_lock<mutex> lock(mMutexLogin);
 
-      /* server
-      mTrackers[id].connected = false;
-      */
+       server.LogoutTracker(id);
    }
 
    Map * MapperClient::GetMap()
    {
-       return mpMap; //client/server
+       return mpMap;
    }
 
    void MapperClient::AddObserver(Observer * ob)
    {
-       mObservers[ob] = ob; //client/server
+       mObservers[ob] = ob;
    }
 
    void MapperClient::RemoveObserver(Observer * ob)
    {
-       mObservers.erase(ob); //client/server
+       mObservers.erase(ob);
    }
 
    void MapperClient::NotifyReset()
    {
-      // all client/server
       for (auto it : mObservers)
       {
          it.second->HandleReset();
-      }
-   }
-
-   void MapperClient::ResetTrackerStatus()
-   {
-      // all server
-      unique_lock<mutex> lock(mMutexLogin);
-      for (int i = 0; i < MAX_TRACKERS; ++i)
-      {
-         mTrackers[i].connected = false;
-         mTrackers[i].nextKeyFrameId = i;
-         mTrackers[i].nextMapPointId = i;
       }
    }
 

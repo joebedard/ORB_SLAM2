@@ -51,9 +51,9 @@ namespace ORB_SLAM2
 
       virtual void Shutdown();
 
-      bool InsertKeyFrame(unsigned int trackerId, KeyFrame* pKF);
+      bool InsertKeyFrame(unsigned int trackerId, vector<MapPoint*> & mapPoints, KeyFrame *pKF);
 
-      virtual void Initialize(unsigned int trackerId, vector<KeyFrame *> keyframes, vector<MapPoint *> mapPoints);
+      virtual void Initialize(unsigned int trackerId, vector<MapPoint*> & mapPoints, vector<KeyFrame*> & keyframes);
 
       virtual bool GetInitialized();
 
@@ -101,29 +101,15 @@ namespace ORB_SLAM2
 
       bool mbMonocular;
 
-      KeyFrameDatabase * mpKeyFrameDB;
-
       Map * mpMap;
 
       bool mInitialized;
-
-      /* server
-      LocalMapping * mpLocalMapper;
-
-      LoopClosing * mpLoopCloser;
-
-      std::thread * mptLocalMapping;
-
-      std::thread * mptLoopClosing;
-      */
 
       MapperServer server;
 
       std::map<Observer *, Observer *> mObservers;
 
       void NotifyReset();
-
-      void ResetTrackerStatus();
 
    };
 

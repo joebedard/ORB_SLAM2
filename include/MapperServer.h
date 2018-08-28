@@ -50,9 +50,9 @@ namespace ORB_SLAM2
 
       virtual void Shutdown();
 
-      bool InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> mapPoints, KeyFrame* pKF);
+      bool InsertKeyFrame(unsigned int trackerId, vector<MapPoint*> & mapPoints, KeyFrame* pKF);
 
-      virtual void Initialize(unsigned int trackerId, vector<MapPoint *> mapPoints, vector<KeyFrame *> keyframes);
+      virtual void Initialize(unsigned int trackerId, vector<MapPoint*> & mapPoints, vector<KeyFrame*> & keyframes);
 
       virtual bool GetInitialized();
 
@@ -66,6 +66,12 @@ namespace ORB_SLAM2
       {
       public:
           virtual void HandleReset() {}
+          virtual void HandleKeyFramesCreated() {}
+          virtual void HandleKeyFramesUpdated() {}
+          virtual void HandleKeyFramesDeleted() {}
+          virtual void HandleMapPointsCreated() {}
+          virtual void HandleMapPointsUpdated() {}
+          virtual void HandleMapPointsRemoved() {}
       };
 
       void AddObserver(Observer * ob);
