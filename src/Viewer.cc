@@ -101,6 +101,9 @@ void Viewer::Run() try
     {
         d_multiviewMaps.SetBounds(0.0, 1.0, pangolin::Attach::Pix(MENU_WIDTH), 1.0)
             .SetLayout(pangolin::LayoutEqualHorizontal);
+
+        // trackers view is empty. add it to the menu so it doesn't interfere with maps view
+        menu.AddDisplay(d_multiviewTrackers);
     }
 
     vector<pangolin::OpenGlRenderState *> vMapStates;
