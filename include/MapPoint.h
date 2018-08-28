@@ -84,7 +84,6 @@ public:
    unsigned long MapPoint::GetId();
 
     long int mnFirstKFid;
-    long int mnFirstFrame;
     int nObs;
 
     // Variables used by the tracking
