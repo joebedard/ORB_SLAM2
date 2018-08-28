@@ -87,6 +87,8 @@ include/LoopClosing.h
 include/Map.h
 include/MapDrawer.h
 include/Mapper.h
+include/MapperClient.h
+include/MapperServer.h
 include/MapPoint.h
 include/Optimizer.h
 include/ORBextractor.h
@@ -111,6 +113,8 @@ src/LoopClosing.cc
 src/Map.cc
 src/MapDrawer.cc
 src/Mapper.cc
+src/MapperClient.cc
+src/MapperServer.cc
 src/MapPoint.cc
 src/Optimizer.cc
 src/ORBextractor.cc

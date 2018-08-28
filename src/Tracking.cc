@@ -1370,6 +1370,8 @@ void Tracking::Reset()
 
     mpMapper->Reset();
 
+    Frame::nNextId = 0;
+
     if(mpViewer)
         mpViewer->Release();
 }

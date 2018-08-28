@@ -15,7 +15,7 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "Mapper.h"
+#include "MapperClient.h"
 #include "Optimizer.h"
 #include "Sleep.h"
 #include <exception>
@@ -23,8 +23,8 @@
 namespace ORB_SLAM2
 {
 
-   Mapper::Mapper(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular) :
-      SyncPrint("Mapper: "), mpMap(pMap), mpVocab(pVocab), 
+   MapperClient::MapperClient(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular) :
+      SyncPrint("MapperClient: "), mpMap(pMap), mpVocab(pVocab), 
       mbMonocular(bMonocular), mInitialized(false)
    {
       if (pMap == NULL)
@@ -49,12 +49,12 @@ namespace ORB_SLAM2
       mpLoopCloser->SetLocalMapper(mpLocalMapper);
    }
 
-   long unsigned Mapper::KeyFramesInMap()
+   long unsigned MapperClient::KeyFramesInMap()
    {
       return mpMap->KeyFramesInMap();
    }
 
-   void Mapper::Reset()
+   void MapperClient::Reset()
    {
       unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
 
@@ -85,27 +85,27 @@ namespace ORB_SLAM2
       Print("Reset Complete");
    }
 
-   std::vector<KeyFrame*> Mapper::DetectRelocalizationCandidates(Frame* F)
+   std::vector<KeyFrame*> MapperClient::DetectRelocalizationCandidates(Frame* F)
    {
       return mpKeyFrameDB->DetectRelocalizationCandidates(F);
    }
       
-   bool Mapper::GetInitialized()
+   bool MapperClient::GetInitialized()
    {
       return mInitialized;
    }
 
-   bool Mapper::GetPauseRequested()
+   bool MapperClient::GetPauseRequested()
    {
       return mpLocalMapper->PauseRequested();
    }
    
-   bool Mapper::AcceptKeyFrames()
+   bool MapperClient::AcceptKeyFrames()
    {
       return mpLocalMapper->AcceptKeyFrames();
    }
    
-   void Mapper::Shutdown()
+   void MapperClient::Shutdown()
    {
       mpLocalMapper->RequestFinish();
       mpLoopCloser->RequestFinish();
@@ -117,7 +117,7 @@ namespace ORB_SLAM2
       }
    }
 
-   void Mapper::Initialize(unsigned int trackerId)
+   void MapperClient::Initialize(unsigned int trackerId)
    {
       if (mInitialized)
          throw exception("The mapper may only be initialized once.");
@@ -135,7 +135,7 @@ namespace ORB_SLAM2
       mInitialized = true;
    }
 
-   bool Mapper::InsertKeyFrame(unsigned int trackerId, KeyFrame *pKF)
+   bool MapperClient::InsertKeyFrame(unsigned int trackerId, KeyFrame *pKF)
    {
       if (mpLocalMapper->InsertKeyFrame(pKF))
       {
@@ -170,7 +170,7 @@ namespace ORB_SLAM2
          return false;
    }
 
-   unsigned int Mapper::LoginTracker(unsigned long  & firstKeyFrameId, unsigned int & keyFrameIdSpan, unsigned long & firstMapPointId, unsigned int & mapPointIdSpan)
+   unsigned int MapperClient::LoginTracker(unsigned long  & firstKeyFrameId, unsigned int & keyFrameIdSpan, unsigned long & firstMapPointId, unsigned int & mapPointIdSpan)
    {
       unique_lock<mutex> lock(mMutexLogin);
 
@@ -195,27 +195,27 @@ namespace ORB_SLAM2
       return id;
    }
 
-   void Mapper::LogoutTracker(unsigned int id)
+   void MapperClient::LogoutTracker(unsigned int id)
    {
       mTrackers[id].connected = false;
    }
 
-   Map * Mapper::GetMap()
+   Map * MapperClient::GetMap()
    {
        return mpMap;
    }
 
-   void Mapper::AddObserver(Observer * ob)
+   void MapperClient::AddObserver(Observer * ob)
    {
        mObservers[ob] = ob;
    }
 
-   void Mapper::RemoveObserver(Observer * ob)
+   void MapperClient::RemoveObserver(Observer * ob)
    {
        mObservers.erase(ob);
    }
 
-   void Mapper::NotifyReset()
+   void MapperClient::NotifyReset()
    {
       for (auto it : mObservers)
       {
@@ -223,7 +223,7 @@ namespace ORB_SLAM2
       }
    }
 
-   void Mapper::ResetTrackerStatus()
+   void MapperClient::ResetTrackerStatus()
    {
       unique_lock<mutex> lock(mMutexLogin);
       for (int i = 0; i < MAX_TRACKERS; ++i)
