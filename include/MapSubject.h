@@ -44,6 +44,11 @@ namespace ORB_SLAM2
             mObservers = copy.mObservers;
         }
 
+        ~MapSubject()
+        {
+            delete mObservers;
+        }
+
         void AddObserver(MapObserver * ob)
         {
             unique_lock<mutex> lock(mMutex);
