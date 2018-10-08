@@ -1536,7 +1536,7 @@ unsigned long Tracking::NewMapPointId()
 
 void Tracking::Login()
 {
-    mId = mpMapper->LoginTracker(mNextKeyFrameId, mKeyFrameIdSpan, mNextMapPointId, mMapPointIdSpan);
+    mId = mpMapper->LoginTracker(mNextKeyFrameId, mKeyFrameIdSpan, mNextMapPointId, mMapPointIdSpan, cv::Mat::eye(4, 4, CV_32F));
     mpMapDrawer->SetId(mId);
     assert(mKeyFrameIdSpan != 0);
     assert(mKeyFrameIdSpan != 0);

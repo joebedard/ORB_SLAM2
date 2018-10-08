@@ -58,9 +58,17 @@ namespace ORB_SLAM2
 
       virtual bool GetInitialized();
 
-      unsigned int LoginTracker(unsigned long  & firstKeyFrameId, unsigned int & keyFrameIdSpan, unsigned long & firstMapPointId, unsigned int & mapPointIdSpan);
+      unsigned int LoginTracker(
+        unsigned long  & firstKeyFrameId,
+        unsigned int & keyFrameIdSpan,
+        unsigned long & firstMapPointId,
+        unsigned int & mapPointIdSpan,
+        const cv::Mat & pivotCalib
+      );
 
       void LogoutTracker(unsigned int id);
+
+      void UpdatePose(unsigned int trackerId, const cv::Mat & poseTcw);
 
       Map * GetMap();
 
@@ -82,6 +90,8 @@ namespace ORB_SLAM2
          bool connected;
          unsigned long nextKeyFrameId;
          unsigned long nextMapPointId;
+         cv::Mat pivotCalib;
+         cv::Mat poseTcw;
       };
 
       TrackerStatus mTrackers[MAX_TRACKERS];
@@ -109,6 +119,8 @@ namespace ORB_SLAM2
       void ResetTrackerStatus();
 
       void UpdateTrackerIds(unsigned int trackerId, vector<MapPoint *> mapPoints);
+
+      void ValidateTracker(unsigned int trackerId);
 
       class LocalMappingObserver : public MapObserver
       {

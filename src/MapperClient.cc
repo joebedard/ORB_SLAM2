@@ -123,7 +123,7 @@ namespace ORB_SLAM2
       unique_lock<mutex> lock(mMutexLogin);
 
       // client: login and get Id values and return them
-      return server.LoginTracker(firstKeyFrameId, keyFrameIdSpan, firstMapPointId, mapPointIdSpan);
+      return server.LoginTracker(firstKeyFrameId, keyFrameIdSpan, firstMapPointId, mapPointIdSpan, cv::Mat::eye(4, 4, CV_32F));
    }
 
    void MapperClient::LogoutTracker(unsigned int id)

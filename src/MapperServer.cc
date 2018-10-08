@@ -131,8 +131,7 @@ namespace ORB_SLAM2
       if (trackerId != 0)
          throw exception("Only the first Tracker (id=0) may initialize the map.");
 
-      if (!mTrackers[trackerId].connected)
-          throw exception(string("Tracker is not logged in! Id=").append(to_string(trackerId)).c_str());
+      ValidateTracker(trackerId);
 
       // stereo and RGBD modes will create MapPoints
       for (auto it : mapPoints)
@@ -168,8 +167,7 @@ namespace ORB_SLAM2
 
    bool MapperServer::InsertKeyFrame(unsigned int trackerId, vector<MapPoint*> & mapPoints, KeyFrame *pKF)
    {
-      if (!mTrackers[trackerId].connected)
-         throw exception(string("Tracker is not logged in! Id=").append(to_string(trackerId)).c_str());
+      ValidateTracker(trackerId);
 
       if (mpLocalMapper->InsertKeyFrame(mapPoints, pKF))
       {
@@ -201,7 +199,12 @@ namespace ORB_SLAM2
        }
    }
 
-   unsigned int MapperServer::LoginTracker(unsigned long  & firstKeyFrameId, unsigned int & keyFrameIdSpan, unsigned long & firstMapPointId, unsigned int & mapPointIdSpan)
+   unsigned int MapperServer::LoginTracker(
+        unsigned long  & firstKeyFrameId, 
+        unsigned int & keyFrameIdSpan, 
+        unsigned long & firstMapPointId, 
+        unsigned int & mapPointIdSpan,
+        const cv::Mat & pivotCalib)
    {
       unique_lock<mutex> lock(mMutexLogin);
 
@@ -211,6 +214,7 @@ namespace ORB_SLAM2
          if (!mTrackers[id].connected)
          {
             mTrackers[id].connected = true;
+            mTrackers[id].pivotCalib = pivotCalib;
             break;
          }
       }
@@ -231,6 +235,11 @@ namespace ORB_SLAM2
       mTrackers[id].connected = false;
    }
 
+   void MapperServer::UpdatePose(unsigned int trackerId, const cv::Mat & poseTcw)
+   {
+      // TODO - complete this function
+   }
+
    Map * MapperServer::GetMap()
    {
        return mpMap;
@@ -246,6 +255,12 @@ namespace ORB_SLAM2
          mTrackers[i].nextKeyFrameId = i;
          mTrackers[i].nextMapPointId = i;
       }
+   }
+
+   void MapperServer::ValidateTracker(unsigned int trackerId)
+   {
+       if (!mTrackers[trackerId].connected)
+           throw exception(string("Tracker is not logged in! Id=").append(to_string(trackerId)).c_str());
    }
 
 }
