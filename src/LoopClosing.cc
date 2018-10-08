@@ -30,14 +30,31 @@
 namespace ORB_SLAM2
 {
 
-LoopClosing::LoopClosing(Map *pMap, KeyFrameDatabase *pDB, ORBVocabulary *pVoc, const bool bFixScale):
-    SyncPrint("LoopClosing: "), mbResetRequested(false), mbFinishRequested(false),
-    mbFinished(true), mpMap(pMap), mpKeyFrameDB(pDB),
-    mpORBVocabulary(pVoc), mpMatchedKF(NULL), mLastLoopKFid(0),
-    mbRunningGBA(false), mbFinishedGBA(true), mbStopGBA(false),
-    mpThreadGBA(NULL), mbFixScale(bFixScale), mnFullBAIdx(0)
+LoopClosing::LoopClosing(
+    MapSubject & mapSubject,
+    Map * pMap, 
+    KeyFrameDatabase * pDB, 
+    ORBVocabulary * pVoc, 
+    const bool bFixScale
+):
+    MapSubject(mapSubject),
+    SyncPrint("LoopClosing: "),
+    mpMap(pMap), 
+    mpKeyFrameDB(pDB),
+    mpORBVocabulary(pVoc), 
+    mbFixScale(bFixScale), 
+    mbResetRequested(false),
+    mbFinishRequested(false),
+    mbFinished(true),
+    mpMatchedKF(NULL), 
+    mLastLoopKFid(0),
+    mbRunningGBA(false), 
+    mbFinishedGBA(true), 
+    mbStopGBA(false),
+    mpThreadGBA(NULL), 
+    mnFullBAIdx(0),
+    mnCovisibilityConsistencyTh(3)
 {
-    mnCovisibilityConsistencyTh = 3;
 }
 
 void LoopClosing::SetLocalMapper(LocalMapping *pLocalMapper)
@@ -64,6 +81,8 @@ void LoopClosing::Run() try
                {
                    // Perform loop fusion and pose graph optimization
                    CorrectLoop();
+
+                   // TODO - notify observers
                }
             }
         }       
@@ -445,6 +464,7 @@ void LoopClosing::CorrectLoop()
 
     // Ensure current keyframe is updated
     mpCurrentKF->UpdateConnections();
+    // TODO - add to updated keyframes
 
     // Retrive keyframes connected to the current keyframe and compute corrected Sim3 pose by propagation
     mvpCurrentConnectedKFs = mpCurrentKF->GetVectorCovisibleKeyFrames();
@@ -513,6 +533,7 @@ void LoopClosing::CorrectLoop()
                 pMPi->mnCorrectedByKF = mpCurrentKF->GetId();
                 pMPi->mnCorrectedReference = pKFi->GetId();
                 pMPi->UpdateNormalAndDepth();
+                // TODO - add to updated points
             }
 
             // Update keyframe pose with corrected Sim3. First transform Sim3 to SE3 (scale translation)
@@ -528,6 +549,8 @@ void LoopClosing::CorrectLoop()
 
             // Make sure connections are updated
             pKFi->UpdateConnections();
+
+            // TODO - add to updated keyframes
         }
 
         // Start Loop Fusion
@@ -539,12 +562,17 @@ void LoopClosing::CorrectLoop()
                 MapPoint* pLoopMP = mvpCurrentMatchedPoints[i];
                 MapPoint* pCurMP = mpCurrentKF->GetMapPoint(i);
                 if(pCurMP)
+                {
                     pCurMP->Replace(pLoopMP, mpMap);
+                    // TODO - add pCurMP to deleted points
+                    // TODO - add pLoopMP to updated points
+                }
                 else
                 {
                     mpCurrentKF->AddMapPoint(pLoopMP,i);
                     pLoopMP->AddObservation(mpCurrentKF,i);
                     pLoopMP->ComputeDistinctiveDescriptors();
+                    // TODO - add to updated points
                 }
             }
         }
@@ -567,6 +595,7 @@ void LoopClosing::CorrectLoop()
 
         // Update connections. Detect new links.
         pKFi->UpdateConnections();
+        // TODO - add to updated keyframes
         LoopConnections[pKFi]=pKFi->GetConnectedKeyFrames();
         for(vector<KeyFrame*>::iterator vit_prev=vpPreviousNeighbors.begin(), vend_prev=vpPreviousNeighbors.end(); vit_prev!=vend_prev; vit_prev++)
         {
@@ -585,6 +614,7 @@ void LoopClosing::CorrectLoop()
 
     // Add loop edge
     mpMatchedKF->AddLoopEdge(mpCurrentKF);
+    // TODO - add to updated keyframes
     mpCurrentKF->AddLoopEdge(mpMatchedKF);
 
     // Launch a new thread to perform Global Bundle Adjustment
@@ -622,6 +652,8 @@ void LoopClosing::SearchAndFuse(const KeyFrameAndPose &CorrectedPosesMap)
             if(pRep)
             {
                 pRep->Replace(mvpLoopMapPoints[i], mpMap);
+                // TODO - add pRep to deleted points
+                // TODO - add mvpLoopMapPoints[i] to updated points
             }
         }
     }

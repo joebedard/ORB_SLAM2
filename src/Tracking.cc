@@ -1567,4 +1567,9 @@ void Tracking::MapperObserverHandleReset()
     mState = NOT_INITIALIZED;
 }
 
+void Tracking::MapperObserverHandleMapChanged()
+{
+    // TODO - complete this
+}
+
 } //namespace ORB_SLAM

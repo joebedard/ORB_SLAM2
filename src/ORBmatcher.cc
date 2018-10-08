@@ -963,14 +963,22 @@ int ORBmatcher::Fuse(KeyFrame *pKF, const vector<MapPoint *> &vpMapPoints, Map *
                 {
                     if(pMPinKF->Observations()>pMP->Observations())
                         pMP->Replace(pMPinKF, pMap);
+                        // TODO - if pMP.id != pMPinKF.id 
+                        // add pMP to deleted points
+                        // add pMPinKF to updated points
                     else
                         pMPinKF->Replace(pMP, pMap);
+                        // TODO - if pMP.id != pMPinKF.id 
+                        // add pMPinKF to deleted points
+                        // add pMP to updated points
                 }
             }
             else
             {
                 pMP->AddObservation(pKF,bestIdx);
+                // TODO - add this point to updated points
                 pKF->AddMapPoint(pMP,bestIdx);
+                // TODO - add this keyframe to updated keyframes
             }
             nFused++;
         }
@@ -1095,7 +1103,10 @@ int ORBmatcher::Fuse(KeyFrame *pKF, cv::Mat Scw, const vector<MapPoint *> &vpPoi
             else
             {
                 pMP->AddObservation(pKF,bestIdx);
+                // TODO - add pMP to updated points
+
                 pKF->AddMapPoint(pMP,bestIdx);
+                // TODO - add pKF to updated keyframes
             }
             nFused++;
         }

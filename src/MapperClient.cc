@@ -23,13 +23,13 @@
 namespace ORB_SLAM2
 {
 
-   MapperClient::MapperClient(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular)
-      : SyncPrint("MapperClient: ")
-      , mpMap(pMap)
-      , mpVocab(pVocab)
-      , mbMonocular(bMonocular)
-      , mInitialized(false)
-      , server(new Map(), pVocab, bMonocular)
+   MapperClient::MapperClient(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular) :
+      SyncPrint("MapperClient: "),
+      mpMap(pMap),
+      mpVocab(pVocab),
+      mbMonocular(bMonocular),
+      mInitialized(false),
+      server(new Map(), pVocab, bMonocular)
    {
       if (pMap == NULL)
          throw std::exception("pMap must not be NULL");
@@ -136,24 +136,6 @@ namespace ORB_SLAM2
    Map * MapperClient::GetMap()
    {
        return mpMap;
-   }
-
-   void MapperClient::AddObserver(Observer * ob)
-   {
-       mObservers[ob] = ob;
-   }
-
-   void MapperClient::RemoveObserver(Observer * ob)
-   {
-       mObservers.erase(ob);
-   }
-
-   void MapperClient::NotifyReset()
-   {
-      for (auto it : mObservers)
-      {
-         it.second->HandleReset();
-      }
    }
 
 }

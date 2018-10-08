@@ -23,6 +23,8 @@
 
 #include "KeyFrame.h"
 #include "Map.h"
+#include "MapObserver.h"
+#include "MapSubject.h"
 #include "LoopClosing.h"
 #include "KeyFrameDatabase.h"
 #include "SyncPrint.h"
@@ -37,11 +39,17 @@ class LoopClosing;
 class Map;
 class MapperServer;
 
-class LocalMapping : SyncPrint
+class LocalMapping : public MapSubject, protected SyncPrint
 {
 public:
-    LocalMapping(Map* pMap, KeyFrameDatabase* pDB, const float bMonocular,
-        unsigned long firstMapPointId, unsigned int mapPointIdSpan);
+    LocalMapping(
+        MapSubject & mapSubject,
+        Map* pMap,
+        KeyFrameDatabase* pDB,
+        const float bMonocular,
+        unsigned long firstMapPointId,
+        unsigned int mapPointIdSpan
+    );
 
     void SetLoopCloser(LoopClosing* pLoopCloser);
 

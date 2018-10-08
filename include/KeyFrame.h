@@ -103,6 +103,8 @@ public:
 
     // Enable/Disable bad flag changes
     void SetNotErase();
+
+    // called by LoopClosing, allows keyframes to be deleted, performs pending deletes
     void SetErase(Map* pMap, KeyFrameDatabase* pKeyFrameDB);
 
     // Set/check bad flag

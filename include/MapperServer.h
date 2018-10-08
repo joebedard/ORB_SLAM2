@@ -19,6 +19,8 @@
 #define MAPPERSERVER_H
 
 #include "Map.h"
+#include "MapChangeEvent.h"
+#include "MapSubject.h"
 #include "KeyFrame.h"
 #include "KeyFrameDatabase.h"
 #include "LocalMapping.h"
@@ -32,7 +34,7 @@ namespace ORB_SLAM2
    class LoopClosing;
 
    // interface for all Mapping functionality
-   class MapperServer : protected SyncPrint
+   class MapperServer : public MapSubject, protected SyncPrint
    {
    public:
 
@@ -61,22 +63,6 @@ namespace ORB_SLAM2
       void LogoutTracker(unsigned int id);
 
       Map * GetMap();
-
-      class Observer
-      {
-      public:
-          virtual void HandleReset() {}
-          virtual void HandleKeyFramesCreated() {}
-          virtual void HandleKeyFramesUpdated() {}
-          virtual void HandleKeyFramesDeleted() {}
-          virtual void HandleMapPointsCreated() {}
-          virtual void HandleMapPointsUpdated() {}
-          virtual void HandleMapPointsRemoved() {}
-      };
-
-      void AddObserver(Observer * ob);
-
-      void RemoveObserver(Observer * ob);
 
    private:
       static const unsigned int MAX_TRACKERS = 2;
@@ -120,9 +106,7 @@ namespace ORB_SLAM2
 
       std::thread * mptLoopClosing;
 
-      std::map<Observer *, Observer *> mObservers;
-
-      void NotifyReset();
+      std::map<MapObserver *, MapObserver *> mObservers;
 
       void ResetTrackerStatus();
 

@@ -28,12 +28,29 @@
 namespace ORB_SLAM2
 {
 
-LocalMapping::LocalMapping(Map *pMap, KeyFrameDatabase* pDB, const float bMonocular, unsigned long firstMapPointId, unsigned int mapPointIdSpan) :
-    SyncPrint("LocalMapping: "), mbMonocular(bMonocular), mbResetRequested(false),
-    mbFinishRequested(false), mbFinished(true), mpMap(pMap),
-    mpKeyFrameDB(pDB), mbAbortBA(false), mbPaused(false),
-    mbPauseRequested(false), mbNotPause(false), mbAcceptKeyFrames(true),
-    mNextMapPointId(firstMapPointId), mMapPointIdSpan(mapPointIdSpan)
+LocalMapping::LocalMapping(
+    MapSubject & mapSubject,
+    Map *pMap,
+    KeyFrameDatabase* pDB,
+    const float bMonocular,
+    unsigned long firstMapPointId,
+    unsigned int mapPointIdSpan
+) :
+    MapSubject(mapSubject),
+    SyncPrint("LocalMapping: "),
+    mpMap(pMap),
+    mpKeyFrameDB(pDB),
+    mbMonocular(bMonocular),
+    mNextMapPointId(firstMapPointId),
+    mMapPointIdSpan(mapPointIdSpan),
+    mbResetRequested(false),
+    mbFinishRequested(false),
+    mbFinished(true),
+    mbAbortBA(false),
+    mbPaused(false),
+    mbPauseRequested(false),
+    mbNotPause(false),
+    mbAcceptKeyFrames(true)
 {
 }
 
@@ -56,7 +73,7 @@ void LocalMapping::Run() try
             Print("SetAcceptKeyFrames(false);");
             SetAcceptKeyFrames(false);
 
-            // BoW conversion and insertion in Map
+            // compute BoW, insert KF into map, update KF connections
             ProcessNewKeyFrame();
 
             // Check recent MapPoints
@@ -68,6 +85,7 @@ void LocalMapping::Run() try
             if(!CheckNewKeyFrames())
             {
                 // Find more matches in neighbor keyframes and fuse point duplications
+                // updates mpCurrentKeyFrame and neighbor keyframes, deletes (replaces) points, updates points
                 SearchInNeighbors();
             }
 
@@ -79,12 +97,16 @@ void LocalMapping::Run() try
                 // Local BA
                 if (mpMap->KeyFramesInMap() > 2)
                 {
+                    // deletes points, updates keyframes, updates points
                     Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap);
                 }
 
-                // Check redundant local Keyframes
+                // Check for redundant local Keyframes, and delete them
                 KeyFrameCulling();
             }
+
+            // mpCurrentKeyFrame added/updated, 0..N keyframes updated, 0..N keyframes deleted, 0..N points added, 0..N points updated, 0..N points deleted
+            // TODO - notify observers
 
             mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
 
@@ -196,12 +218,14 @@ void LocalMapping::ProcessNewKeyFrame()
                 {
                     mlpRecentAddedMapPoints.push_back(pMP);
                 }
+                // TODO - add pMP to updated points
             }
         }
     }    
 
     // Update links in the Covisibility Graph
     mpCurrentKeyFrame->UpdateConnections();
+    // TODO - add to created keyframes
 
     // Insert Keyframe in Map
     mpMap->AddKeyFrame(mpCurrentKeyFrame);
@@ -227,23 +251,25 @@ void LocalMapping::MapPointCulling()
         MapPoint* pMP = *lit;
         if(pMP->isBad())
         {
+            // TODO - add to deleted points
             lit = mlpRecentAddedMapPoints.erase(lit);
             Print(to_string(pMP->GetId()) + "=MapPointId erased 1");
         }
         else if(pMP->GetFoundRatio()<0.25f )
         {
-            pMP->SetBadFlag(mpMap);
+            pMP->SetBadFlag(mpMap); // TODO - add to deleted points
             lit = mlpRecentAddedMapPoints.erase(lit);
             Print(to_string(pMP->GetId()) + "=MapPointId erased 2");
         }
         else if(((int)nCurrentKFid-(int)pMP->mnFirstKFid)>=2 && pMP->Observations()<=cnThObs)
         {
-            pMP->SetBadFlag(mpMap);
+            pMP->SetBadFlag(mpMap); // TODO - add to deleted points
             lit = mlpRecentAddedMapPoints.erase(lit);
             Print(to_string(pMP->GetId()) + "=MapPointId erased 3");
         }
         else if (((int)nCurrentKFid - (int)pMP->mnFirstKFid) >= 3)
         {
+            // TODO - add to deleted points
             lit = mlpRecentAddedMapPoints.erase(lit);
             Print(to_string(pMP->GetId()) + "=MapPointId erased 4");
         }
@@ -496,6 +522,7 @@ void LocalMapping::CreateNewMapPoints()
 
             mpCurrentKeyFrame->AddMapPoint(pMP,idx1);
             pKF2->AddMapPoint(pMP,idx2);
+            // TODO - add to updated keyframes
 
             pMP->ComputeDistinctiveDescriptors();
 
@@ -503,6 +530,7 @@ void LocalMapping::CreateNewMapPoints()
 
             mpMap->AddMapPoint(pMP);
             mlpRecentAddedMapPoints.push_back(pMP);
+            // TODO - add to created points
 
             nnew++;
         }
@@ -577,6 +605,7 @@ void LocalMapping::SearchInNeighbors()
 
 
     // Update points
+    // TODO - only update points that were touched during Fuse
     vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
     for(size_t i=0, iend=vpMapPointMatches.size(); i<iend; i++)
     {
@@ -585,7 +614,7 @@ void LocalMapping::SearchInNeighbors()
         {
             if(!pMP->isBad())
             {
-                pMP->ComputeDistinctiveDescriptors();
+                pMP->ComputeDistinctiveDescriptors(); // might be redundant see matcher.Fuse
                 pMP->UpdateNormalAndDepth();
             }
         }
@@ -757,6 +786,7 @@ void LocalMapping::KeyFrameCulling()
         if(nRedundantObservations>0.9*nMPs)
         {
             pKF->SetBadFlag(mpMap, mpKeyFrameDB);
+            // TODO - add to deleted keyframes
         }
     }
     Print("end KeyFrameCulling");

@@ -24,8 +24,11 @@ namespace ORB_SLAM2
 {
 
    Mapper::Mapper(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular) :
-      SyncPrint("Mapper: "), mpMap(pMap), mpVocab(pVocab), 
-      mbMonocular(bMonocular), mInitialized(false)
+      SyncPrint("Mapper: "), 
+      mpMap(pMap), 
+      mpVocab(pVocab), 
+      mbMonocular(bMonocular), 
+      mInitialized(false)
    {
       if (pMap == NULL)
          throw std::exception("pMap must not be NULL");
@@ -38,11 +41,11 @@ namespace ORB_SLAM2
       ResetTrackerStatus();
 
       //Initialize and start the Local Mapping thread
-      mpLocalMapper = new LocalMapping(mpMap, mpKeyFrameDB, mbMonocular, FIRST_MAPPOINT_ID_LOCALMAPPER, MAPPOINT_ID_SPAN);
+      mpLocalMapper = new LocalMapping(*this, mpMap, mpKeyFrameDB, mbMonocular, FIRST_MAPPOINT_ID_LOCALMAPPER, MAPPOINT_ID_SPAN);
       mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run, mpLocalMapper);
 
       //Initialize and start the Loop Closing thread
-      mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDB, mpVocab, !mbMonocular);
+      mpLoopCloser = new LoopClosing(*this, mpMap, mpKeyFrameDB, mpVocab, !mbMonocular);
       mptLoopClosing = new thread(&ORB_SLAM2::LoopClosing::Run, mpLoopCloser);
 
       mpLocalMapper->SetLoopCloser(mpLoopCloser);
@@ -202,24 +205,6 @@ namespace ORB_SLAM2
    Map * Mapper::GetMap()
    {
        return mpMap;
-   }
-
-   void Mapper::AddObserver(Observer * ob)
-   {
-       mObservers[ob] = ob;
-   }
-
-   void Mapper::RemoveObserver(Observer * ob)
-   {
-       mObservers.erase(ob);
-   }
-
-   void Mapper::NotifyReset()
-   {
-      for (auto it : mObservers)
-      {
-         it.second->HandleReset();
-      }
    }
 
    void Mapper::ResetTrackerStatus()

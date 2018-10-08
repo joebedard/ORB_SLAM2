@@ -26,6 +26,8 @@
 #include<opencv2/features2d/features2d.hpp>
 
 #include "MapperServer.h"
+#include "MapChangeEvent.h"
+#include "MapObserver.h"
 #include "Viewer.h"
 #include "FrameDrawer.h"
 #include "Frame.h"
@@ -235,12 +237,15 @@ private:
 
     void MapperObserverHandleReset();
 
-    class MapperObserver : public MapperServer::Observer
+    void MapperObserverHandleMapChanged();
+
+    class MapperObserver : public MapObserver
     {
         Tracking * mpTracker;
     public:
         MapperObserver(Tracking * pTracker) : mpTracker(pTracker) {};
         virtual void HandleReset() {mpTracker->MapperObserverHandleReset();};
+        virtual void HandleMapChanged(MapChangeEvent & event) {mpTracker->MapperObserverHandleMapChanged();}
     };
 
     MapperObserver mMapperObserver;

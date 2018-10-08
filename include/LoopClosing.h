@@ -24,6 +24,8 @@
 #include "KeyFrame.h"
 #include "LocalMapping.h"
 #include "Map.h"
+#include "MapObserver.h"
+#include "MapSubject.h"
 #include "ORBVocabulary.h"
 #include "KeyFrameDatabase.h"
 #include "SyncPrint.h"
@@ -39,7 +41,7 @@ class LocalMapping;
 class KeyFrameDatabase;
 
 
-class LoopClosing : SyncPrint
+class LoopClosing : public MapSubject, protected SyncPrint
 {
 public:
 
@@ -49,7 +51,13 @@ public:
 
 public:
 
-    LoopClosing(Map* pMap, KeyFrameDatabase* pDB, ORBVocabulary* pVoc,const bool bFixScale);
+    LoopClosing(
+        MapSubject & mapSubject,
+        Map * pMap,
+        KeyFrameDatabase * pDB,
+        ORBVocabulary * pVoc,
+        const bool bFixScale
+    );
 
     void SetLocalMapper(LocalMapping* pLocalMapper);
 

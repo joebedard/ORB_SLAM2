@@ -85,11 +85,14 @@ include/KeyFrameDatabase.h
 include/LocalMapping.h
 include/LoopClosing.h
 include/Map.h
+include/MapChangeEvent.h
 include/MapDrawer.h
+include/MapObserver.h
 include/Mapper.h
 include/MapperClient.h
 include/MapperServer.h
 include/MapPoint.h
+include/MapSubject.h
 include/Optimizer.h
 include/ORBextractor.h
 include/ORBmatcher.h

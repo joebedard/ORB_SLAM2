@@ -24,6 +24,8 @@
 #include "LocalMapping.h"
 #include "LoopClosing.h"
 #include "Enums.h"
+#include "MapObserver.h"
+#include "MapSubject.h"
 #include "MapperServer.h"
 
 namespace ORB_SLAM2
@@ -33,7 +35,7 @@ namespace ORB_SLAM2
    class LoopClosing;
 
    // interface for all Mapping functionality
-   class MapperClient : protected SyncPrint
+   class MapperClient : public MapSubject, protected SyncPrint
    {
    public:
 
@@ -62,16 +64,6 @@ namespace ORB_SLAM2
       void LogoutTracker(unsigned int id);
 
       Map * GetMap();
-
-      class Observer
-      {
-      public:
-          virtual void HandleReset() {}
-      };
-
-      void AddObserver(Observer * ob);
-
-      void RemoveObserver(Observer * ob);
 
    private:
       static const unsigned int MAX_TRACKERS = 2;
@@ -107,9 +99,7 @@ namespace ORB_SLAM2
 
       MapperServer server;
 
-      std::map<Observer *, Observer *> mObservers;
-
-      void NotifyReset();
+      std::map<MapObserver *, MapObserver *> mObservers;
 
    };
 
