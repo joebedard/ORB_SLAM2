@@ -43,7 +43,6 @@ class LocalMapping : public MapSubject, protected SyncPrint
 {
 public:
     LocalMapping(
-        MapSubject & mapSubject,
         Map* pMap,
         KeyFrameDatabase* pDB,
         const float bMonocular,
@@ -74,7 +73,8 @@ public:
     void RequestFinish();
     bool isFinished();
 
-    int KeyframesInQueue(){
+    int KeyframesInQueue()
+    {
         unique_lock<mutex> lock(mMutexNewKFs);
         return mlNewKeyFrames.size();
     }

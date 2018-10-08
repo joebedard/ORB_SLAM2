@@ -26,7 +26,7 @@ namespace ORB_SLAM2
 
     /*
         base class for Subject class from the Observer Pattern
-        supports a shared collection of observers with thread-safe methods 
+        thread-safe methods encapsulate a collection of observers
         see https://sourcemaking.com/design_patterns/observer
     */
     class MapSubject
@@ -35,32 +35,21 @@ namespace ORB_SLAM2
 
         MapSubject()
         {
-            mObservers = new std::map<MapObserver *, MapObserver *>();
-        }
-
-        // allows a shared collection of observers
-        MapSubject(MapSubject & copy)
-        {
-            mObservers = copy.mObservers;
-        }
-
-        ~MapSubject()
-        {
-            delete mObservers;
+            
         }
 
         void AddObserver(MapObserver * ob)
         {
             unique_lock<mutex> lock(mMutex);
 
-            (*mObservers)[ob] = ob;
+            mObservers[ob] = ob;
         }
 
         void RemoveObserver(MapObserver * ob)
         {
             unique_lock<mutex> lock(mMutex);
 
-            (*mObservers).erase(ob);
+            mObservers.erase(ob);
         }
 
     protected:
@@ -69,7 +58,7 @@ namespace ORB_SLAM2
         {
             unique_lock<mutex> lock(mMutex);
 
-            for (auto it : (*mObservers))
+            for (auto it : mObservers)
             {
                 it.second->HandleReset();
             }
@@ -79,7 +68,7 @@ namespace ORB_SLAM2
         {
             unique_lock<mutex> lock(mMutex);
 
-            for (auto it : (*mObservers))
+            for (auto it : mObservers)
             {
                 it.second->HandleMapChanged(mce);
             }
@@ -89,7 +78,7 @@ namespace ORB_SLAM2
 
         std::mutex mMutex;
 
-        std::map<MapObserver *, MapObserver *> * mObservers;
+        std::map<MapObserver *, MapObserver *> mObservers;
 
     };
 

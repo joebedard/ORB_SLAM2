@@ -31,13 +31,11 @@ namespace ORB_SLAM2
 {
 
 LoopClosing::LoopClosing(
-    MapSubject & mapSubject,
     Map * pMap, 
     KeyFrameDatabase * pDB, 
     ORBVocabulary * pVoc, 
     const bool bFixScale
 ):
-    MapSubject(mapSubject),
     SyncPrint("LoopClosing: "),
     mpMap(pMap), 
     mpKeyFrameDB(pDB),

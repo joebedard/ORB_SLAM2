@@ -52,7 +52,6 @@ public:
 public:
 
     LoopClosing(
-        MapSubject & mapSubject,
         Map * pMap,
         KeyFrameDatabase * pDB,
         ORBVocabulary * pVoc,

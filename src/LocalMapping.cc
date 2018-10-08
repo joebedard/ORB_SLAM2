@@ -29,14 +29,12 @@ namespace ORB_SLAM2
 {
 
 LocalMapping::LocalMapping(
-    MapSubject & mapSubject,
     Map *pMap,
     KeyFrameDatabase* pDB,
     const float bMonocular,
     unsigned long firstMapPointId,
     unsigned int mapPointIdSpan
 ) :
-    MapSubject(mapSubject),
     SyncPrint("LocalMapping: "),
     mpMap(pMap),
     mpKeyFrameDB(pDB),

@@ -52,8 +52,14 @@ class Tracking : SyncPrint
 {  
 
 public:
-    Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer,
-       MapperServer* pMapper, cv::FileStorage & settings, eSensor sensor);
+    Tracking(
+        ORBVocabulary* pVoc, 
+        FrameDrawer* pFrameDrawer, 
+        MapDrawer* pMapDrawer,
+        MapperServer* pMapper,
+        cv::FileStorage & settings, 
+        eSensor sensor
+    );
 
     ~Tracking();
 
@@ -245,7 +251,7 @@ private:
     public:
         MapperObserver(Tracking * pTracker) : mpTracker(pTracker) {};
         virtual void HandleReset() {mpTracker->MapperObserverHandleReset();};
-        virtual void HandleMapChanged(MapChangeEvent & event) {mpTracker->MapperObserverHandleMapChanged();}
+        virtual void HandleMapChanged(MapChangeEvent & mce) {mpTracker->MapperObserverHandleMapChanged();}
     };
 
     MapperObserver mMapperObserver;

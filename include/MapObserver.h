@@ -33,7 +33,7 @@ namespace ORB_SLAM2
 
         virtual void HandleReset() {}
     
-        virtual void HandleMapChanged(MapChangeEvent & event) {}
+        virtual void HandleMapChanged(MapChangeEvent & mce) {}
 
     };
 

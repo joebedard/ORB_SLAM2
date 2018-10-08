@@ -99,8 +99,6 @@ namespace ORB_SLAM2
 
       MapperServer server;
 
-      std::map<MapObserver *, MapObserver *> mObservers;
-
    };
 
 }

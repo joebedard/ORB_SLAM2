@@ -38,15 +38,34 @@ using namespace std;
 namespace ORB_SLAM2
 {
 
-Tracking::Tracking(ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer,
-    MapperServer* pMapper, cv::FileStorage & fSettings, eSensor sensor) :
-    SyncPrint("Tracking: "), mId(-1), mSensor(sensor),
-    mbOnlyTracking(false), mpORBVocabulary(pVoc), mbReset(false),
-    mpMapper(pMapper), mpInitializer(static_cast<Initializer*>(NULL)), mpViewer(NULL),
-    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mnLastRelocFrameId(0),
-    mbActivateLocalizationMode(false), mbDeactivateLocalizationMode(false), mState(NOT_INITIALIZED),
-    mNextKeyFrameId(0), mKeyFrameIdSpan(0), mNextMapPointId(0),
-    mMapPointIdSpan(0), mMapperObserver(this)
+Tracking::Tracking(
+    ORBVocabulary* pVoc,
+    FrameDrawer* pFrameDrawer,
+    MapDrawer* pMapDrawer,
+    MapperServer* pMapper,
+    cv::FileStorage & fSettings,
+    eSensor sensor
+) :
+    SyncPrint("Tracking: "),
+    mpORBVocabulary(pVoc),
+    mpFrameDrawer(pFrameDrawer), 
+    mpMapDrawer(pMapDrawer),
+    mpMapper(pMapper),
+    mSensor(sensor),
+    mId(-1),
+    mbOnlyTracking(false), 
+    mbReset(false),
+    mpInitializer(static_cast<Initializer*>(NULL)),
+    mpViewer(NULL),
+    mnLastRelocFrameId(0),
+    mbActivateLocalizationMode(false), 
+    mbDeactivateLocalizationMode(false), 
+    mState(NOT_INITIALIZED),
+    mNextKeyFrameId(0),
+    mKeyFrameIdSpan(0), 
+    mNextMapPointId(0),
+    mMapPointIdSpan(0),
+    mMapperObserver(this)
 {
     LoadCameraParameters(fSettings, sensor);
     Login();

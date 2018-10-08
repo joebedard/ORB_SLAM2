@@ -106,11 +106,31 @@ namespace ORB_SLAM2
 
       std::thread * mptLoopClosing;
 
-      std::map<MapObserver *, MapObserver *> mObservers;
-
       void ResetTrackerStatus();
 
       void UpdateTrackerIds(unsigned int trackerId, vector<MapPoint *> mapPoints);
+
+      class LocalMappingObserver : public MapObserver
+      {
+          MapperServer * mpMapperServer;
+      public:
+          LocalMappingObserver(MapperServer * pMapperServer) : mpMapperServer(pMapperServer) {};
+          virtual void HandleReset() { mpMapperServer->NotifyReset(); };
+          virtual void HandleMapChanged(MapChangeEvent & mce) { mpMapperServer->NotifyMapChanged(mce); }
+      };
+
+      LocalMappingObserver mLocalMappingObserver;
+
+      class LoopClosingObserver : public MapObserver
+      {
+          MapperServer * mpMapperServer;
+      public:
+          LoopClosingObserver(MapperServer * pMapperServer) : mpMapperServer(pMapperServer) {};
+          virtual void HandleReset() { mpMapperServer->NotifyReset(); };
+          virtual void HandleMapChanged(MapChangeEvent & mce) { mpMapperServer->NotifyMapChanged(mce); }
+      };
+
+      LoopClosingObserver mLoopClosingObserver;
    };
 
 }
