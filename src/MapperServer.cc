@@ -160,6 +160,7 @@ namespace ORB_SLAM2
       }
 
       // stereo and RGBD modes will create MapPoints
+      unique_lock<mutex> lock(mMutexTrackerStatus);
       UpdateTrackerIds(trackerId, mapPoints);
 
       mInitialized = true;
@@ -171,6 +172,8 @@ namespace ORB_SLAM2
 
       if (mpLocalMapper->InsertKeyFrame(mapPoints, pKF))
       {
+         unique_lock<mutex> lock(mMutexTrackerStatus);
+          
          // update TrackerStatus array with next KeyFrameId and MapPointId
          assert((pKF->GetId() - trackerId) % KEYFRAME_ID_SPAN == 0);
          if (mTrackers[trackerId].nextKeyFrameId <= pKF->GetId())
@@ -206,7 +209,7 @@ namespace ORB_SLAM2
         unsigned int & mapPointIdSpan,
         const cv::Mat & pivotCalib)
    {
-      unique_lock<mutex> lock(mMutexLogin);
+      unique_lock<mutex> lock(mMutexTrackerStatus);
 
       unsigned int id;
       for (id = 0; id < MAX_TRACKERS; ++id)
@@ -232,12 +235,31 @@ namespace ORB_SLAM2
 
    void MapperServer::LogoutTracker(unsigned int id)
    {
-      mTrackers[id].connected = false;
+       unique_lock<mutex> lock(mMutexTrackerStatus);
+
+       mTrackers[id].connected = false;
    }
 
    void MapperServer::UpdatePose(unsigned int trackerId, const cv::Mat & poseTcw)
    {
-      // TODO - complete this function
+       unique_lock<mutex> lock(mMutexTrackerStatus);
+
+       ValidateTracker(trackerId);
+
+       mTrackers[trackerId].poseTcw = poseTcw.clone();
+   }
+
+   vector<cv::Mat> MapperServer::GetTrackerPoses()
+   {
+       unique_lock<mutex> lock(mMutexTrackerStatus);
+       
+       vector<cv::Mat> poses;
+       for (int i = 0; i < MAX_TRACKERS; i++)
+       {
+           if (mTrackers[i].connected)
+               poses.push_back(mTrackers[i].poseTcw.clone());
+       }
+       return poses;
    }
 
    Map * MapperServer::GetMap()
@@ -247,13 +269,15 @@ namespace ORB_SLAM2
 
    void MapperServer::ResetTrackerStatus()
    {
-      unique_lock<mutex> lock(mMutexLogin);
+      unique_lock<mutex> lock(mMutexTrackerStatus);
 
       for (int i = 0; i < MAX_TRACKERS; ++i)
       {
          mTrackers[i].connected = false;
          mTrackers[i].nextKeyFrameId = i;
          mTrackers[i].nextMapPointId = i;
+         mTrackers[i].pivotCalib = cv::Mat::eye(4, 4, CV_32F);
+         mTrackers[i].poseTcw = cv::Mat::eye(4, 4, CV_32F);
       }
    }
 

@@ -58,6 +58,8 @@ namespace ORB_SLAM2
 
       virtual bool GetInitialized();
 
+      Map * GetMap();
+
       unsigned int LoginTracker(
         unsigned long  & firstKeyFrameId,
         unsigned int & keyFrameIdSpan,
@@ -70,7 +72,7 @@ namespace ORB_SLAM2
 
       void UpdatePose(unsigned int trackerId, const cv::Mat & poseTcw);
 
-      Map * GetMap();
+      vector<cv::Mat> GetTrackerPoses();
 
    private:
       static const unsigned int MAX_TRACKERS = 2;
@@ -96,7 +98,7 @@ namespace ORB_SLAM2
 
       TrackerStatus mTrackers[MAX_TRACKERS];
 
-      std::mutex mMutexLogin;
+      std::mutex mMutexTrackerStatus;
 
       ORBVocabulary * mpVocab;
 

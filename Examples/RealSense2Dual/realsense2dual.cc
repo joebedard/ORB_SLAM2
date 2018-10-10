@@ -220,7 +220,7 @@ int main(int paramc, char * paramv[]) try
       FrameDrawer * frameDrawer = new FrameDrawer(settings);
       vFrameDrawers.push_back(frameDrawer);
 
-      MapDrawer * mapDrawer = new MapDrawer(pMap, settings);
+      MapDrawer * mapDrawer = new MapDrawer(pMapper, settings);
       vMapDrawers.push_back(mapDrawer);
 
       Tracking * tracker = new Tracking(pVocab, frameDrawer, mapDrawer, pMapper, settings, eSensor::STEREO);

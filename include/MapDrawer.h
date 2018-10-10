@@ -22,6 +22,7 @@
 #define MAPDRAWER_H
 
 #include "Map.h"
+#include "MapperServer.h"
 #include "MapPoint.h"
 #include "KeyFrame.h"
 #include "SyncPrint.h"
@@ -35,15 +36,15 @@ namespace ORB_SLAM2
 class MapDrawer : SyncPrint
 {
 public:
-    MapDrawer(Map* pMap, cv::FileStorage & fSettings);
+    MapDrawer(MapperServer * pMapper, cv::FileStorage & fSettings);
     void Reset();
     void SetId(int id);
 
+    void Follow(pangolin::OpenGlRenderState * pRenderState);
     void DrawMapPoints();
     void DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph);
-    void DrawCurrentCamera(pangolin::OpenGlMatrix &Twc);
+    void DrawCurrentCameras();
     void SetCurrentCameraPose(const cv::Mat &Tcw);
-    void GetCurrentOpenGLCameraMatrix(pangolin::OpenGlMatrix &M);
     void SetReferenceMapPoints(const std::vector<MapPoint*>& vpMPs);
 
     float GetViewpointX();
@@ -56,13 +57,21 @@ protected:
 
 private:
     unsigned int mId;
+
     Map * mpMap;
 
+    MapperServer * mpMapper;
+
     float mKeyFrameSize;
+
     float mKeyFrameLineWidth;
+
     float mGraphLineWidth;
+
     float mPointSize;
+
     float mCameraSize;
+
     float mCameraLineWidth;
 
     cv::Mat mCameraPose;
@@ -70,9 +79,12 @@ private:
     std::mutex mMutexCamera;
 
     mutex mMutexReferenceMapPoints;
+
     std::vector<MapPoint*> mvpReferenceMapPoints;
 
     float mViewpointX, mViewpointY, mViewpointZ, mViewpointF;
+
+    void GetCurrentOpenGLCameraMatrix(pangolin::OpenGlMatrix &M, cv::Mat cameraPose);
 
 };
 

@@ -403,6 +403,7 @@ void Tracking::Track()
                 mVelocity = cv::Mat();
             }
 
+            mpMapper->UpdatePose(mId, mCurrentFrame.mTcw);
             if (mpMapDrawer)
                 mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
 

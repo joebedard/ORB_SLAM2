@@ -75,12 +75,12 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     //Create the Map
     mpMap = new Map();
 
-    //Create Drawers. These are used by the Viewer
-    mpFrameDrawer = new FrameDrawer(fsSettings);
-    mpMapDrawer = new MapDrawer(mpMap, fsSettings);
-
     //Initialize the Mapper
     mpMapper = new MapperServer(mpMap, mpVocabulary, mSensor == MONOCULAR);
+
+    //Create Drawers. These are used by the Viewer
+    mpFrameDrawer = new FrameDrawer(fsSettings);
+    mpMapDrawer = new MapDrawer(mpMapper, fsSettings);
 
     //Initialize the Tracking thread
     //(it will live in the main thread of execution, the one that called this constructor)

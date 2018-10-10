@@ -29,10 +29,15 @@ namespace ORB_SLAM2
 {
 
 Viewer::Viewer(FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, MapperServer * pMapper, bool embeddedFrameDrawer) :
-    SyncPrint("Viewer: "), mbFinishRequested(false), mbFinished(true), 
-    mbStopped(true), mbStopRequested(false), mbResetting(false),
-    mWindowTitle("ORB-SLAM2 Viewer"), mEmbeddedFrameDrawers(embeddedFrameDrawer),
-    mpMapper(pMapper)
+    SyncPrint("Viewer: "), 
+    mpMapper(pMapper),
+    mEmbeddedFrameDrawers(embeddedFrameDrawer),
+    mbFinishRequested(false), 
+    mbFinished(true), 
+    mbStopped(true), 
+    mbStopRequested(false), 
+    mbResetting(false),
+    mWindowTitle("ORB-SLAM2 Viewer")
 {
    mvFrameDrawers.push_back(pFrameDrawer);
    mvMapDrawers.push_back(pMapDrawer);
@@ -40,11 +45,18 @@ Viewer::Viewer(FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTrac
 }
 
 Viewer::Viewer(vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers, MapperServer * pMapper, bool embeddedFrameDrawers) :
-    mvFrameDrawers(vFrameDrawers), mvMapDrawers(vMapDrawers), mvTrackers(vTrackers),
-    SyncPrint("Viewer: "), mbFinishRequested(false), mbFinished(true), 
-    mbStopped(true), mbStopRequested(false), mbResetting(false),
-    mWindowTitle("ORB-SLAM2 Viewer"), mEmbeddedFrameDrawers(embeddedFrameDrawers),
-    mpMapper(pMapper)
+    SyncPrint("Viewer: "), 
+    mvFrameDrawers(vFrameDrawers), 
+    mvMapDrawers(vMapDrawers),
+    mvTrackers(vTrackers),
+    mpMapper(pMapper),
+    mEmbeddedFrameDrawers(embeddedFrameDrawers),
+    mbFinishRequested(false), 
+    mbFinished(true), 
+    mbStopped(true), 
+    mbStopRequested(false), 
+    mbResetting(false),
+    mWindowTitle("ORB-SLAM2 Viewer")
 {
 }
 
@@ -160,10 +172,6 @@ void Viewer::Run() try
         }
     }
 
-    pangolin::OpenGlMatrix Twc;
-    Twc.SetIdentity();
-
-    bool bFollow = true;
     bool bLocalizationMode = false;
 
     // workaround for OpenGL errors caused by pangolin::FinishFrame
@@ -189,31 +197,14 @@ void Viewer::Run() try
 
         for (int i = 0; i < mvMapDrawers.size(); ++i)
         {
-           float viewpointX = mvMapDrawers[i]->GetViewpointX();
-           float viewpointY = mvMapDrawers[i]->GetViewpointY();
-           float viewpointZ = mvMapDrawers[i]->GetViewpointZ();
-           float viewpointF = mvMapDrawers[i]->GetViewpointF();
-
-           mvMapDrawers[i]->GetCurrentOpenGLCameraMatrix(Twc);
-
-           if (menuFollowCamera && bFollow)
+           if (menuFollowCamera)
            {
-              vMapStates[i]->Follow(Twc);
-           }
-           else if (menuFollowCamera && !bFollow)
-           {
-              vMapStates[i]->SetModelViewMatrix(pangolin::ModelViewLookAt(viewpointX, viewpointY, viewpointZ, 0, 0, 0, 0.0, -1.0, 0.0));
-              vMapStates[i]->Follow(Twc);
-              bFollow = true;
-           }
-           else if (!menuFollowCamera && bFollow)
-           {
-              bFollow = false;
+              mvMapDrawers[i]->Follow(vMapStates[i]);
            }
 
            vMapViews[i]->Activate(*vMapStates[i]);
            glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-           mvMapDrawers[i]->DrawCurrentCamera(Twc);
+           mvMapDrawers[i]->DrawCurrentCameras();
            if (menuShowKeyFrames || menuShowGraph)
               mvMapDrawers[i]->DrawKeyFrames(menuShowKeyFrames, menuShowGraph);
            if (menuShowPoints)
@@ -274,7 +265,6 @@ void Viewer::Run() try
                   *vMenuLocalizationModes[i] = false;
                }
             }
-            bFollow = true;
             menuFollowCamera = true;
             mpMapper->Reset();
             mbResetting = false;
