@@ -63,10 +63,10 @@ Viewer::Viewer(vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDraw
 void Viewer::Run() try
 {
     const int MENU_WIDTH = 220;
-    const int MULTIVIEW_WIDTH = 1024;
-    const int WINDOW_WIDTH = MENU_WIDTH + MULTIVIEW_WIDTH;
-    const int WINDOW_HEIGHT = 768;
-    const float MULTIVIEW_ASPECT = (float)MULTIVIEW_WIDTH / (float)WINDOW_HEIGHT;
+    const int MAPVIEW_WIDTH = 1280;
+    const int MAPVIEW_HEIGHT = 768;
+    const int WINDOW_WIDTH = MENU_WIDTH + MAPVIEW_WIDTH;
+    const int WINDOW_HEIGHT = MAPVIEW_HEIGHT;
     mbFinished = false;
     mbStopped = false;
 
@@ -101,8 +101,13 @@ void Viewer::Run() try
 
     pangolin::View & d_multiviewMaps = pangolin::Display("multiviewMaps");
     pangolin::View & d_multiviewTrackers = pangolin::Display("multiviewTrackers");
+
+    int mapviewWidth = MAPVIEW_WIDTH / mvMapDrawers.size();
+    int mapviewHeight = MAPVIEW_HEIGHT;
     if (mEmbeddedFrameDrawers)
     {
+        mapviewHeight /= 2;
+
         d_multiviewMaps.SetBounds(0.5, 1.0, pangolin::Attach::Pix(MENU_WIDTH), 1.0)
             .SetLayout(pangolin::LayoutEqualHorizontal);
 
@@ -129,7 +134,7 @@ void Viewer::Run() try
 
         // Define Camera Render Object (for view / scene browsing)
         auto s_cam = new pangolin::OpenGlRenderState(
-            pangolin::ProjectionMatrix(MULTIVIEW_WIDTH, WINDOW_HEIGHT, viewpointF, viewpointF, MULTIVIEW_WIDTH / 2, WINDOW_HEIGHT / 2, 0.1, 1000),
+            pangolin::ProjectionMatrix(mapviewWidth, mapviewHeight, viewpointF, viewpointF, mapviewWidth / 2.0, mapviewHeight / 2.0, 0.1, 1000),
             pangolin::ModelViewLookAt(viewpointX, viewpointY, viewpointZ, 0, 0, 0, 0.0, -1.0, 0.0)
         );
         vMapStates.push_back(s_cam);
@@ -137,7 +142,7 @@ void Viewer::Run() try
         // Add named OpenGL viewport to window and provide 3D Handler
         string name("Map View "); name.append(to_string(i));
         pangolin::View & d_cam = pangolin::Display(name)
-           .SetAspect(MULTIVIEW_ASPECT)
+           .SetAspect((double)mapviewWidth / (double)mapviewHeight)
            .SetHandler(new pangolin::Handler3D(*s_cam));
         vMapViews.push_back(&d_cam);
 

@@ -1538,9 +1538,11 @@ unsigned long Tracking::NewMapPointId()
 void Tracking::Login()
 {
     mId = mpMapper->LoginTracker(mNextKeyFrameId, mKeyFrameIdSpan, mNextMapPointId, mMapPointIdSpan, cv::Mat::eye(4, 4, CV_32F));
-    mpMapDrawer->SetId(mId);
     assert(mKeyFrameIdSpan != 0);
-    assert(mKeyFrameIdSpan != 0);
+    assert(mMapPointIdSpan != 0);
+    if (mpMapDrawer)
+        mpMapDrawer->SetId(mId);
+
     stringstream ss;
     ss << "Tracking: Login Complete \n";
     ss << "   Tracker Id =         " << mId << "\n";
@@ -1555,7 +1557,9 @@ void Tracking::Logout()
 {
     unsigned int tempId = mId;
     mId = -1; //set to max positive integer
-    mpMapDrawer->SetId(mId);
+    if (mpMapDrawer)
+        mpMapDrawer->SetId(mId);
+
     mpMapper->LogoutTracker(tempId);
     stringstream ss;
     ss << "Tracking: Logout Complete \n";

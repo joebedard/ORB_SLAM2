@@ -57,19 +57,29 @@ bool mShouldRun = true;
 
 // command line parameters
 char * mVocFile = NULL;
+char * mMapperSettings = NULL;
+char * mTrackerSettings[TRACKER_QUANTITY];
 
 void ParseParams(int paramc, char * paramv[])
 {
-   if (paramc != 4)
+   if (paramc != 5)
    {
-      const char * usage = "Usage: ./realsense2 vocabulary_file_and_path first_settings_file_and_path second_settings_file_and_path";
+      const char * usage = "Usage: ./realsense2dual vocabulary_file_and_path mapper_settings_file_and_path tracker1_settings_file_and_path tracker2_settings_file_and_path";
       exception e(usage);
       throw e;
    }
+   
    mVocFile = paramv[1];
+   
+   mMapperSettings = paramv[2];
+
+   for (int i = 0; i < TRACKER_QUANTITY; i++)
+   {
+       mTrackerSettings[i] = paramv[i + 3];
+   }
 }
 
-void ParseSettings(FileStorage & settings, const char * settingsFilePath, string & serial)
+void ParseSettings(FileStorage & settings, const char * settingsFilePath)
 {
    if (!settings.isOpened())
    {
@@ -77,10 +87,15 @@ void ParseSettings(FileStorage & settings, const char * settingsFilePath, string
       m.append(settingsFilePath);
       throw exception(m.c_str());
    }
+}
 
-   serial.append(settings["Camera.serial"]);
-   if (0 == serial.length())
-      throw exception("Camera.serial property is not set or value is not in quotes.");
+void ParseTrackerSettings(FileStorage & settings, const char * settingsFilePath, string & serial)
+{
+    ParseSettings(settings, settingsFilePath);
+
+    serial.append(settings["Camera.serial"]);
+    if (0 == serial.length())
+        throw exception("Camera.serial property is not set or value is not in quotes.");
 
 }
 
@@ -210,20 +225,22 @@ int main(int paramc, char * paramv[]) try
    vector<MapDrawer *> vMapDrawers;
    vector<Tracking *> vTrackers;
 
+   FileStorage mapperSettings(mMapperSettings, FileStorage::READ);
+   ParseSettings(mapperSettings, mMapperSettings);
+   MapDrawer * mapDrawer = new MapDrawer(pMapper, mapperSettings);
+   vMapDrawers.push_back(mapDrawer);
+
    for (int i = 0; i < TRACKER_QUANTITY; ++i)
    {
-      FileStorage settings(paramv[i + 2], FileStorage::READ);
+      FileStorage settings(mTrackerSettings[i], FileStorage::READ);
 
       string * pSerial = new string();
-      ParseSettings(settings, paramv[i + 2], *pSerial);
+      ParseTrackerSettings(settings, mTrackerSettings[i], *pSerial);
 
       FrameDrawer * frameDrawer = new FrameDrawer(settings);
       vFrameDrawers.push_back(frameDrawer);
 
-      MapDrawer * mapDrawer = new MapDrawer(pMapper, settings);
-      vMapDrawers.push_back(mapDrawer);
-
-      Tracking * tracker = new Tracking(pVocab, frameDrawer, mapDrawer, pMapper, settings, eSensor::STEREO);
+      Tracking * tracker = new Tracking(pVocab, frameDrawer, NULL, pMapper, settings, eSensor::STEREO);
       vTrackers.push_back(tracker);
 
       mThreadParams[i].serial = pSerial;
@@ -257,16 +274,16 @@ int main(int paramc, char * paramv[]) try
 }
 catch (const rs2::error & e)
 {
-    SyncPrint::Print("RealSense error calling ", e.get_failed_function() + "(" + e.get_failed_args() + "):\n    " + e.what());
+    cout << "RealSense error calling " << e.get_failed_function() + "(" + e.get_failed_args() + "):\n    " + e.what();
     return EXIT_FAILURE;
 }
 catch (const exception& e)
 {
-    SyncPrint::Print("Exception in main thread: ", e.what());
+    cout << "Exception in main thread: " << e.what();
     return EXIT_FAILURE;
 }
 catch (...)
 {
-   SyncPrint::Print(NULL, "An exception was not caught in the main thread.");
+   cout << "There was an unknown exception in the main thread.";
    return EXIT_FAILURE;
 }
