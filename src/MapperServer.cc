@@ -262,6 +262,19 @@ namespace ORB_SLAM2
        return poses;
    }
 
+   vector<cv::Mat> MapperServer::GetTrackerPivots()
+   {
+       unique_lock<mutex> lock(mMutexTrackerStatus);
+
+       vector<cv::Mat> poses;
+       for (int i = 0; i < MAX_TRACKERS; i++)
+       {
+           if (mTrackers[i].connected)
+               poses.push_back(mTrackers[i].pivotCalib.clone());
+       }
+       return poses;
+   }
+
    Map * MapperServer::GetMap()
    {
        return mpMap;

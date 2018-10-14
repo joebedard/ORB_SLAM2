@@ -221,6 +221,8 @@ private:
 
    FrameCalibration * mFC;
 
+   cv::Mat pivotCal;
+
    void LoadCameraParameters(cv::FileStorage & settings, eSensor sensor);
 
    void CheckModeChange();
@@ -240,6 +242,10 @@ private:
    void Login();
 
    void Logout();
+
+   void RotationsYZXtoMat(double y, double z, double x, cv::Mat & m);
+
+   void RotationsYXZtoMat(double y, double x, double z, cv::Mat & m);
 
     void MapperObserverHandleReset();
 

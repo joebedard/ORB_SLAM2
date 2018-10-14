@@ -28,8 +28,7 @@ namespace ORB_SLAM2
 MapDrawer::MapDrawer(MapperServer * pMapper, cv::FileStorage & fSettings) :
     SyncPrint("MapDrawer: "), 
     mpMap(pMapper->GetMap()),
-    mpMapper(pMapper),
-    mId(-1)
+    mpMapper(pMapper)
 {
     mKeyFrameSize = fSettings["Viewer.KeyFrameSize"];
     mKeyFrameLineWidth = fSettings["Viewer.KeyFrameLineWidth"];
@@ -50,22 +49,11 @@ void MapDrawer::Reset()
     mvpReferenceMapPoints.clear();
 }
 
-void MapDrawer::SetId(int id)
-{
-    mId = id;
-}
-
-void MapDrawer::PrintPrefix(ostream & out)
-{
-    SyncPrint::PrintPrefix(out);
-    out << "Id=" << mId << " ";
-}
-
 void MapDrawer::Follow(pangolin::OpenGlRenderState * pRenderState)
 {
     unique_lock<mutex> lock(mMutexCamera);
     pangolin::OpenGlMatrix Twc;
-    GetCurrentOpenGLCameraMatrix(Twc, mCameraPose);
+    ConvertMatrixFromOpenCvToOpenGL(Twc, mCameraPose);
     pRenderState->Follow(Twc);
 }
 
@@ -274,20 +262,24 @@ void MapDrawer::DrawCurrentCameras()
     const float h = w * 0.75;
     const float z = w * 0.6;
 
-    pangolin::OpenGlMatrix Twc;
-    for (cv::Mat pose : mpMapper->GetTrackerPoses())
+    pangolin::OpenGlMatrix Twc, pivotGL;
+    vector<cv::Mat> poses = mpMapper->GetTrackerPoses();
+    vector<cv::Mat> pivots = mpMapper->GetTrackerPivots();
+    assert(poses.size() == pivots.size());
+    for (int i = 0; i < poses.size(); i++)
     {
-        Twc.SetIdentity();
-        GetCurrentOpenGLCameraMatrix(Twc, pose);
         glPushMatrix();
+        glLineWidth(mCameraLineWidth);
 
+        // display the camera frustrum
+        Twc.SetIdentity();
+        ConvertMatrixFromOpenCvToOpenGL(Twc, poses[i]);
 #ifdef HAVE_GLES
         glMultMatrixf(Twc.m);
 #else
         glMultMatrixd(Twc.m);
 #endif
 
-        glLineWidth(mCameraLineWidth);
         glColor3f(0.0f, 1.0f, 0.0f);
         glBegin(GL_LINES);
         glVertex3f(0, 0, 0);
@@ -310,6 +302,35 @@ void MapDrawer::DrawCurrentCameras()
 
         glVertex3f(-w, -h, z);
         glVertex3f(w, -h, z);
+
+        glColor3f(1.0f, 0.0f, 0.0f);
+        glVertex3f(0.0f, 0.0f, 0.0f);
+        glVertex3f(0.1f, 0.0f, 0.0f);
+        glColor3f(0.0f, 1.0f, 0.0f);
+        glVertex3f(0.0f, 0.0f, 0.0f);
+        glVertex3f(0.0f, 0.1f, 0.0f);
+        glColor3f(0.0f, 0.0f, 1.0f);
+        glVertex3f(0.0f, 0.0f, 0.0f);
+        glVertex3f(0.0f, 0.0f, 0.1f);
+        glEnd();
+
+        // display a line for the pivot calibration
+        pivotGL.SetIdentity();
+        ConvertMatrixFromOpenCvToOpenGL(pivotGL, pivots[i]);
+#ifdef HAVE_GLES
+        glMultMatrixf(pivotGL.m);
+#else
+        glMultMatrixd(pivotGL.m);
+#endif
+
+        float x = pivots[i].at<float>(0, 3);
+        float y = pivots[i].at<float>(1, 3);
+        float z = pivots[i].at<float>(2, 3);
+
+        glBegin(GL_LINES);
+        glColor3f(1.0f, 0.0f, 1.0f);
+        glVertex3f(0, 0, 0);
+        glVertex3f(x, y, z);
         glEnd();
 
         glPopMatrix();
@@ -325,16 +346,16 @@ void MapDrawer::SetCurrentCameraPose(const cv::Mat &Tcw)
     mCameraPose = Tcw.clone();
 }
 
-void MapDrawer::GetCurrentOpenGLCameraMatrix(pangolin::OpenGlMatrix &M, cv::Mat cameraPose)
+void MapDrawer::ConvertMatrixFromOpenCvToOpenGL(pangolin::OpenGlMatrix &M, cv::Mat pose)
 {
-    Print("begin GetCurrentOpenGLCameraMatrix");
-    if (!cameraPose.empty())
+    //Print("begin ConvertMatrixFromOpenCvToOpenGL");
+    if (!pose.empty())
     {
         cv::Mat Rwc(3, 3, CV_32F);
         cv::Mat twc(3, 1, CV_32F);
         {
-            Rwc = cameraPose.rowRange(0, 3).colRange(0, 3).t();
-            twc = -Rwc * cameraPose.rowRange(0, 3).col(3);
+            Rwc = pose.rowRange(0, 3).colRange(0, 3).t();
+            twc = -Rwc * pose.rowRange(0, 3).col(3);
         }
 
         M.m[0] = Rwc.at<float>(0, 0);
@@ -359,7 +380,7 @@ void MapDrawer::GetCurrentOpenGLCameraMatrix(pangolin::OpenGlMatrix &M, cv::Mat 
     }
     else
         M.SetIdentity();
-    Print("end GetCurrentOpenGLCameraMatrix");
+    //Print("end ConvertMatrixFromOpenCvToOpenGL");
 }
 
 void MapDrawer::SetReferenceMapPoints(const std::vector<MapPoint*>& vpMPs)

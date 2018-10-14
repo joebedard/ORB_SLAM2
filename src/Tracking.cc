@@ -21,17 +21,18 @@
 
 #include "Tracking.h"
 
-#include<opencv2/core/core.hpp>
-#include<opencv2/features2d/features2d.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/features2d/features2d.hpp>
 
-#include"ORBmatcher.h"
-#include"Converter.h"
-#include"Optimizer.h"
-#include"PnPsolver.h"
+#include "ORBmatcher.h"
+#include "Converter.h"
+#include "Optimizer.h"
+#include "PnPsolver.h"
 #include "Sleep.h"
 
-#include<iostream>
-#include<mutex>
+#include <iostream>
+#include <mutex>
+#include <cmath>
 
 using namespace std;
 
@@ -65,7 +66,8 @@ Tracking::Tracking(
     mKeyFrameIdSpan(0), 
     mNextMapPointId(0),
     mMapPointIdSpan(0),
-    mMapperObserver(this)
+    mMapperObserver(this),
+    pivotCal(4, 4, CV_32F)
 {
     LoadCameraParameters(fSettings, sensor);
     Login();
@@ -155,7 +157,6 @@ void Tracking::LoadCameraParameters(cv::FileStorage & fSettings, eSensor sensor)
         ss << "- color order: RGB (ignored if grayscale)" << "\n";
     else
         ss << "- color order: BGR (ignored if grayscale)" << "\n";
-    Print(ss);
 
     // Load ORB parameters
 
@@ -173,7 +174,6 @@ void Tracking::LoadCameraParameters(cv::FileStorage & fSettings, eSensor sensor)
     if(sensor==MONOCULAR)
         mpIniORBextractor = new ORBextractor(2*nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
 
-    ss.clear();
     ss << "\n"  << "ORB Extractor Parameters: " << "\n";
     ss << "- Number of Features: " << nFeatures << "\n";
     ss << "- Scale Levels: " << nLevels << "\n";
@@ -196,7 +196,91 @@ void Tracking::LoadCameraParameters(cv::FileStorage & fSettings, eSensor sensor)
             mDepthMapFactor = 1.0f/mDepthMapFactor;
     }
 
+    // Load Pivot Calibration
+
+    float pivotRX = (float)fSettings["Pivot.rx"];
+    float pivotRY = (float)fSettings["Pivot.ry"];
+    float pivotRZ = (float)fSettings["Pivot.rz"];
+    float pivotTX = (float)fSettings["Pivot.tx"];
+    float pivotTY = (float)fSettings["Pivot.ty"];
+    float pivotTZ = (float)fSettings["Pivot.tz"];
+
+    ss << "\n" << "Pivot Calibration: " << "\n";
+    ss << "- X rotation: " << pivotRX << "\n";
+    ss << "- Y rotation: " << pivotRY << "\n";
+    ss << "- Z rotation: " << pivotRZ << "\n";
+    ss << "- X translation: " << pivotTX << "\n";
+    ss << "- Y translation: " << pivotTY << "\n";
+    ss << "- Z translation: " << pivotTZ << "\n";
+
+    pivotCal = cv::Mat::eye(4, 4, CV_32F);
+    RotationsYXZtoMat(pivotRY, pivotRX, pivotRZ, pivotCal);
+    pivotCal.at<float>(0, 3) = pivotTX;
+    pivotCal.at<float>(1, 3) = pivotTY;
+    pivotCal.at<float>(2, 3) = pivotTZ;
+    pivotCal.at<float>(3, 3) = 1.0f;
+    pivotCal.at<float>(3, 2) = 0.0f;
+    pivotCal.at<float>(3, 1) = 0.0f;
+    pivotCal.at<float>(3, 0) = 0.0f;
+
+    ss << "Mat: " << pivotCal << "\n";
     Print(ss);
+}
+
+/*
+   Order of euler angles: yaw first, then pitch, then roll
+   matrix row column ordering:
+   [m00 m01 m02]
+   [m10 m11 m12]
+   [m20 m21 m22]
+*/
+void Tracking::RotationsYXZtoMat(double y, double x, double z, cv::Mat & m)
+{
+    // Assuming the angles are in radians.
+    double cx = std::cos(x);
+    double sx = std::sin(x);
+    double cy = std::cos(y);
+    double sy = std::sin(y);
+    double cz = std::cos(z);
+    double sz = std::sin(z);
+
+    m.at<float>(0, 0) = cy * cz + sx * sy * sz;
+    m.at<float>(0, 1) = sx * sy * cz - cy * sz;
+    m.at<float>(0, 2) = cx * sy;
+    m.at<float>(1, 0) = cx * sz;
+    m.at<float>(1, 1) = cx * cz;
+    m.at<float>(1, 2) = -sx;
+    m.at<float>(2, 0) = sx * cy * sz - sy * cz;
+    m.at<float>(2, 1) = sy * sz + sx * cy * cz;
+    m.at<float>(2, 2) = cx * cy;
+}
+
+/*
+   Order of euler angles: yaw first, then roll, then pitch
+   matrix row column ordering:
+   [m00 m01 m02]
+   [m10 m11 m12]
+   [m20 m21 m22]
+*/
+void Tracking::RotationsYZXtoMat(double y, double z, double x, cv::Mat & m)
+{
+    // Assuming the angles are in radians.
+    double cx = std::cos(x);
+    double sx = std::sin(x);
+    double cy = std::cos(y);
+    double sy = std::sin(y);
+    double cz = std::cos(z);
+    double sz = std::sin(z);
+
+    m.at<float>(0, 0) = cy * cz;
+    m.at<float>(0, 1) = sy * sx - cy * sz * cx;
+    m.at<float>(0, 2) = cy * sz * sx + sy * cx;
+    m.at<float>(1, 0) = sz;
+    m.at<float>(1, 1) = cz * cx;
+    m.at<float>(1, 2) = -cz * sx;
+    m.at<float>(2, 0) = -sy * cz;
+    m.at<float>(2, 1) = sy * sz * cx + cy * sx;
+    m.at<float>(2, 2) = -sy * sz * sx + cy * cx;
 }
 
 void Tracking::SetViewer(Viewer *pViewer)
@@ -1537,11 +1621,9 @@ unsigned long Tracking::NewMapPointId()
 
 void Tracking::Login()
 {
-    mId = mpMapper->LoginTracker(mNextKeyFrameId, mKeyFrameIdSpan, mNextMapPointId, mMapPointIdSpan, cv::Mat::eye(4, 4, CV_32F));
+    mId = mpMapper->LoginTracker(mNextKeyFrameId, mKeyFrameIdSpan, mNextMapPointId, mMapPointIdSpan, pivotCal);
     assert(mKeyFrameIdSpan != 0);
     assert(mMapPointIdSpan != 0);
-    if (mpMapDrawer)
-        mpMapDrawer->SetId(mId);
 
     stringstream ss;
     ss << "Tracking: Login Complete \n";
@@ -1555,15 +1637,12 @@ void Tracking::Login()
 
 void Tracking::Logout()
 {
-    unsigned int tempId = mId;
+    mpMapper->LogoutTracker(mId);
     mId = -1; //set to max positive integer
-    if (mpMapDrawer)
-        mpMapDrawer->SetId(mId);
 
-    mpMapper->LogoutTracker(tempId);
     stringstream ss;
     ss << "Tracking: Logout Complete \n";
-    ss << "   Tracker Id = " << tempId << "\n";
+    ss << "   Tracker Id = " << mId << "\n";
     Print(ss);
 }
 

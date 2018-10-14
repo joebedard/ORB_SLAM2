@@ -209,6 +209,20 @@ void Viewer::Run() try
 
            vMapViews[i]->Activate(*vMapStates[i]);
            glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+
+           glBegin(GL_LINES);
+           glColor3f(1.0f, 0.0f, 0.0f);
+           glVertex3f(0.0f, 0.0f, 0.0f);
+           glVertex3f(0.1f, 0.0f, 0.0f);
+           glColor3f(0.0f, 1.0f, 0.0f);
+           glVertex3f(0.0f, 0.0f, 0.0f);
+           glVertex3f(0.0f, 0.1f, 0.0f);
+           glColor3f(0.0f, 0.0f, 1.0f);
+           glVertex3f(0.0f, 0.0f, 0.0f);
+           glVertex3f(0.0f, 0.0f, 0.1f);
+           glColor3f(1.0f, 1.0f, 1.0f);
+           glEnd();
+
            mvMapDrawers[i]->DrawCurrentCameras();
            if (menuShowKeyFrames || menuShowGraph)
               mvMapDrawers[i]->DrawKeyFrames(menuShowKeyFrames, menuShowGraph);
