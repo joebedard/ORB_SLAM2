@@ -38,7 +38,6 @@ class MapDrawer : SyncPrint
 public:
     MapDrawer(MapperServer * pMapper, cv::FileStorage & fSettings);
     void Reset();
-    void SetId(int id);
 
     void Follow(pangolin::OpenGlRenderState * pRenderState);
     void DrawMapPoints();
@@ -52,12 +51,7 @@ public:
     float GetViewpointZ();
     float GetViewpointF();
 
-protected:
-    virtual void PrintPrefix(ostream & out) override;
-
 private:
-    unsigned int mId;
-
     Map * mpMap;
 
     MapperServer * mpMapper;
@@ -84,7 +78,7 @@ private:
 
     float mViewpointX, mViewpointY, mViewpointZ, mViewpointF;
 
-    void GetCurrentOpenGLCameraMatrix(pangolin::OpenGlMatrix &M, cv::Mat cameraPose);
+    void ConvertMatrixFromOpenCvToOpenGL(pangolin::OpenGlMatrix &M, cv::Mat cameraPose);
 
 };
 

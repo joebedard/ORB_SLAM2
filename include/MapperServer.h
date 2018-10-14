@@ -74,6 +74,8 @@ namespace ORB_SLAM2
 
       vector<cv::Mat> GetTrackerPoses();
 
+      vector<cv::Mat> GetTrackerPivots();
+
    private:
       static const unsigned int MAX_TRACKERS = 2;
 
