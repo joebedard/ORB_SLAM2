@@ -30,12 +30,12 @@ namespace ORB_SLAM2
       TRACKING_LOST = 3
    };
 
-    // Input sensor
-    enum eSensor {
-        MONOCULAR=0,
-        STEREO=1,
-        RGBD=2
-    };
+   // Input sensor
+   enum eSensor {
+      MONOCULAR = 0,
+      STEREO = 1,
+      RGBD = 2
+   };
 
 }
 

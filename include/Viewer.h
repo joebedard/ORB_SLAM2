@@ -33,61 +33,61 @@
 namespace ORB_SLAM2
 {
 
-class Tracking;
-class FrameDrawer;
-class MapDrawer;
+   class Tracking;
+   class FrameDrawer;
+   class MapDrawer;
 
-class Viewer : SyncPrint
-{
-public:
-    Viewer(FrameDrawer * pFrameDrawer, MapDrawer * pMapDrawer, Tracking * pTracking, MapperServer * pMapper, bool embeddedFrameDrawer = false);
+   class Viewer : SyncPrint
+   {
+   public:
+      Viewer(FrameDrawer * pFrameDrawer, MapDrawer * pMapDrawer, Tracking * pTracking, MapperServer * pMapper, bool embeddedFrameDrawer = false);
 
-    Viewer(vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers, MapperServer * pMapper, bool embeddedFrameDrawers = true);
+      Viewer(vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers, MapperServer * pMapper, bool embeddedFrameDrawers = true);
 
-    // Main thread function. Draw points, keyframes, the current camera pose and the last processed
-    // frame. Drawing is refreshed according to the camera fps. We use Pangolin.
-    void Run();
+      // Main thread function. Draw points, keyframes, the current camera pose and the last processed
+      // frame. Drawing is refreshed according to the camera fps. We use Pangolin.
+      void Run();
 
-    void RequestFinish();
+      void RequestFinish();
 
-    bool CheckFinish();
+      bool CheckFinish();
 
-    void RequestStop();
+      void RequestStop();
 
-    bool isFinished();
+      bool isFinished();
 
-    bool isStopped();
+      bool isStopped();
 
-    void Release();
+      void Release();
 
-private:
+   private:
 
-    string mWindowTitle;
+      string mWindowTitle;
 
-    bool mEmbeddedFrameDrawers;
+      bool mEmbeddedFrameDrawers;
 
-    bool Stop();
+      bool Stop();
 
-    vector<FrameDrawer*> mvFrameDrawers;
-    vector<MapDrawer *> mvMapDrawers;
-    vector<Tracking*> mvTrackers;
-    MapperServer * mpMapper;
+      vector<FrameDrawer*> mvFrameDrawers;
+      vector<MapDrawer *> mvMapDrawers;
+      vector<Tracking*> mvTrackers;
+      MapperServer * mpMapper;
 
-    void SetFinish();
-    bool mbFinishRequested;
-    bool mbFinished;
-    std::mutex mMutexFinish;
+      void SetFinish();
+      bool mbFinishRequested;
+      bool mbFinished;
+      std::mutex mMutexFinish;
 
-    bool mbStopped;
-    bool mbStopRequested;
-    std::mutex mMutexStop;
+      bool mbStopped;
+      bool mbStopRequested;
+      std::mutex mMutexStop;
 
-    bool mbResetting;
-};
+      bool mbResetting;
+   };
 
 }
 
 
 #endif // VIEWER_H
-	
+
 

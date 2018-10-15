@@ -26,51 +26,51 @@ namespace ORB_SLAM2
 #define FRAME_GRID_ROWS 48
 #define FRAME_GRID_COLS 64
 
-class FrameCalibration
-{
-public:
+   class FrameCalibration
+   {
+   public:
 
-    class ImageBounds
-    {
-    public:
-        float minX;
-        float maxX;
-        float minY;
-        float maxY;
+      class ImageBounds
+      {
+      public:
+         float minX;
+         float maxX;
+         float minY;
+         float maxY;
 
-        ImageBounds(cv::Mat &K, cv::Mat &distCoef, int width, int height);
-    };
-
-
-    // camera calibration
-
-    const cv::Mat K;
-    const cv::Mat distCoef;
-    const float fx;
-    const float fy;
-    const float cx;
-    const float cy;
-    const float invfx;
-    const float invfy;
+         ImageBounds(cv::Mat &K, cv::Mat &distCoef, int width, int height);
+      };
 
 
-    // Keypoints are assigned to cells in a grid to reduce matching complexity when projecting MapPoints
+      // camera calibration
 
-    const float gridElementWidthInv;
-    const float gridElementHeightInv;
-
-
-    // Undistorted Image Bounds
-
-    const float minX;
-    const float maxX;
-    const float minY;
-    const float maxY;
+      const cv::Mat K;
+      const cv::Mat distCoef;
+      const float fx;
+      const float fy;
+      const float cx;
+      const float cy;
+      const float invfx;
+      const float invfy;
 
 
-    FrameCalibration(cv::Mat &K, cv::Mat &distCoef, ImageBounds &imageBounds);
+      // Keypoints are assigned to cells in a grid to reduce matching complexity when projecting MapPoints
 
-};
+      const float gridElementWidthInv;
+      const float gridElementHeightInv;
+
+
+      // Undistorted Image Bounds
+
+      const float minX;
+      const float maxX;
+      const float minY;
+      const float maxY;
+
+
+      FrameCalibration(cv::Mat &K, cv::Mat &distCoef, ImageBounds &imageBounds);
+
+   };
 
 } // namespace ORB_SLAM2
 

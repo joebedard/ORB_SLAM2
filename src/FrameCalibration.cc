@@ -22,55 +22,55 @@
 namespace ORB_SLAM2
 {
 
-using namespace std;
+   using namespace std;
 
-FrameCalibration::FrameCalibration(cv::Mat &K, cv::Mat &distCoef, ImageBounds &imageBounds)
-    : K(K)
-    , distCoef(distCoef)
-    , fx(K.at<float>(0, 0))
-    , fy(K.at<float>(1, 1))
-    , cx(K.at<float>(0, 2))
-    , cy(K.at<float>(1, 2))
-    , invfx(1.0f / fx)
-    , invfy(1.0f / fy)
-    , minX(imageBounds.minX)
-    , maxX(imageBounds.maxX)
-    , minY(imageBounds.minY)
-    , maxY(imageBounds.maxY)
-    , gridElementWidthInv(static_cast<float>(FRAME_GRID_COLS) / (imageBounds.maxX - imageBounds.minX))
-    , gridElementHeightInv(static_cast<float>(FRAME_GRID_ROWS) / (imageBounds.maxY - imageBounds.minY))
-{
+   FrameCalibration::FrameCalibration(cv::Mat &K, cv::Mat &distCoef, ImageBounds &imageBounds)
+      : K(K)
+      , distCoef(distCoef)
+      , fx(K.at<float>(0, 0))
+      , fy(K.at<float>(1, 1))
+      , cx(K.at<float>(0, 2))
+      , cy(K.at<float>(1, 2))
+      , invfx(1.0f / fx)
+      , invfy(1.0f / fy)
+      , minX(imageBounds.minX)
+      , maxX(imageBounds.maxX)
+      , minY(imageBounds.minY)
+      , maxY(imageBounds.maxY)
+      , gridElementWidthInv(static_cast<float>(FRAME_GRID_COLS) / (imageBounds.maxX - imageBounds.minX))
+      , gridElementHeightInv(static_cast<float>(FRAME_GRID_ROWS) / (imageBounds.maxY - imageBounds.minY))
+   {
 
-}
+   }
 
-FrameCalibration::ImageBounds::ImageBounds(cv::Mat &K, cv::Mat &distCoef, int width, int height)
-{
-    if (distCoef.at<float>(0) != 0.0)
-    {
-        cv::Mat mat(4, 2, CV_32F);
-        mat.at<float>(0, 0) = 0.0; mat.at<float>(0, 1) = 0.0;
-        mat.at<float>(1, 0) = width; mat.at<float>(1, 1) = 0.0;
-        mat.at<float>(2, 0) = 0.0; mat.at<float>(2, 1) = height;
-        mat.at<float>(3, 0) = width; mat.at<float>(3, 1) = height;
+   FrameCalibration::ImageBounds::ImageBounds(cv::Mat &K, cv::Mat &distCoef, int width, int height)
+   {
+      if (distCoef.at<float>(0) != 0.0)
+      {
+         cv::Mat mat(4, 2, CV_32F);
+         mat.at<float>(0, 0) = 0.0; mat.at<float>(0, 1) = 0.0;
+         mat.at<float>(1, 0) = width; mat.at<float>(1, 1) = 0.0;
+         mat.at<float>(2, 0) = 0.0; mat.at<float>(2, 1) = height;
+         mat.at<float>(3, 0) = width; mat.at<float>(3, 1) = height;
 
-        // Undistort corners
-        mat = mat.reshape(2);
-        cv::undistortPoints(mat, mat, K, distCoef, cv::Mat(), K);
-        mat = mat.reshape(1);
+         // Undistort corners
+         mat = mat.reshape(2);
+         cv::undistortPoints(mat, mat, K, distCoef, cv::Mat(), K);
+         mat = mat.reshape(1);
 
-        minX = min(mat.at<float>(0, 0), mat.at<float>(2, 0));
-        maxX = max(mat.at<float>(1, 0), mat.at<float>(3, 0));
-        minY = min(mat.at<float>(0, 1), mat.at<float>(1, 1));
-        maxY = max(mat.at<float>(2, 1), mat.at<float>(3, 1));
+         minX = min(mat.at<float>(0, 0), mat.at<float>(2, 0));
+         maxX = max(mat.at<float>(1, 0), mat.at<float>(3, 0));
+         minY = min(mat.at<float>(0, 1), mat.at<float>(1, 1));
+         maxY = max(mat.at<float>(2, 1), mat.at<float>(3, 1));
 
-    }
-    else
-    {
-        minX = 0.0f;
-        maxX = width;
-        minY = 0.0f;
-        maxY = height;
-    }
-}
+      }
+      else
+      {
+         minX = 0.0f;
+         maxX = width;
+         minY = 0.0f;
+         maxY = height;
+      }
+   }
 
 }

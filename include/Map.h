@@ -31,54 +31,54 @@
 namespace ORB_SLAM2
 {
 
-class MapPoint;
-class KeyFrame;
+   class MapPoint;
+   class KeyFrame;
 
-class Map : SyncPrint
-{
-public:
-    Map();
+   class Map : SyncPrint
+   {
+   public:
+      Map();
 
-    void AddKeyFrame(KeyFrame* pKF);
-    void AddMapPoint(MapPoint* pMP);
-    void EraseMapPoint(MapPoint* pMP);
-    void EraseKeyFrame(KeyFrame* pKF);
-    void InformNewBigChange();
-    int GetLastBigChangeIdx();
+      void AddKeyFrame(KeyFrame* pKF);
+      void AddMapPoint(MapPoint* pMP);
+      void EraseMapPoint(MapPoint* pMP);
+      void EraseKeyFrame(KeyFrame* pKF);
+      void InformNewBigChange();
+      int GetLastBigChangeIdx();
 
-    std::vector<KeyFrame*> GetAllKeyFrames();
-    std::vector<MapPoint*> GetAllMapPoints();
+      std::vector<KeyFrame*> GetAllKeyFrames();
+      std::vector<MapPoint*> GetAllMapPoints();
 
-    long unsigned int MapPointsInMap();
-    long unsigned  KeyFramesInMap();
+      long unsigned int MapPointsInMap();
+      long unsigned  KeyFramesInMap();
 
-    long unsigned int GetMaxKFid();
+      long unsigned int GetMaxKFid();
 
-    void Clear();
+      void Clear();
 
-    Map & operator=(const Map & map);
-    
-    vector<KeyFrame*> mvpKeyFrameOrigins;
+      Map & operator=(const Map & map);
 
-    std::mutex mMutexMapUpdate;
+      vector<KeyFrame*> mvpKeyFrameOrigins;
 
-protected:
-    std::set<MapPoint*> mspMapPoints;
-    std::set<KeyFrame*> mspKeyFrames;
+      std::mutex mMutexMapUpdate;
 
-    long unsigned int mnMaxKFid;
+   protected:
+      std::set<MapPoint*> mspMapPoints;
+      std::set<KeyFrame*> mspKeyFrames;
 
-    // Index related to a big change in the map (loop closure, global BA)
-    int mnBigChangeIdx;
+      long unsigned int mnMaxKFid;
 
-    std::mutex mMutexMap;
+      // Index related to a big change in the map (loop closure, global BA)
+      int mnBigChangeIdx;
 
-private:
-   // This avoids that two points (with same id) are created simultaneously in separate threads (id conflict)
-   std::mutex mMutexPointCreation;
+      std::mutex mMutexMap;
 
-   long unsigned int mnNextPointId;
-};
+   private:
+      // This avoids that two points (with same id) are created simultaneously in separate threads (id conflict)
+      std::mutex mMutexPointCreation;
+
+      long unsigned int mnNextPointId;
+   };
 
 } //namespace ORB_SLAM
 

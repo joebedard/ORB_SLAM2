@@ -35,54 +35,54 @@
 namespace ORB_SLAM2
 {
 
-class Tracking;
+   class Tracking;
 
-class FrameDrawer : SyncPrint
-{
-public:
-    FrameDrawer(cv::FileStorage & fSettings);
+   class FrameDrawer : SyncPrint
+   {
+   public:
+      FrameDrawer(cv::FileStorage & fSettings);
 
-    void Reset();
+      void Reset();
 
-    // Update info from the last processed frame.
-    void Update(Tracking *pTracker, Map * pMap);
+      // Update info from the last processed frame.
+      void Update(Tracking *pTracker, Map * pMap);
 
-    // Draw last processed frame.
-    cv::Mat DrawFrame();
+      // Draw last processed frame.
+      cv::Mat DrawFrame();
 
-    int GetImageHeight();
+      int GetImageHeight();
 
-    int GetImageWidth();
+      int GetImageWidth();
 
-    int GetFrameHeight();
+      int GetFrameHeight();
 
-    int GetFrameWidth();
+      int GetFrameWidth();
 
-protected:
+   protected:
 
-    void DrawTextInfo(cv::Mat &im, eTrackingState state, cv::Mat &imText);
+      void DrawTextInfo(cv::Mat &im, eTrackingState state, cv::Mat &imText);
 
-    // Info of the frame to be drawn
-    cv::Mat mIm;
-    int N;
-    vector<cv::KeyPoint> mvCurrentKeys;
-    vector<bool> mvbMap, mvbVO;
-    bool mbOnlyTracking;
-    int mnTracked, mnTrackedVO;
-    vector<cv::KeyPoint> mvIniKeys;
-    vector<int> mvIniMatches;
-    eTrackingState mState;
+      // Info of the frame to be drawn
+      cv::Mat mIm;
+      int N;
+      vector<cv::KeyPoint> mvCurrentKeys;
+      vector<bool> mvbMap, mvbVO;
+      bool mbOnlyTracking;
+      int mnTracked, mnTrackedVO;
+      vector<cv::KeyPoint> mvIniKeys;
+      vector<int> mvIniMatches;
+      eTrackingState mState;
 
-    std::mutex mMutex;
+      std::mutex mMutex;
 
-private:
-   // 1/fps in ms
-   double mT;
-   int mImageWidth, mImageHeight, mTextInfoHeight, mnKFs, mnMPs;
+   private:
+      // 1/fps in ms
+      double mT;
+      int mImageWidth, mImageHeight, mTextInfoHeight, mnKFs, mnMPs;
 
-   stringstream StateToString(eTrackingState state);
+      stringstream StateToString(eTrackingState state);
 
-};
+   };
 
 } //namespace ORB_SLAM
 

@@ -34,112 +34,112 @@
 namespace ORB_SLAM2
 {
 
-class Tracking;
-class LoopClosing;
-class Map;
-class MapperServer;
+   class Tracking;
+   class LoopClosing;
+   class Map;
+   class MapperServer;
 
-class LocalMapping : public MapSubject, protected SyncPrint
-{
-public:
-    LocalMapping(
-        Map* pMap,
-        KeyFrameDatabase* pDB,
-        const float bMonocular,
-        unsigned long firstMapPointId,
-        unsigned int mapPointIdSpan
-    );
+   class LocalMapping : public MapSubject, protected SyncPrint
+   {
+   public:
+      LocalMapping(
+         Map* pMap,
+         KeyFrameDatabase* pDB,
+         const float bMonocular,
+         unsigned long firstMapPointId,
+         unsigned int mapPointIdSpan
+      );
 
-    void SetLoopCloser(LoopClosing* pLoopCloser);
+      void SetLoopCloser(LoopClosing* pLoopCloser);
 
-    // Main function
-    void Run();
+      // Main function
+      void Run();
 
-    bool InsertKeyFrame(vector<MapPoint *> mapPoints, KeyFrame* pKF);
+      bool InsertKeyFrame(vector<MapPoint *> mapPoints, KeyFrame* pKF);
 
-    // Thread Synch
-    void RequestPause();
-    void RequestReset();
-    bool Pause();
-    void Resume();
-    bool IsPaused();
-    bool PauseRequested();
-    bool AcceptKeyFrames();
-    void SetAcceptKeyFrames(bool flag);
-    bool SetNotPause(bool flag);
+      // Thread Synch
+      void RequestPause();
+      void RequestReset();
+      bool Pause();
+      void Resume();
+      bool IsPaused();
+      bool PauseRequested();
+      bool AcceptKeyFrames();
+      void SetAcceptKeyFrames(bool flag);
+      bool SetNotPause(bool flag);
 
-    void InterruptBA();
+      void InterruptBA();
 
-    void RequestFinish();
-    bool isFinished();
+      void RequestFinish();
+      bool isFinished();
 
-    int KeyframesInQueue()
-    {
-        unique_lock<mutex> lock(mMutexNewKFs);
-        return mlNewKeyFrames.size();
-    }
+      int KeyframesInQueue()
+      {
+         unique_lock<mutex> lock(mMutexNewKFs);
+         return mlNewKeyFrames.size();
+      }
 
-protected:
+   protected:
 
-    bool CheckNewKeyFrames();
-    void ProcessNewKeyFrame();
-    void CreateNewMapPoints();
+      bool CheckNewKeyFrames();
+      void ProcessNewKeyFrame();
+      void CreateNewMapPoints();
 
-    void MapPointCulling();
-    void SearchInNeighbors();
+      void MapPointCulling();
+      void SearchInNeighbors();
 
-    void KeyFrameCulling();
+      void KeyFrameCulling();
 
-    cv::Mat ComputeF12(KeyFrame* &pKF1, KeyFrame* &pKF2);
+      cv::Mat ComputeF12(KeyFrame* &pKF1, KeyFrame* &pKF2);
 
-    cv::Mat SkewSymmetricMatrix(const cv::Mat &v);
+      cv::Mat SkewSymmetricMatrix(const cv::Mat &v);
 
-    bool mbMonocular;
+      bool mbMonocular;
 
-    void ResetIfRequested();
-    bool mbResetRequested;
-    mutex mMutexReset;
+      void ResetIfRequested();
+      bool mbResetRequested;
+      mutex mMutexReset;
 
-    bool CheckFinish();
-    void SetFinish();
-    bool mbFinishRequested;
-    bool mbFinished;
-    mutex mMutexFinish;
+      bool CheckFinish();
+      void SetFinish();
+      bool mbFinishRequested;
+      bool mbFinished;
+      mutex mMutexFinish;
 
-    Map* mpMap;
-    KeyFrameDatabase* mpKeyFrameDB;
+      Map* mpMap;
+      KeyFrameDatabase* mpKeyFrameDB;
 
-    LoopClosing* mpLoopCloser;
+      LoopClosing* mpLoopCloser;
 
-    list<KeyFrame*> mlNewKeyFrames;
+      list<KeyFrame*> mlNewKeyFrames;
 
-    KeyFrame* mpCurrentKeyFrame;
+      KeyFrame* mpCurrentKeyFrame;
 
-    list<MapPoint*> mlpRecentAddedMapPoints;
+      list<MapPoint*> mlpRecentAddedMapPoints;
 
-    mutex mMutexNewKFs;
+      mutex mMutexNewKFs;
 
-    bool mbAbortBA;
+      bool mbAbortBA;
 
-    bool mbAcceptKeyFrames;
+      bool mbAcceptKeyFrames;
 
-    mutex mMutexAccept;
+      mutex mMutexAccept;
 
- private:
-    unsigned long mNextMapPointId;
+   private:
+      unsigned long mNextMapPointId;
 
-    unsigned int mMapPointIdSpan;
+      unsigned int mMapPointIdSpan;
 
-    bool mbPaused;
+      bool mbPaused;
 
-    bool mbPauseRequested;
+      bool mbPauseRequested;
 
-    bool mbNotPause;
+      bool mbNotPause;
 
-    mutex mMutexPause;
+      mutex mMutexPause;
 
-    unsigned long NewMapPointId();
-};
+      unsigned long NewMapPointId();
+   };
 
 } //namespace ORB_SLAM
 

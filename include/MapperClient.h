@@ -60,11 +60,11 @@ namespace ORB_SLAM2
       virtual Map * GetMap();
 
       virtual unsigned int LoginTracker(
-          unsigned long  & firstKeyFrameId,
-          unsigned int & keyFrameIdSpan,
-          unsigned long & firstMapPointId,
-          unsigned int & mapPointIdSpan,
-          const cv::Mat & pivotCalib
+         unsigned long  & firstKeyFrameId,
+         unsigned int & keyFrameIdSpan,
+         unsigned long & firstMapPointId,
+         unsigned int & mapPointIdSpan,
+         const cv::Mat & pivotCalib
       );
 
       virtual void LogoutTracker(unsigned int id);
@@ -81,7 +81,7 @@ namespace ORB_SLAM2
       static const unsigned int KEYFRAME_ID_SPAN = MAX_TRACKERS;
 
       /*
-      The Local Mapper does not create KeyFrames, but it does create MapPoints. This is why the 
+      The Local Mapper does not create KeyFrames, but it does create MapPoints. This is why the
       MAPPOINT_ID_SPAN is one more than the KEYFRAME_ID_SPAN. This set of MapPoint Ids is reserved
       for the Local Mapper.
       */
@@ -115,11 +115,11 @@ namespace ORB_SLAM2
 
       class MapperServerObserver : public MapObserver
       {
-          MapperClient * mpMapperClient;
+         MapperClient * mpMapperClient;
       public:
-          MapperServerObserver(MapperClient * pMapperClient) : mpMapperClient(pMapperClient) {};
-          virtual void HandleReset() { mpMapperClient->MapperServerObserverReset(); };
-          virtual void HandleMapChanged(MapChangeEvent & mce) { mpMapperClient->MapperServerObserverMapChanged(mce); }
+         MapperServerObserver(MapperClient * pMapperClient) : mpMapperClient(pMapperClient) {};
+         virtual void HandleReset() { mpMapperClient->MapperServerObserverReset(); };
+         virtual void HandleMapChanged(MapChangeEvent & mce) { mpMapperClient->MapperServerObserverMapChanged(mce); }
       };
 
       MapperServerObserver mMapperServerObserver;

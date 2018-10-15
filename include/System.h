@@ -40,117 +40,117 @@
 namespace ORB_SLAM2
 {
 
-class Viewer;
-class FrameDrawer;
-class Map;
-class Tracking;
-class MapperServer;
+   class Viewer;
+   class FrameDrawer;
+   class Map;
+   class Tracking;
+   class MapperServer;
 
-class System : SyncPrint
-{
-public:
+   class System : SyncPrint
+   {
+   public:
 
-    // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
-    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true);
+      // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
+      System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true);
 
-    ~System();
+      ~System();
 
-    // Proccess the given stereo frame. Images must be synchronized and rectified.
-    // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
-    // Returns the camera pose (empty if tracking fails).
-    cv::Mat TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp);
+      // Proccess the given stereo frame. Images must be synchronized and rectified.
+      // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
+      // Returns the camera pose (empty if tracking fails).
+      cv::Mat TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp);
 
-    // Process the given rgbd frame. Depthmap must be registered to the RGB frame.
-    // Input image: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
-    // Input depthmap: Float (CV_32F).
-    // Returns the camera pose (empty if tracking fails).
-    cv::Mat TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const double &timestamp);
+      // Process the given rgbd frame. Depthmap must be registered to the RGB frame.
+      // Input image: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
+      // Input depthmap: Float (CV_32F).
+      // Returns the camera pose (empty if tracking fails).
+      cv::Mat TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const double &timestamp);
 
-    // Proccess the given monocular frame
-    // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
-    // Returns the camera pose (empty if tracking fails).
-    cv::Mat TrackMonocular(const cv::Mat &im, const double &timestamp);
+      // Proccess the given monocular frame
+      // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
+      // Returns the camera pose (empty if tracking fails).
+      cv::Mat TrackMonocular(const cv::Mat &im, const double &timestamp);
 
-    // Returns true if there have been a big map change (loop closure, global BA)
-    // since last call to this function
-    bool MapChanged();
+      // Returns true if there have been a big map change (loop closure, global BA)
+      // since last call to this function
+      bool MapChanged();
 
-    // Returns true if the user clicked the Viewer's Quit button
-    // This should be checked after each call to Track*()
-    bool IsQuitting();
+      // Returns true if the user clicked the Viewer's Quit button
+      // This should be checked after each call to Track*()
+      bool IsQuitting();
 
-    // All threads will be requested to finish.
-    // It waits until all threads have finished.
-    // This function must be called before saving the trajectory.
-    void Shutdown();
+      // All threads will be requested to finish.
+      // It waits until all threads have finished.
+      // This function must be called before saving the trajectory.
+      void Shutdown();
 
-    // Save camera trajectory in the TUM RGB-D dataset format.
-    // Only for stereo and RGB-D. This method does not work for monocular.
-    // Call first Shutdown()
-    // See format details at: http://vision.in.tum.de/data/datasets/rgbd-dataset
-    void SaveTrajectoryTUM(const string &filename);
+      // Save camera trajectory in the TUM RGB-D dataset format.
+      // Only for stereo and RGB-D. This method does not work for monocular.
+      // Call first Shutdown()
+      // See format details at: http://vision.in.tum.de/data/datasets/rgbd-dataset
+      void SaveTrajectoryTUM(const string &filename);
 
-    // Save keyframe poses in the TUM RGB-D dataset format.
-    // This method works for all sensor input.
-    // Call first Shutdown()
-    // See format details at: http://vision.in.tum.de/data/datasets/rgbd-dataset
-    void SaveKeyFrameTrajectoryTUM(const string &filename);
+      // Save keyframe poses in the TUM RGB-D dataset format.
+      // This method works for all sensor input.
+      // Call first Shutdown()
+      // See format details at: http://vision.in.tum.de/data/datasets/rgbd-dataset
+      void SaveKeyFrameTrajectoryTUM(const string &filename);
 
-    // Save camera trajectory in the KITTI dataset format.
-    // Only for stereo and RGB-D. This method does not work for monocular.
-    // Call first Shutdown()
-    // See format details at: http://www.cvlibs.net/datasets/kitti/eval_odometry.php
-    void SaveTrajectoryKITTI(const string &filename);
+      // Save camera trajectory in the KITTI dataset format.
+      // Only for stereo and RGB-D. This method does not work for monocular.
+      // Call first Shutdown()
+      // See format details at: http://www.cvlibs.net/datasets/kitti/eval_odometry.php
+      void SaveTrajectoryKITTI(const string &filename);
 
-    // TODO: Save/Load functions
-    // SaveMap(const string &filename);
-    // LoadMap(const string &filename);
+      // TODO: Save/Load functions
+      // SaveMap(const string &filename);
+      // LoadMap(const string &filename);
 
-private:
+   private:
 
-   // Temporarily make these 3 functions private until they are really needed publicly
-   // Information from most recent processed frame
-   // You can call this right after TrackMonocular (or stereo or RGBD)
-   int GetTrackingState();
-   std::vector<MapPoint*> GetTrackedMapPoints();
-   std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
+      // Temporarily make these 3 functions private until they are really needed publicly
+      // Information from most recent processed frame
+      // You can call this right after TrackMonocular (or stereo or RGBD)
+      int GetTrackingState();
+      std::vector<MapPoint*> GetTrackedMapPoints();
+      std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 
-   // Input sensor
-    eSensor mSensor;
+      // Input sensor
+      eSensor mSensor;
 
-    // ORB vocabulary used for place recognition and feature matching.
-    ORBVocabulary* mpVocabulary;
+      // ORB vocabulary used for place recognition and feature matching.
+      ORBVocabulary* mpVocabulary;
 
-    // KeyFrame database for place recognition (relocalization and loop detection).
-    KeyFrameDatabase* mpKeyFrameDatabase;
+      // KeyFrame database for place recognition (relocalization and loop detection).
+      KeyFrameDatabase* mpKeyFrameDatabase;
 
-    // Map structure that stores the pointers to all KeyFrames and MapPoints.
-    Map * mpMap;
+      // Map structure that stores the pointers to all KeyFrames and MapPoints.
+      Map * mpMap;
 
-    // The Mapper encapsulates all mapping functionality of the system
-    MapperServer * mpMapper;
+      // The Mapper encapsulates all mapping functionality of the system
+      MapperServer * mpMapper;
 
-    // Tracker. It receives a frame and computes the associated camera pose.
-    // It also decides when to insert a new keyframe, create some new MapPoints and
-    // performs relocalization if tracking fails.
-    Tracking* mpTracker;
+      // Tracker. It receives a frame and computes the associated camera pose.
+      // It also decides when to insert a new keyframe, create some new MapPoints and
+      // performs relocalization if tracking fails.
+      Tracking* mpTracker;
 
-    // The viewer draws the map and the current camera pose. It uses Pangolin.
-    Viewer* mpViewer;
+      // The viewer draws the map and the current camera pose. It uses Pangolin.
+      Viewer* mpViewer;
 
-    FrameDrawer* mpFrameDrawer;
-    MapDrawer * mpMapDrawer;
+      FrameDrawer* mpFrameDrawer;
+      MapDrawer * mpMapDrawer;
 
-    // The Tracking thread "lives" in the main execution thread that creates the System object.
-    std::thread* mptViewer;
+      // The Tracking thread "lives" in the main execution thread that creates the System object.
+      std::thread* mptViewer;
 
-    // Tracking state
-    int mTrackingState;
-    std::vector<MapPoint*> mTrackedMapPoints;
-    std::vector<cv::KeyPoint> mTrackedKeyPointsUn;
-    std::mutex mMutexState;
+      // Tracking state
+      int mTrackingState;
+      std::vector<MapPoint*> mTrackedMapPoints;
+      std::vector<cv::KeyPoint> mTrackedKeyPointsUn;
+      std::mutex mMutexState;
 
-};
+   };
 
 }// namespace ORB_SLAM
 

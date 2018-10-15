@@ -23,80 +23,80 @@
 namespace ORB_SLAM2
 {
 
-using namespace std;
+   using namespace std;
 
-mutex SyncPrint::mMutexOutput;
+   mutex SyncPrint::mMutexOutput;
 
-SyncPrint::SyncPrint() {};
+   SyncPrint::SyncPrint() {};
 
-SyncPrint::SyncPrint(const char * prefix) : mPrefix(prefix) {};
+   SyncPrint::SyncPrint(const char * prefix) : mPrefix(prefix) {};
 
-SyncPrint::SyncPrint(const string & prefix) : mPrefix(prefix) {};
+   SyncPrint::SyncPrint(const string & prefix) : mPrefix(prefix) {};
 
-//static
-void SyncPrint::Print(const char * prefix, const char * message)
-{
-    unique_lock<mutex> lock(mMutexOutput);
+   //static
+   void SyncPrint::Print(const char * prefix, const char * message)
+   {
+      unique_lock<mutex> lock(mMutexOutput);
 
-    if (prefix)
-        cout << prefix;
+      if (prefix)
+         cout << prefix;
 
-    if (message)
-        cout << message;
+      if (message)
+         cout << message;
 
-    cout << endl;
-}
+      cout << endl;
+   }
 
-//static
-void SyncPrint::Print(const char * prefix, string & message)
-{
-    Print(prefix, message.c_str());
-}
+   //static
+   void SyncPrint::Print(const char * prefix, string & message)
+   {
+      Print(prefix, message.c_str());
+   }
 
-//static
-void SyncPrint::Print(string & prefix, string & message)
-{
-    Print(prefix.c_str(), message.c_str());
-}
+   //static
+   void SyncPrint::Print(string & prefix, string & message)
+   {
+      Print(prefix.c_str(), message.c_str());
+   }
 
-//static
-void SyncPrint::Print(const char * prefix, stringstream & message)
-{
-    Print(prefix, message.str().c_str());
-}
+   //static
+   void SyncPrint::Print(const char * prefix, stringstream & message)
+   {
+      Print(prefix, message.str().c_str());
+   }
 
-//static
-void SyncPrint::Print(stringstream prefix, stringstream & message)
-{
-    Print(prefix.str().c_str(), message.str().c_str());
-}
+   //static
+   void SyncPrint::Print(stringstream prefix, stringstream & message)
+   {
+      Print(prefix.str().c_str(), message.str().c_str());
+   }
 
-void SyncPrint::Print(const char * message)
-{
-    unique_lock<mutex> lock(mMutexOutput);
+   void SyncPrint::Print(const char * message)
+   {
+      unique_lock<mutex> lock(mMutexOutput);
 
-    PrintPrefix(cout);
+      PrintPrefix(cout);
 
-    if (message)
-        cout << message;
+      if (message)
+         cout << message;
 
-    cout << endl;
-}
+      cout << endl;
+   }
 
-void SyncPrint::Print(string & message)
-{
-    Print(message.c_str());
-}
+   void SyncPrint::Print(string & message)
+   {
+      Print(message.c_str());
+   }
 
-void SyncPrint::Print(stringstream & message)
-{
-    Print(message.str().c_str());
-}
+   void SyncPrint::Print(stringstream & message)
+   {
+      Print(message.str().c_str());
+   }
 
-void SyncPrint::PrintPrefix(ostream & out)
-{
-    out << mPrefix;
-}
+   void SyncPrint::PrintPrefix(ostream & out)
+   {
+      out << mPrefix;
+   }
 
 }
 

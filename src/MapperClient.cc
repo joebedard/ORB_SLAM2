@@ -47,9 +47,9 @@ namespace ORB_SLAM2
    void MapperClient::Reset()
    {
       // TODO - add an observer to the server
-       Print("Begin Server Reset");
-       server.Reset();
-       Print("End Server Reset");
+      Print("Begin Server Reset");
+      server.Reset();
+      Print("End Server Reset");
 
       NotifyReset();
 
@@ -66,7 +66,7 @@ namespace ORB_SLAM2
    {
       return server.DetectRelocalizationCandidates(F);
    }
-      
+
    bool MapperClient::GetInitialized()
    {
       return mInitialized;
@@ -77,13 +77,13 @@ namespace ORB_SLAM2
       // temporary until network synchronization
       return false;
    }
-   
+
    bool MapperClient::AcceptKeyFrames()
    {
-       // temporary until network synchronization
-       return true;
+      // temporary until network synchronization
+      return true;
    }
-   
+
    void MapperClient::Initialize(unsigned int trackerId, vector<MapPoint*> & mapPoints, vector<KeyFrame*> & keyframes)
    {
       if (mInitialized)
@@ -99,28 +99,28 @@ namespace ORB_SLAM2
 
    bool MapperClient::InsertKeyFrame(unsigned int trackerId, vector<MapPoint*> & mapPoints, KeyFrame *pKF)
    {
-       // client: serialize KF and MPs and then send to server
-       if (server.InsertKeyFrame(trackerId, mapPoints, pKF))
-       {
-           for (auto pMP : mapPoints)
-           {
-               mpMap->AddMapPoint(pMP);
-           }
-           mpMap->AddKeyFrame(pKF);
+      // client: serialize KF and MPs and then send to server
+      if (server.InsertKeyFrame(trackerId, mapPoints, pKF))
+      {
+         for (auto pMP : mapPoints)
+         {
+            mpMap->AddMapPoint(pMP);
+         }
+         mpMap->AddKeyFrame(pKF);
 
-           return true;
-       }
-       else
-           return false;
+         return true;
+      }
+      else
+         return false;
 
    }
 
    unsigned int MapperClient::LoginTracker(
-       unsigned long  & firstKeyFrameId,
-       unsigned int & keyFrameIdSpan,
-       unsigned long & firstMapPointId,
-       unsigned int & mapPointIdSpan,
-       const cv::Mat & pivotCalib)
+      unsigned long  & firstKeyFrameId,
+      unsigned int & keyFrameIdSpan,
+      unsigned long & firstMapPointId,
+      unsigned int & mapPointIdSpan,
+      const cv::Mat & pivotCalib)
    {
       unique_lock<mutex> lock(mMutexLogin);
 
@@ -130,33 +130,33 @@ namespace ORB_SLAM2
 
    void MapperClient::LogoutTracker(unsigned int id)
    {
-       unique_lock<mutex> lock(mMutexLogin);
+      unique_lock<mutex> lock(mMutexLogin);
 
-       server.LogoutTracker(id);
+      server.LogoutTracker(id);
    }
 
    void MapperClient::UpdatePose(unsigned int trackerId, const cv::Mat & poseTcw)
    {
-       // TODO - serialize trackerId, pose and send to server
-       server.UpdatePose(trackerId, poseTcw);
+      // TODO - serialize trackerId, pose and send to server
+      server.UpdatePose(trackerId, poseTcw);
    }
 
    vector<cv::Mat> MapperClient::GetTrackerPoses()
    {
-       // TODO - pose synchronization between client(s) and server
-       return server.GetTrackerPoses();
+      // TODO - pose synchronization between client(s) and server
+      return server.GetTrackerPoses();
    }
 
    vector<cv::Mat> MapperClient::GetTrackerPivots()
    {
-       // TODO - pivot synchronization between client(s) and server
-       return server.GetTrackerPivots();
+      // TODO - pivot synchronization between client(s) and server
+      return server.GetTrackerPivots();
    }
 
    Map * MapperClient::GetMap()
    {
-       // TODO - map synchronization between client(s) and server
-       return mpMap;
+      // TODO - map synchronization between client(s) and server
+      return mpMap;
    }
 
    void MapperClient::MapperServerObserverReset()

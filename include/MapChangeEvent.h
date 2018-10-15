@@ -35,7 +35,7 @@ namespace ORB_SLAM2
       set<KeyFrame *> updatedKeyFrames;
 
       set<KeyFrame *> deletedKeyFrames;
-      
+
       set<MapPoint *> createdMapPoints;
 
       set<MapPoint *> updatedMapPoints;

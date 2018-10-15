@@ -29,10 +29,10 @@
 inline void sleep(int microseconds)
 {
 #ifdef LINUX
-	usleep(microseconds);   // usleep takes sleep time in us (1 millionth of a second)
+   usleep(microseconds);   // usleep takes sleep time in us (1 millionth of a second)
 #endif
 #ifdef _WIN32
-	Sleep(microseconds / 1000);
+   Sleep(microseconds / 1000);
 #endif
 }
 

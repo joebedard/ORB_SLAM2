@@ -61,11 +61,11 @@ namespace ORB_SLAM2
       virtual Map * GetMap();
 
       virtual unsigned int LoginTracker(
-        unsigned long  & firstKeyFrameId,
-        unsigned int & keyFrameIdSpan,
-        unsigned long & firstMapPointId,
-        unsigned int & mapPointIdSpan,
-        const cv::Mat & pivotCalib
+         unsigned long  & firstKeyFrameId,
+         unsigned int & keyFrameIdSpan,
+         unsigned long & firstMapPointId,
+         unsigned int & mapPointIdSpan,
+         const cv::Mat & pivotCalib
       );
 
       virtual void LogoutTracker(unsigned int id);
@@ -82,7 +82,7 @@ namespace ORB_SLAM2
       static const unsigned int KEYFRAME_ID_SPAN = MAX_TRACKERS;
 
       /*
-      The Local Mapper does not create KeyFrames, but it does create MapPoints. This is why the 
+      The Local Mapper does not create KeyFrames, but it does create MapPoints. This is why the
       MAPPOINT_ID_SPAN is one more than the KEYFRAME_ID_SPAN. This set of MapPoint Ids is reserved
       for the Local Mapper.
       */
@@ -128,22 +128,22 @@ namespace ORB_SLAM2
 
       class LocalMappingObserver : public MapObserver
       {
-          MapperServer * mpMapperServer;
+         MapperServer * mpMapperServer;
       public:
-          LocalMappingObserver(MapperServer * pMapperServer) : mpMapperServer(pMapperServer) {};
-          virtual void HandleReset() { mpMapperServer->NotifyReset(); };
-          virtual void HandleMapChanged(MapChangeEvent & mce) { mpMapperServer->NotifyMapChanged(mce); }
+         LocalMappingObserver(MapperServer * pMapperServer) : mpMapperServer(pMapperServer) {};
+         virtual void HandleReset() { mpMapperServer->NotifyReset(); };
+         virtual void HandleMapChanged(MapChangeEvent & mce) { mpMapperServer->NotifyMapChanged(mce); }
       };
 
       LocalMappingObserver mLocalMappingObserver;
 
       class LoopClosingObserver : public MapObserver
       {
-          MapperServer * mpMapperServer;
+         MapperServer * mpMapperServer;
       public:
-          LoopClosingObserver(MapperServer * pMapperServer) : mpMapperServer(pMapperServer) {};
-          virtual void HandleReset() { mpMapperServer->NotifyReset(); };
-          virtual void HandleMapChanged(MapChangeEvent & mce) { mpMapperServer->NotifyMapChanged(mce); }
+         LoopClosingObserver(MapperServer * pMapperServer) : mpMapperServer(pMapperServer) {};
+         virtual void HandleReset() { mpMapperServer->NotifyReset(); };
+         virtual void HandleMapChanged(MapChangeEvent & mce) { mpMapperServer->NotifyMapChanged(mce); }
       };
 
       LoopClosingObserver mLoopClosingObserver;

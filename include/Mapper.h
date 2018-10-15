@@ -52,11 +52,11 @@ namespace ORB_SLAM2
       virtual Map * GetMap() = 0;
 
       virtual unsigned int LoginTracker(
-          unsigned long  & firstKeyFrameId,
-          unsigned int & keyFrameIdSpan,
-          unsigned long & firstMapPointId,
-          unsigned int & mapPointIdSpan,
-          const cv::Mat & pivotCalib
+         unsigned long  & firstKeyFrameId,
+         unsigned int & keyFrameIdSpan,
+         unsigned long & firstMapPointId,
+         unsigned int & mapPointIdSpan,
+         const cv::Mat & pivotCalib
       ) = 0;
 
       virtual void LogoutTracker(unsigned int id) = 0;

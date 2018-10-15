@@ -24,13 +24,13 @@ namespace ORB_SLAM2
 {
 
    MapperServer::MapperServer(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular) :
-        SyncPrint("MapperServer: "), 
-        mpMap(pMap),
-        mpVocab(pVocab), 
-        mbMonocular(bMonocular), 
-        mInitialized(false),
-        mLocalMappingObserver(this),
-        mLoopClosingObserver(this)
+      SyncPrint("MapperServer: "),
+      mpMap(pMap),
+      mpVocab(pVocab),
+      mbMonocular(bMonocular),
+      mInitialized(false),
+      mLocalMappingObserver(this),
+      mLoopClosingObserver(this)
    {
       if (pMap == NULL)
          throw std::exception("pMap must not be NULL");
@@ -110,7 +110,7 @@ namespace ORB_SLAM2
    {
       return mpKeyFrameDB->DetectRelocalizationCandidates(F);
    }
-      
+
    bool MapperServer::GetInitialized()
    {
       return mInitialized;
@@ -120,12 +120,12 @@ namespace ORB_SLAM2
    {
       return mpLocalMapper->PauseRequested();
    }
-   
+
    bool MapperServer::AcceptKeyFrames()
    {
       return mpLocalMapper->AcceptKeyFrames();
    }
-   
+
    void MapperServer::Initialize(unsigned int trackerId, vector<MapPoint*> & mapPoints, vector<KeyFrame*> & keyframes)
    {
       if (mInitialized)
@@ -139,15 +139,15 @@ namespace ORB_SLAM2
       // stereo and RGBD modes will create MapPoints
       for (auto it : mapPoints)
       {
-          mpMap->AddMapPoint(it);
+         mpMap->AddMapPoint(it);
       }
 
       mpMap->mvpKeyFrameOrigins.push_back(keyframes[0]);
 
       for (auto it : keyframes)
       {
-          // Insert KeyFrame in the map
-          mpMap->AddKeyFrame(it);
+         // Insert KeyFrame in the map
+         mpMap->AddKeyFrame(it);
       }
 
       // all points are already added to the map
@@ -155,11 +155,11 @@ namespace ORB_SLAM2
 
       for (auto it : keyframes)
       {
-          if (!InsertKeyFrame(trackerId, noAdditionalPoints, it))
-          {
-             mpMap->Clear();
-             throw exception("Unable to InsertKeyFrame during Initialize.");
-          }
+         if (!InsertKeyFrame(trackerId, noAdditionalPoints, it))
+         {
+            mpMap->Clear();
+            throw exception("Unable to InsertKeyFrame during Initialize.");
+         }
       }
 
       // stereo and RGBD modes will create MapPoints
@@ -176,7 +176,7 @@ namespace ORB_SLAM2
       if (mpLocalMapper->InsertKeyFrame(mapPoints, pKF))
       {
          unique_lock<mutex> lock(mMutexTrackerStatus);
-          
+
          // update TrackerStatus array with next KeyFrameId and MapPointId
          assert((pKF->GetId() - trackerId) % KEYFRAME_ID_SPAN == 0);
          if (mTrackers[trackerId].nextKeyFrameId <= pKF->GetId())
@@ -195,22 +195,22 @@ namespace ORB_SLAM2
 
    void MapperServer::UpdateTrackerIds(unsigned int trackerId, vector<MapPoint *> mapPoints)
    {
-       for (auto pMP : mapPoints)
-       {
-           assert((pMP->GetId() - trackerId) % MAPPOINT_ID_SPAN == 0);
-           if (mTrackers[trackerId].nextMapPointId <= pMP->GetId())
-           {
-               mTrackers[trackerId].nextMapPointId = pMP->GetId() + MAPPOINT_ID_SPAN;
-           }
-       }
+      for (auto pMP : mapPoints)
+      {
+         assert((pMP->GetId() - trackerId) % MAPPOINT_ID_SPAN == 0);
+         if (mTrackers[trackerId].nextMapPointId <= pMP->GetId())
+         {
+            mTrackers[trackerId].nextMapPointId = pMP->GetId() + MAPPOINT_ID_SPAN;
+         }
+      }
    }
 
    unsigned int MapperServer::LoginTracker(
-        unsigned long  & firstKeyFrameId, 
-        unsigned int & keyFrameIdSpan, 
-        unsigned long & firstMapPointId, 
-        unsigned int & mapPointIdSpan,
-        const cv::Mat & pivotCalib)
+      unsigned long  & firstKeyFrameId,
+      unsigned int & keyFrameIdSpan,
+      unsigned long & firstMapPointId,
+      unsigned int & mapPointIdSpan,
+      const cv::Mat & pivotCalib)
    {
       unique_lock<mutex> lock(mMutexTrackerStatus);
 
@@ -238,49 +238,49 @@ namespace ORB_SLAM2
 
    void MapperServer::LogoutTracker(unsigned int id)
    {
-       unique_lock<mutex> lock(mMutexTrackerStatus);
+      unique_lock<mutex> lock(mMutexTrackerStatus);
 
-       mTrackers[id].connected = false;
+      mTrackers[id].connected = false;
    }
 
    void MapperServer::UpdatePose(unsigned int trackerId, const cv::Mat & poseTcw)
    {
-       unique_lock<mutex> lock(mMutexTrackerStatus);
+      unique_lock<mutex> lock(mMutexTrackerStatus);
 
-       ValidateTracker(trackerId);
+      ValidateTracker(trackerId);
 
-       mTrackers[trackerId].poseTcw = poseTcw.clone();
+      mTrackers[trackerId].poseTcw = poseTcw.clone();
    }
 
    vector<cv::Mat> MapperServer::GetTrackerPoses()
    {
-       unique_lock<mutex> lock(mMutexTrackerStatus);
-       
-       vector<cv::Mat> poses;
-       for (int i = 0; i < MAX_TRACKERS; i++)
-       {
-           if (mTrackers[i].connected)
-               poses.push_back(mTrackers[i].poseTcw.clone());
-       }
-       return poses;
+      unique_lock<mutex> lock(mMutexTrackerStatus);
+
+      vector<cv::Mat> poses;
+      for (int i = 0; i < MAX_TRACKERS; i++)
+      {
+         if (mTrackers[i].connected)
+            poses.push_back(mTrackers[i].poseTcw.clone());
+      }
+      return poses;
    }
 
    vector<cv::Mat> MapperServer::GetTrackerPivots()
    {
-       unique_lock<mutex> lock(mMutexTrackerStatus);
+      unique_lock<mutex> lock(mMutexTrackerStatus);
 
-       vector<cv::Mat> poses;
-       for (int i = 0; i < MAX_TRACKERS; i++)
-       {
-           if (mTrackers[i].connected)
-               poses.push_back(mTrackers[i].pivotCalib.clone());
-       }
-       return poses;
+      vector<cv::Mat> poses;
+      for (int i = 0; i < MAX_TRACKERS; i++)
+      {
+         if (mTrackers[i].connected)
+            poses.push_back(mTrackers[i].pivotCalib.clone());
+      }
+      return poses;
    }
 
    Map * MapperServer::GetMap()
    {
-       return mpMap;
+      return mpMap;
    }
 
    void MapperServer::ResetTrackerStatus()
@@ -299,8 +299,8 @@ namespace ORB_SLAM2
 
    void MapperServer::ValidateTracker(unsigned int trackerId)
    {
-       if (!mTrackers[trackerId].connected)
-           throw exception(string("Tracker is not logged in! Id=").append(to_string(trackerId)).c_str());
+      if (!mTrackers[trackerId].connected)
+         throw exception(string("Tracker is not logged in! Id=").append(to_string(trackerId)).c_str());
    }
 
 }

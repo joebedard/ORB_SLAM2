@@ -23,19 +23,19 @@
 namespace ORB_SLAM2
 {
 
-    /*
-        base class for Observer class from the Observer Pattern
-        see https://sourcemaking.com/design_patterns/observer
-    */
-    class MapObserver
-    {
-    public:
+   /*
+       base class for Observer class from the Observer Pattern
+       see https://sourcemaking.com/design_patterns/observer
+   */
+   class MapObserver
+   {
+   public:
 
-        virtual void HandleReset() {}
-    
-        virtual void HandleMapChanged(MapChangeEvent & mce) {}
+      virtual void HandleReset() {}
 
-    };
+      virtual void HandleMapChanged(MapChangeEvent & mce) {}
+
+   };
 
 }
 

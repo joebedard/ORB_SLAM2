@@ -33,54 +33,54 @@
 namespace ORB_SLAM2
 {
 
-class MapDrawer : SyncPrint
-{
-public:
-    MapDrawer(MapperServer * pMapper, cv::FileStorage & fSettings);
-    void Reset();
+   class MapDrawer : SyncPrint
+   {
+   public:
+      MapDrawer(MapperServer * pMapper, cv::FileStorage & fSettings);
+      void Reset();
 
-    void Follow(pangolin::OpenGlRenderState * pRenderState);
-    void DrawMapPoints();
-    void DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph);
-    void DrawCurrentCameras();
-    void SetCurrentCameraPose(const cv::Mat &Tcw);
-    void SetReferenceMapPoints(const std::vector<MapPoint*>& vpMPs);
+      void Follow(pangolin::OpenGlRenderState * pRenderState);
+      void DrawMapPoints();
+      void DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph);
+      void DrawCurrentCameras();
+      void SetCurrentCameraPose(const cv::Mat &Tcw);
+      void SetReferenceMapPoints(const std::vector<MapPoint*>& vpMPs);
 
-    float GetViewpointX();
-    float GetViewpointY();
-    float GetViewpointZ();
-    float GetViewpointF();
+      float GetViewpointX();
+      float GetViewpointY();
+      float GetViewpointZ();
+      float GetViewpointF();
 
-private:
-    Map * mpMap;
+   private:
+      Map * mpMap;
 
-    MapperServer * mpMapper;
+      MapperServer * mpMapper;
 
-    float mKeyFrameSize;
+      float mKeyFrameSize;
 
-    float mKeyFrameLineWidth;
+      float mKeyFrameLineWidth;
 
-    float mGraphLineWidth;
+      float mGraphLineWidth;
 
-    float mPointSize;
+      float mPointSize;
 
-    float mCameraSize;
+      float mCameraSize;
 
-    float mCameraLineWidth;
+      float mCameraLineWidth;
 
-    cv::Mat mCameraPose;
+      cv::Mat mCameraPose;
 
-    std::mutex mMutexCamera;
+      std::mutex mMutexCamera;
 
-    mutex mMutexReferenceMapPoints;
+      mutex mMutexReferenceMapPoints;
 
-    std::vector<MapPoint*> mvpReferenceMapPoints;
+      std::vector<MapPoint*> mvpReferenceMapPoints;
 
-    float mViewpointX, mViewpointY, mViewpointZ, mViewpointF;
+      float mViewpointX, mViewpointY, mViewpointZ, mViewpointF;
 
-    void ConvertMatrixFromOpenCvToOpenGL(pangolin::OpenGlMatrix &M, cv::Mat cameraPose);
+      void ConvertMatrixFromOpenCvToOpenGL(pangolin::OpenGlMatrix &M, cv::Mat cameraPose);
 
-};
+   };
 
 } //namespace ORB_SLAM
 

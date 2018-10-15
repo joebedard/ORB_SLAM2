@@ -29,229 +29,229 @@
 namespace ORB_SLAM2
 {
 
-FrameDrawer::FrameDrawer(cv::FileStorage & fSettings) :
-    SyncPrint("FrameDrawer: "), mnKFs(0), mnMPs(0),
-    N(0), mState(NO_IMAGES_YET), mbOnlyTracking(false)
-{
-   float fps = fSettings["Camera.fps"];
-   if (fps < 1.0f)
-      throw new exception("Camera.fps is not set.");
-   mT = 1e3 / fps;
+   FrameDrawer::FrameDrawer(cv::FileStorage & fSettings) :
+      SyncPrint("FrameDrawer: "), mnKFs(0), mnMPs(0),
+      N(0), mState(NO_IMAGES_YET), mbOnlyTracking(false)
+   {
+      float fps = fSettings["Camera.fps"];
+      if (fps < 1.0f)
+         throw new exception("Camera.fps is not set.");
+      mT = 1e3 / fps;
 
-   mImageWidth = (int)fSettings["Camera.width"];
-   if (0 == mImageWidth)
-      throw new exception("Camera.width is not set.");
+      mImageWidth = (int)fSettings["Camera.width"];
+      if (0 == mImageWidth)
+         throw new exception("Camera.width is not set.");
 
-   mImageHeight = (int)fSettings["Camera.height"];
-   if (0 == mImageHeight)
-      throw new exception("Camera.height is not set.");
+      mImageHeight = (int)fSettings["Camera.height"];
+      if (0 == mImageHeight)
+         throw new exception("Camera.height is not set.");
 
-   stringstream s = StateToString(mState);
-   int baseline = 0;
-   cv::Size textSize = cv::getTextSize(s.str(), cv::FONT_HERSHEY_PLAIN, 1, 1, &baseline);
-   mTextInfoHeight = textSize.height + 10;
+      stringstream s = StateToString(mState);
+      int baseline = 0;
+      cv::Size textSize = cv::getTextSize(s.str(), cv::FONT_HERSHEY_PLAIN, 1, 1, &baseline);
+      mTextInfoHeight = textSize.height + 10;
 
-   mIm = cv::Mat(GetFrameHeight(), GetFrameWidth(), CV_8UC3, cv::Scalar(0, 0, 0));
-}
+      mIm = cv::Mat(GetFrameHeight(), GetFrameWidth(), CV_8UC3, cv::Scalar(0, 0, 0));
+   }
 
-void FrameDrawer::Reset()
-{
-    unique_lock<mutex> lock(mMutex);
+   void FrameDrawer::Reset()
+   {
+      unique_lock<mutex> lock(mMutex);
 
-    mnKFs = 0;
-    mnMPs = 0;
-    N = 0;
-    mState = NO_IMAGES_YET;
-    mbOnlyTracking = false;
+      mnKFs = 0;
+      mnMPs = 0;
+      N = 0;
+      mState = NO_IMAGES_YET;
+      mbOnlyTracking = false;
 
-    mIm = cv::Mat(GetFrameHeight(), GetFrameWidth(), CV_8UC3, cv::Scalar(0, 0, 0));
+      mIm = cv::Mat(GetFrameHeight(), GetFrameWidth(), CV_8UC3, cv::Scalar(0, 0, 0));
 
-    mvCurrentKeys.clear();
-    mvbVO.clear();
-    mvbMap.clear();
-    mvIniKeys.clear();
-    mvIniMatches.clear();
-}
+      mvCurrentKeys.clear();
+      mvbVO.clear();
+      mvbMap.clear();
+      mvIniKeys.clear();
+      mvIniMatches.clear();
+   }
 
-cv::Mat FrameDrawer::DrawFrame()
-{
-    cv::Mat im;
-    vector<cv::KeyPoint> vIniKeys; // Initialization: KeyPoints in reference frame
-    vector<int> vMatches; // Initialization: correspondeces with reference keypoints
-    vector<cv::KeyPoint> vCurrentKeys; // KeyPoints in current frame
-    vector<bool> vbVO, vbMap; // Tracked MapPoints in current frame
-    eTrackingState state; // Tracking state
+   cv::Mat FrameDrawer::DrawFrame()
+   {
+      cv::Mat im;
+      vector<cv::KeyPoint> vIniKeys; // Initialization: KeyPoints in reference frame
+      vector<int> vMatches; // Initialization: correspondeces with reference keypoints
+      vector<cv::KeyPoint> vCurrentKeys; // KeyPoints in current frame
+      vector<bool> vbVO, vbMap; // Tracked MapPoints in current frame
+      eTrackingState state; // Tracking state
 
-    //Copy variables within scoped mutex
-    {
-        unique_lock<mutex> lock(mMutex);
-        state=mState;
+      //Copy variables within scoped mutex
+      {
+         unique_lock<mutex> lock(mMutex);
+         state = mState;
 
-        mIm.copyTo(im);
+         mIm.copyTo(im);
 
-        if(mState == NOT_INITIALIZED)
-        {
+         if (mState == NOT_INITIALIZED)
+         {
             vCurrentKeys = mvCurrentKeys;
             vIniKeys = mvIniKeys;
             vMatches = mvIniMatches;
-        }
-        else if(mState == TRACKING_OK)
-        {
+         }
+         else if (mState == TRACKING_OK)
+         {
             vCurrentKeys = mvCurrentKeys;
             vbVO = mvbVO;
             vbMap = mvbMap;
-        }
-        else if(mState == TRACKING_LOST)
-        {
+         }
+         else if (mState == TRACKING_LOST)
+         {
             vCurrentKeys = mvCurrentKeys;
-        }
-    } // destroy scoped mutex -> release mutex
+         }
+      } // destroy scoped mutex -> release mutex
 
-    if(im.channels()<3) //this should be always true
-        cvtColor(im,im,CV_GRAY2BGR);
+      if (im.channels() < 3) //this should be always true
+         cvtColor(im, im, CV_GRAY2BGR);
 
-    //Draw
-    if(state == NOT_INITIALIZED) //INITIALIZING
-    {
-        for(unsigned int i=0; i<vMatches.size(); i++)
-        {
-            if(vMatches[i]>=0)
+      //Draw
+      if (state == NOT_INITIALIZED) //INITIALIZING
+      {
+         for (unsigned int i = 0; i < vMatches.size(); i++)
+         {
+            if (vMatches[i] >= 0)
             {
-                cv::line(im,vIniKeys[i].pt,vCurrentKeys[vMatches[i]].pt,
-                        cv::Scalar(0,255,0));
+               cv::line(im, vIniKeys[i].pt, vCurrentKeys[vMatches[i]].pt,
+                  cv::Scalar(0, 255, 0));
             }
-        }        
-    }
-    else if(state == TRACKING_OK)
-    {
-        mnTracked=0;
-        mnTrackedVO=0;
-        const float r = 5;
-        const int n = vCurrentKeys.size();
-        for(int i=0;i<n;i++)
-        {
-            if(vbVO[i] || vbMap[i])
+         }
+      }
+      else if (state == TRACKING_OK)
+      {
+         mnTracked = 0;
+         mnTrackedVO = 0;
+         const float r = 5;
+         const int n = vCurrentKeys.size();
+         for (int i = 0;i < n;i++)
+         {
+            if (vbVO[i] || vbMap[i])
             {
-                cv::Point2f pt1,pt2;
-                pt1.x=vCurrentKeys[i].pt.x-r;
-                pt1.y=vCurrentKeys[i].pt.y-r;
-                pt2.x=vCurrentKeys[i].pt.x+r;
-                pt2.y=vCurrentKeys[i].pt.y+r;
+               cv::Point2f pt1, pt2;
+               pt1.x = vCurrentKeys[i].pt.x - r;
+               pt1.y = vCurrentKeys[i].pt.y - r;
+               pt2.x = vCurrentKeys[i].pt.x + r;
+               pt2.y = vCurrentKeys[i].pt.y + r;
 
-                // This is a match to a MapPoint in the map
-                if(vbMap[i])
-                {
-                    cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
-                    cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,255,0),-1);
-                    mnTracked++;
-                }
-                else // This is match to a "visual odometry" MapPoint created in the last frame
-                {
-                    cv::rectangle(im,pt1,pt2,cv::Scalar(255,0,0));
-                    cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(255,0,0),-1);
-                    mnTrackedVO++;
-                }
+               // This is a match to a MapPoint in the map
+               if (vbMap[i])
+               {
+                  cv::rectangle(im, pt1, pt2, cv::Scalar(0, 255, 0));
+                  cv::circle(im, vCurrentKeys[i].pt, 2, cv::Scalar(0, 255, 0), -1);
+                  mnTracked++;
+               }
+               else // This is match to a "visual odometry" MapPoint created in the last frame
+               {
+                  cv::rectangle(im, pt1, pt2, cv::Scalar(255, 0, 0));
+                  cv::circle(im, vCurrentKeys[i].pt, 2, cv::Scalar(255, 0, 0), -1);
+                  mnTrackedVO++;
+               }
             }
-        }
-    }
+         }
+      }
 
-    cv::Mat imWithInfo;
-    DrawTextInfo(im,state, imWithInfo);
+      cv::Mat imWithInfo;
+      DrawTextInfo(im, state, imWithInfo);
 
-    return imWithInfo;
-}
+      return imWithInfo;
+   }
 
-int FrameDrawer::GetImageHeight()
-{
-    return mImageHeight;
-}
+   int FrameDrawer::GetImageHeight()
+   {
+      return mImageHeight;
+   }
 
-int FrameDrawer::GetImageWidth()
-{
-    return mImageWidth;
-}
+   int FrameDrawer::GetImageWidth()
+   {
+      return mImageWidth;
+   }
 
-int FrameDrawer::GetFrameHeight()
-{
-    return mImageHeight + mTextInfoHeight;
-}
+   int FrameDrawer::GetFrameHeight()
+   {
+      return mImageHeight + mTextInfoHeight;
+   }
 
-int FrameDrawer::GetFrameWidth()
-{
-    return mImageWidth;
-}
+   int FrameDrawer::GetFrameWidth()
+   {
+      return mImageWidth;
+   }
 
-stringstream FrameDrawer::StateToString(eTrackingState state)
-{
-    stringstream s;
-    if (state == NO_IMAGES_YET)
-        s << " WAITING FOR IMAGES";
-    else if (state == NOT_INITIALIZED)
-        s << " TRYING TO INITIALIZE ";
-    else if (state == TRACKING_OK)
-    {
-        if (!mbOnlyTracking)
+   stringstream FrameDrawer::StateToString(eTrackingState state)
+   {
+      stringstream s;
+      if (state == NO_IMAGES_YET)
+         s << " WAITING FOR IMAGES";
+      else if (state == NOT_INITIALIZED)
+         s << " TRYING TO INITIALIZE ";
+      else if (state == TRACKING_OK)
+      {
+         if (!mbOnlyTracking)
             s << "SLAM MODE |  ";
-        else
+         else
             s << "LOCALIZATION | ";
-        s << "KFs: " << mnKFs << ", MPs: " << mnMPs << ", Matches: " << mnTracked;
-        if (mnTrackedVO>0)
+         s << "KFs: " << mnKFs << ", MPs: " << mnMPs << ", Matches: " << mnTracked;
+         if (mnTrackedVO > 0)
             s << ", + VO matches: " << mnTrackedVO;
-    }
-    else if (state == TRACKING_LOST)
-    {
-        s << " TRACK LOST. TRYING TO RELOCALIZE ";
-    }
-    return s;
-}
+      }
+      else if (state == TRACKING_LOST)
+      {
+         s << " TRACK LOST. TRYING TO RELOCALIZE ";
+      }
+      return s;
+   }
 
-void FrameDrawer::DrawTextInfo(cv::Mat &im, eTrackingState state, cv::Mat &imText)
-{
-    stringstream s = StateToString(state);
-    imText = cv::Mat(im.rows + mTextInfoHeight, im.cols, im.type());
-    im.copyTo(imText.rowRange(0, im.rows).colRange(0, im.cols));
-    imText.rowRange(im.rows, imText.rows) = cv::Mat::zeros(mTextInfoHeight, im.cols, im.type());
-    cv::putText(imText, s.str(), cv::Point(5, imText.rows - 5), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255, 255, 255), 1, 8);
-}
+   void FrameDrawer::DrawTextInfo(cv::Mat &im, eTrackingState state, cv::Mat &imText)
+   {
+      stringstream s = StateToString(state);
+      imText = cv::Mat(im.rows + mTextInfoHeight, im.cols, im.type());
+      im.copyTo(imText.rowRange(0, im.rows).colRange(0, im.cols));
+      imText.rowRange(im.rows, imText.rows) = cv::Mat::zeros(mTextInfoHeight, im.cols, im.type());
+      cv::putText(imText, s.str(), cv::Point(5, imText.rows - 5), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255, 255, 255), 1, 8);
+   }
 
-void FrameDrawer::Update(Tracking *pTracker, Map * pMap)
-{
-    Print("begin Update");
-    unique_lock<mutex> lock(mMutex);
-    pTracker->mImGray.copyTo(mIm);
-    mvCurrentKeys=pTracker->mCurrentFrame.mvKeys;
-    N = mvCurrentKeys.size();
-    mvbVO = vector<bool>(N,false);
-    mvbMap = vector<bool>(N,false);
-    mbOnlyTracking = pTracker->mbOnlyTracking;
+   void FrameDrawer::Update(Tracking *pTracker, Map * pMap)
+   {
+      Print("begin Update");
+      unique_lock<mutex> lock(mMutex);
+      pTracker->mImGray.copyTo(mIm);
+      mvCurrentKeys = pTracker->mCurrentFrame.mvKeys;
+      N = mvCurrentKeys.size();
+      mvbVO = vector<bool>(N, false);
+      mvbMap = vector<bool>(N, false);
+      mbOnlyTracking = pTracker->mbOnlyTracking;
 
-    mnKFs = pMap->KeyFramesInMap();
-    mnMPs = pMap->MapPointsInMap();
+      mnKFs = pMap->KeyFramesInMap();
+      mnMPs = pMap->MapPointsInMap();
 
-    if(pTracker->mLastProcessedState == NOT_INITIALIZED)
-    {
-        mvIniKeys=pTracker->mInitialFrame.mvKeys;
-        mvIniMatches=pTracker->mvIniMatches;
-    }
-    else if(pTracker->mLastProcessedState == TRACKING_OK)
-    {
-        for(int i=0;i<N;i++)
-        {
+      if (pTracker->mLastProcessedState == NOT_INITIALIZED)
+      {
+         mvIniKeys = pTracker->mInitialFrame.mvKeys;
+         mvIniMatches = pTracker->mvIniMatches;
+      }
+      else if (pTracker->mLastProcessedState == TRACKING_OK)
+      {
+         for (int i = 0;i < N;i++)
+         {
             MapPoint* pMP = pTracker->mCurrentFrame.mvpMapPoints[i];
-            if(pMP)
+            if (pMP)
             {
-                if(!pTracker->mCurrentFrame.mvbOutlier[i])
-                {
-                    if(pMP->Observations()>0)
-                        mvbMap[i]=true;
-                    else
-                        mvbVO[i]=true;
-                }
+               if (!pTracker->mCurrentFrame.mvbOutlier[i])
+               {
+                  if (pMP->Observations() > 0)
+                     mvbMap[i] = true;
+                  else
+                     mvbVO[i] = true;
+               }
             }
-        }
-    }
-    mState = pTracker->mLastProcessedState;
-    Print("end Update");
-}
+         }
+      }
+      mState = pTracker->mLastProcessedState;
+      Print("end Update");
+   }
 
 } //namespace ORB_SLAM

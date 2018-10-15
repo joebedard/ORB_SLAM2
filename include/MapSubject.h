@@ -24,63 +24,63 @@
 namespace ORB_SLAM2
 {
 
-    /*
-        base class for Subject class from the Observer Pattern
-        thread-safe methods encapsulate a collection of observers
-        see https://sourcemaking.com/design_patterns/observer
-    */
-    class MapSubject
-    {
-    public:
+   /*
+       base class for Subject class from the Observer Pattern
+       thread-safe methods encapsulate a collection of observers
+       see https://sourcemaking.com/design_patterns/observer
+   */
+   class MapSubject
+   {
+   public:
 
-        MapSubject()
-        {
-            
-        }
+      MapSubject()
+      {
 
-        void AddObserver(MapObserver * ob)
-        {
-            unique_lock<mutex> lock(mMutex);
+      }
 
-            mObservers[ob] = ob;
-        }
+      void AddObserver(MapObserver * ob)
+      {
+         unique_lock<mutex> lock(mMutex);
 
-        void RemoveObserver(MapObserver * ob)
-        {
-            unique_lock<mutex> lock(mMutex);
+         mObservers[ob] = ob;
+      }
 
-            mObservers.erase(ob);
-        }
+      void RemoveObserver(MapObserver * ob)
+      {
+         unique_lock<mutex> lock(mMutex);
 
-    protected:
+         mObservers.erase(ob);
+      }
 
-        void NotifyReset()
-        {
-            unique_lock<mutex> lock(mMutex);
+   protected:
 
-            for (auto it : mObservers)
-            {
-                it.second->HandleReset();
-            }
-        }
+      void NotifyReset()
+      {
+         unique_lock<mutex> lock(mMutex);
 
-        void NotifyMapChanged(MapChangeEvent & mce)
-        {
-            unique_lock<mutex> lock(mMutex);
+         for (auto it : mObservers)
+         {
+            it.second->HandleReset();
+         }
+      }
 
-            for (auto it : mObservers)
-            {
-                it.second->HandleMapChanged(mce);
-            }
-        }
+      void NotifyMapChanged(MapChangeEvent & mce)
+      {
+         unique_lock<mutex> lock(mMutex);
 
-    private:
+         for (auto it : mObservers)
+         {
+            it.second->HandleMapChanged(mce);
+         }
+      }
 
-        std::mutex mMutex;
+   private:
 
-        std::map<MapObserver *, MapObserver *> mObservers;
+      std::mutex mMutex;
 
-    };
+      std::map<MapObserver *, MapObserver *> mObservers;
+
+   };
 
 }
 

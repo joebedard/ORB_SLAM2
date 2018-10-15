@@ -26,91 +26,91 @@
 namespace ORB_SLAM2
 {
 
-using namespace std;
+   using namespace std;
 
 // #define ENABLE_SYNCPRINT
 
 #ifdef ENABLE_SYNCPRINT
 
-class SyncPrint
-{
-public:
+   class SyncPrint
+   {
+   public:
 
-    SyncPrint();
+      SyncPrint();
 
-    SyncPrint(const char * prefix);
+      SyncPrint(const char * prefix);
 
-    SyncPrint(const string & prefix);
+      SyncPrint(const string & prefix);
 
-    static void Print(const char * prefix, const char * message);
+      static void Print(const char * prefix, const char * message);
 
-    static void Print(const char * prefix, string & message);
+      static void Print(const char * prefix, string & message);
 
-    static void Print(string & prefix, string & message);
+      static void Print(string & prefix, string & message);
 
-    static void Print(const char * prefix, stringstream & message);
+      static void Print(const char * prefix, stringstream & message);
 
-    static void Print(stringstream prefix, stringstream & message);
+      static void Print(stringstream prefix, stringstream & message);
 
-    void Print(const char * message);
+      void Print(const char * message);
 
-    void Print(string & message);
+      void Print(string & message);
 
-    void Print(stringstream & message);
+      void Print(stringstream & message);
 
-protected:
+   protected:
 
-    virtual void PrintPrefix(ostream & out);
+      virtual void PrintPrefix(ostream & out);
 
-private:
+   private:
 
-    static mutex mMutexOutput;
+      static mutex mMutexOutput;
 
-    const string mPrefix;
+      const string mPrefix;
 
-};
+   };
 
 #endif //ENABLE_SYNCPRINT
 
 #ifndef ENABLE_SYNCPRINT
 
-class SyncPrint
-{
-public:
+   class SyncPrint
+   {
+   public:
 
-    SyncPrint() {}
+      SyncPrint() {}
 
-    SyncPrint(const char * prefix) {}
+      SyncPrint(const char * prefix) {}
 
-    SyncPrint(const string & prefix) {}
+      SyncPrint(const string & prefix) {}
 
-    static void Print(const char * prefix, const char * message) {}
+      static void Print(const char * prefix, const char * message) {}
 
-    static void Print(const char * prefix, string & message) {}
+      static void Print(const char * prefix, string & message) {}
 
-    static void Print(string & prefix, string & message) {}
+      static void Print(string & prefix, string & message) {}
 
-    static void Print(const char * prefix, stringstream & message) {}
+      static void Print(const char * prefix, stringstream & message) {}
 
-    static void Print(stringstream prefix, stringstream & message) {}
+      static void Print(stringstream prefix, stringstream & message) {}
 
-    void Print(const char * message) {}
+      void Print(const char * message) {}
 
-    void Print(string & message) {}
+      void Print(string & message) {}
 
-    void Print(stringstream & message) {}
+      void Print(stringstream & message) {}
 
-protected:
+   protected:
 
-    virtual void PrintPrefix(ostream & out) {}
+      virtual void PrintPrefix(ostream & out) {}
 
-private:
+   private:
 
-    static mutex mMutexOutput;
+      static mutex mMutexOutput;
 
-    const string mPrefix;
+      const string mPrefix;
 
-};
+   };
 
 #endif // ENABLE_SYNCPRINT
 
