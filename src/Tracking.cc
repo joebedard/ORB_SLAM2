@@ -1646,7 +1646,7 @@ void Tracking::Logout()
     Print(ss);
 }
 
-void Tracking::MapperObserverHandleReset()
+void Tracking::MapperObserverReset()
 {
     if (mpFrameDrawer)
         mpFrameDrawer->Reset();
@@ -1670,7 +1670,7 @@ void Tracking::MapperObserverHandleReset()
     mState = NOT_INITIALIZED;
 }
 
-void Tracking::MapperObserverHandleMapChanged()
+void Tracking::MapperObserverMapChanged()
 {
     // TODO - complete this
 }

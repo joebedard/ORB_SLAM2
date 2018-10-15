@@ -227,8 +227,8 @@ int main(int paramc, char * paramv[]) try
 
    FileStorage mapperSettings(mMapperSettings, FileStorage::READ);
    ParseSettings(mapperSettings, mMapperSettings);
-   MapDrawer * mapDrawer = new MapDrawer(pMapper, mapperSettings);
-   vMapDrawers.push_back(mapDrawer);
+   MapDrawer * pMapDrawer = new MapDrawer(pMapper, mapperSettings);
+   vMapDrawers.push_back(pMapDrawer);
 
    for (int i = 0; i < TRACKER_QUANTITY; ++i)
    {
@@ -250,27 +250,43 @@ int main(int paramc, char * paramv[]) try
       mThreadParams[i].threadObj = new thread(RunTracker, i);
    }
 
-   //Initialize and start the Viewer thread
-   Viewer viewer(vFrameDrawers, vMapDrawers, vTrackers, pMapper);
-   for (auto tracker : vTrackers)
    {
-       tracker->SetViewer(&viewer);
+       //Initialize and start the Viewer thread
+       Viewer viewer(vFrameDrawers, vMapDrawers, vTrackers, pMapper);
+       for (auto tracker : vTrackers)
+       {
+           tracker->SetViewer(&viewer);
+       }
+       viewer.Run();
+       mShouldRun = false; //signal tracking threads to stop
+       // implicit Viewer destruction
    }
-   viewer.Run();
-   mShouldRun = false; //signal tracking threads to stop
 
+   // join threads and check return codes
    int returnCode = EXIT_SUCCESS;
    for (int i = 0; i < TRACKER_QUANTITY; ++i)
    {
       mThreadParams[i].threadObj->join();
       if (mThreadParams[i].returnCode == EXIT_FAILURE)
          returnCode = EXIT_FAILURE;
-      delete mThreadParams[i].threadObj;
    }
 
    printStatistics();
 
-   return EXIT_SUCCESS;
+   // destroy objects
+   for (int i = 0; i < TRACKER_QUANTITY; ++i)
+   {
+       delete mThreadParams[i].threadObj;
+       delete mThreadParams[i].tracker;
+       delete mThreadParams[i].serial;
+       delete vFrameDrawers[i];
+   }
+   delete pMapDrawer;
+   delete pMapper;
+   delete pVocab;
+   delete pMap;
+
+   return returnCode;
 }
 catch (const rs2::error & e)
 {

@@ -25,7 +25,7 @@
 #include "LoopClosing.h"
 #include "Enums.h"
 #include "MapObserver.h"
-#include "MapSubject.h"
+#include "Mapper.h"
 #include "MapperServer.h"
 
 namespace ORB_SLAM2
@@ -35,7 +35,7 @@ namespace ORB_SLAM2
    class LoopClosing;
 
    // interface for all Mapping functionality
-   class MapperClient : public MapSubject, protected SyncPrint
+   class MapperClient : public Mapper, protected SyncPrint
    {
    public:
 
@@ -51,19 +51,29 @@ namespace ORB_SLAM2
 
       virtual bool AcceptKeyFrames();
 
-      virtual void Shutdown();
-
-      bool InsertKeyFrame(unsigned int trackerId, vector<MapPoint*> & mapPoints, KeyFrame *pKF);
+      virtual bool InsertKeyFrame(unsigned int trackerId, vector<MapPoint*> & mapPoints, KeyFrame *pKF);
 
       virtual void Initialize(unsigned int trackerId, vector<MapPoint*> & mapPoints, vector<KeyFrame*> & keyframes);
 
       virtual bool GetInitialized();
 
-      unsigned int LoginTracker(unsigned long  & firstKeyFrameId, unsigned int & keyFrameIdSpan, unsigned long & firstMapPointId, unsigned int & mapPointIdSpan);
+      virtual Map * GetMap();
 
-      void LogoutTracker(unsigned int id);
+      virtual unsigned int LoginTracker(
+          unsigned long  & firstKeyFrameId,
+          unsigned int & keyFrameIdSpan,
+          unsigned long & firstMapPointId,
+          unsigned int & mapPointIdSpan,
+          const cv::Mat & pivotCalib
+      );
 
-      Map * GetMap();
+      virtual void LogoutTracker(unsigned int id);
+
+      virtual void UpdatePose(unsigned int trackerId, const cv::Mat & poseTcw);
+
+      virtual vector<cv::Mat> GetTrackerPoses();
+
+      virtual vector<cv::Mat> GetTrackerPivots();
 
    private:
       static const unsigned int MAX_TRACKERS = 2;
@@ -99,6 +109,20 @@ namespace ORB_SLAM2
 
       MapperServer server;
 
+      void MapperServerObserverReset();
+
+      void MapperServerObserverMapChanged(MapChangeEvent & mce);
+
+      class MapperServerObserver : public MapObserver
+      {
+          MapperClient * mpMapperClient;
+      public:
+          MapperServerObserver(MapperClient * pMapperClient) : mpMapperClient(pMapperClient) {};
+          virtual void HandleReset() { mpMapperClient->MapperServerObserverReset(); };
+          virtual void HandleMapChanged(MapChangeEvent & mce) { mpMapperClient->MapperServerObserverMapChanged(mce); }
+      };
+
+      MapperServerObserver mMapperServerObserver;
    };
 
 }

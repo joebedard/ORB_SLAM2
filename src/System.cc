@@ -103,6 +103,7 @@ System::~System()
    delete mpMapDrawer;
    delete mpTracker;
    delete mpMapper;
+   delete mpVocabulary;
    delete mpMap;
 }
 
@@ -180,8 +181,6 @@ void System::Shutdown()
         //this causes freeze at shutdown. not sure why it was here.
         //pangolin::BindToContext("ORB-SLAM2: Map Viewer");
     }
-
-    mpMapper->Shutdown();
 }
 
 void System::SaveTrajectoryTUM(const string &filename)

@@ -19,118 +19,55 @@
 #define MAPPER_H
 
 #include "Map.h"
-#include "MapObserver.h"
 #include "MapSubject.h"
 #include "KeyFrame.h"
-#include "KeyFrameDatabase.h"
-#include "LocalMapping.h"
-#include "LoopClosing.h"
-#include "Enums.h"
 
 namespace ORB_SLAM2
 {
 
-   class LocalMapping;
-   class LoopClosing;
-
-   // interface for all Mapping functionality
-   class Mapper : public MapSubject, protected SyncPrint
+   /*
+   base interface for all Mapping functionality as in the Proxy design pattern
+   see https://sourcemaking.com/design_patterns/proxy
+   */
+   class Mapper : public MapSubject
    {
    public:
 
-      Mapper(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular);
+      virtual long unsigned  KeyFramesInMap() = 0;
 
-      virtual long unsigned  KeyFramesInMap();
+      virtual void Reset() = 0;
 
-      virtual void Reset();
+      virtual std::vector<KeyFrame*> DetectRelocalizationCandidates(Frame* F) = 0;
 
-      virtual std::vector<KeyFrame*> DetectRelocalizationCandidates(Frame* F);
+      virtual bool GetPauseRequested() = 0;
 
-      virtual bool GetPauseRequested();
+      virtual bool AcceptKeyFrames() = 0;
 
-      virtual bool AcceptKeyFrames();
+      virtual bool InsertKeyFrame(unsigned int trackerId, vector<MapPoint*> & mapPoints, KeyFrame* pKF) = 0;
 
-      virtual void Shutdown();
+      virtual void Initialize(unsigned int trackerId, vector<MapPoint*> & mapPoints, vector<KeyFrame*> & keyframes) = 0;
 
-      bool InsertKeyFrame(unsigned int trackerId, KeyFrame* pKF);
+      virtual bool GetInitialized() = 0;
 
-      virtual void Initialize(unsigned int trackerId);
+      virtual Map * GetMap() = 0;
 
-      virtual bool GetInitialized();
+      virtual unsigned int LoginTracker(
+          unsigned long  & firstKeyFrameId,
+          unsigned int & keyFrameIdSpan,
+          unsigned long & firstMapPointId,
+          unsigned int & mapPointIdSpan,
+          const cv::Mat & pivotCalib
+      ) = 0;
 
-      unsigned int LoginTracker(unsigned long  & firstKeyFrameId, unsigned int & keyFrameIdSpan, unsigned long & firstMapPointId, unsigned int & mapPointIdSpan);
+      virtual void LogoutTracker(unsigned int id) = 0;
 
-      void LogoutTracker(unsigned int id);
+      virtual void UpdatePose(unsigned int trackerId, const cv::Mat & poseTcw) = 0;
 
-      Map * GetMap();
+      virtual vector<cv::Mat> GetTrackerPoses() = 0;
 
-   private:
-      static const unsigned int MAX_TRACKERS = 2;
+      virtual vector<cv::Mat> GetTrackerPivots() = 0;
 
-      static const unsigned int KEYFRAME_ID_SPAN = MAX_TRACKERS;
-
-      /*
-      The Local Mapper does not create KeyFrames, but it does create MapPoints. This is why the 
-      MAPPOINT_ID_SPAN is one more than the KEYFRAME_ID_SPAN. This set of MapPoint Ids is reserved
-      for the Local Mapper.
-      */
-      static const unsigned int MAPPOINT_ID_SPAN = MAX_TRACKERS + 1;
-
-      static const unsigned long FIRST_MAPPOINT_ID_LOCALMAPPER = MAX_TRACKERS;
-
-      struct TrackerStatus {
-         bool connected;
-         unsigned long nextKeyFrameId;
-         unsigned long nextMapPointId;
-      };
-
-      TrackerStatus mTrackers[MAX_TRACKERS];
-
-      std::mutex mMutexLogin;
-
-      ORBVocabulary * mpVocab;
-
-      bool mbMonocular;
-
-      KeyFrameDatabase * mpKeyFrameDB;
-
-      Map * mpMap;
-
-      bool mInitialized;
-
-      LocalMapping * mpLocalMapper;
-
-      LoopClosing * mpLoopCloser;
-
-      std::thread * mptLocalMapping;
-
-      std::thread * mptLoopClosing;
-
-      void ResetTrackerStatus();
-
-      class LocalMappingObserver : public MapObserver
-      {
-          Mapper * mpMapper;
-      public:
-          LocalMappingObserver(Mapper * pMapper) : mpMapper(pMapper) {};
-          virtual void HandleReset() { mpMapper->NotifyReset(); };
-          virtual void HandleMapChanged(MapChangeEvent & mce) { mpMapper->NotifyMapChanged(mce); }
-      };
-
-      LocalMappingObserver mLocalMappingObserver;
-
-      class LoopClosingObserver : public MapObserver
-      {
-          Mapper * mpMapper;
-      public:
-          LoopClosingObserver(Mapper * pMapper) : mpMapper(pMapper) {};
-          virtual void HandleReset() { mpMapper->NotifyReset(); };
-          virtual void HandleMapChanged(MapChangeEvent & mce) { mpMapper->NotifyMapChanged(mce); }
-      };
-
-      LoopClosingObserver mLoopClosingObserver;
    };
-
 }
 
 #endif // MAPPER_H

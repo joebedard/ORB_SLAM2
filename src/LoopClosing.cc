@@ -797,6 +797,7 @@ void LoopClosing::RequestFinish()
 {
     unique_lock<mutex> lock(mMutexFinish);
     mbFinishRequested = true;
+    mbStopGBA = true;
 }
 
 bool LoopClosing::CheckFinish()

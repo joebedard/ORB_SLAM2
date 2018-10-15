@@ -29,7 +29,8 @@ namespace ORB_SLAM2
       mpVocab(pVocab),
       mbMonocular(bMonocular),
       mInitialized(false),
-      server(new Map(), pVocab, bMonocular)
+      server(new Map(), pVocab, bMonocular),
+      mMapperServerObserver(this)
    {
       if (pMap == NULL)
          throw std::exception("pMap must not be NULL");
@@ -83,10 +84,6 @@ namespace ORB_SLAM2
        return true;
    }
    
-   void MapperClient::Shutdown()
-   {
-   }
-
    void MapperClient::Initialize(unsigned int trackerId, vector<MapPoint*> & mapPoints, vector<KeyFrame*> & keyframes)
    {
       if (mInitialized)
@@ -118,7 +115,12 @@ namespace ORB_SLAM2
 
    }
 
-   unsigned int MapperClient::LoginTracker(unsigned long  & firstKeyFrameId, unsigned int & keyFrameIdSpan, unsigned long & firstMapPointId, unsigned int & mapPointIdSpan)
+   unsigned int MapperClient::LoginTracker(
+       unsigned long  & firstKeyFrameId,
+       unsigned int & keyFrameIdSpan,
+       unsigned long & firstMapPointId,
+       unsigned int & mapPointIdSpan,
+       const cv::Mat & pivotCalib)
    {
       unique_lock<mutex> lock(mMutexLogin);
 
@@ -133,9 +135,40 @@ namespace ORB_SLAM2
        server.LogoutTracker(id);
    }
 
+   void MapperClient::UpdatePose(unsigned int trackerId, const cv::Mat & poseTcw)
+   {
+       // TODO - serialize trackerId, pose and send to server
+       server.UpdatePose(trackerId, poseTcw);
+   }
+
+   vector<cv::Mat> MapperClient::GetTrackerPoses()
+   {
+       // TODO - pose synchronization between client(s) and server
+       return server.GetTrackerPoses();
+   }
+
+   vector<cv::Mat> MapperClient::GetTrackerPivots()
+   {
+       // TODO - pivot synchronization between client(s) and server
+       return server.GetTrackerPivots();
+   }
+
    Map * MapperClient::GetMap()
    {
+       // TODO - map synchronization between client(s) and server
        return mpMap;
+   }
+
+   void MapperClient::MapperServerObserverReset()
+   {
+      // TODO - reset map
+      NotifyReset();
+   }
+
+   void MapperClient::MapperServerObserverMapChanged(MapChangeEvent & mce)
+   {
+      // TODO - process map changes
+      NotifyMapChanged(mce);
    }
 
 }

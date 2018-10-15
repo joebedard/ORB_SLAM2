@@ -20,7 +20,7 @@
 
 #include "Map.h"
 #include "MapChangeEvent.h"
-#include "MapSubject.h"
+#include "Mapper.h"
 #include "KeyFrame.h"
 #include "KeyFrameDatabase.h"
 #include "LocalMapping.h"
@@ -34,11 +34,13 @@ namespace ORB_SLAM2
    class LoopClosing;
 
    // interface for all Mapping functionality
-   class MapperServer : public MapSubject, protected SyncPrint
+   class MapperServer : public Mapper, protected SyncPrint
    {
    public:
 
       MapperServer(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular);
+
+      ~MapperServer();
 
       virtual long unsigned  KeyFramesInMap();
 
@@ -50,17 +52,15 @@ namespace ORB_SLAM2
 
       virtual bool AcceptKeyFrames();
 
-      virtual void Shutdown();
-
-      bool InsertKeyFrame(unsigned int trackerId, vector<MapPoint*> & mapPoints, KeyFrame* pKF);
+      virtual bool InsertKeyFrame(unsigned int trackerId, vector<MapPoint*> & mapPoints, KeyFrame* pKF);
 
       virtual void Initialize(unsigned int trackerId, vector<MapPoint*> & mapPoints, vector<KeyFrame*> & keyframes);
 
       virtual bool GetInitialized();
 
-      Map * GetMap();
+      virtual Map * GetMap();
 
-      unsigned int LoginTracker(
+      virtual unsigned int LoginTracker(
         unsigned long  & firstKeyFrameId,
         unsigned int & keyFrameIdSpan,
         unsigned long & firstMapPointId,
@@ -68,13 +68,13 @@ namespace ORB_SLAM2
         const cv::Mat & pivotCalib
       );
 
-      void LogoutTracker(unsigned int id);
+      virtual void LogoutTracker(unsigned int id);
 
-      void UpdatePose(unsigned int trackerId, const cv::Mat & poseTcw);
+      virtual void UpdatePose(unsigned int trackerId, const cv::Mat & poseTcw);
 
-      vector<cv::Mat> GetTrackerPoses();
+      virtual vector<cv::Mat> GetTrackerPoses();
 
-      vector<cv::Mat> GetTrackerPivots();
+      virtual vector<cv::Mat> GetTrackerPivots();
 
    private:
       static const unsigned int MAX_TRACKERS = 2;

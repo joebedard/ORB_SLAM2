@@ -56,6 +56,21 @@ namespace ORB_SLAM2
       mpLoopCloser->SetLocalMapper(mpLocalMapper);
    }
 
+   MapperServer::~MapperServer()
+   {
+      mpLocalMapper->RequestFinish();
+      mpLoopCloser->RequestFinish();
+
+      mptLocalMapping->join();
+      mptLoopClosing->join();
+
+      delete mpKeyFrameDB;
+      delete mptLocalMapping;
+      delete mpLoopCloser;
+      delete mptLoopClosing;
+      delete mpLocalMapper;
+   }
+
    long unsigned MapperServer::KeyFramesInMap()
    {
       return mpMap->KeyFramesInMap();
@@ -111,18 +126,6 @@ namespace ORB_SLAM2
       return mpLocalMapper->AcceptKeyFrames();
    }
    
-   void MapperServer::Shutdown()
-   {
-      mpLocalMapper->RequestFinish();
-      mpLoopCloser->RequestFinish();
-
-      // Wait until all thread have effectively stopped
-      while (!mpLocalMapper->isFinished() || !mpLoopCloser->isFinished() || mpLoopCloser->isRunningGBA())
-      {
-         sleep(5000);
-      }
-   }
-
    void MapperServer::Initialize(unsigned int trackerId, vector<MapPoint*> & mapPoints, vector<KeyFrame*> & keyframes)
    {
       if (mInitialized)

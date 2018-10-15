@@ -25,7 +25,7 @@
 #include<opencv2/core/core.hpp>
 #include<opencv2/features2d/features2d.hpp>
 
-#include "MapperServer.h"
+#include "Mapper.h"
 #include "MapChangeEvent.h"
 #include "MapObserver.h"
 #include "Viewer.h"
@@ -207,7 +207,7 @@ private:
    std::mutex mMutexReset;
    bool mbReset;
 
-   MapperServer * mpMapper;
+   Mapper * mpMapper;
 
    unsigned int mId;
 
@@ -247,17 +247,17 @@ private:
 
    void RotationsYXZtoMat(double y, double x, double z, cv::Mat & m);
 
-    void MapperObserverHandleReset();
+    void MapperObserverReset();
 
-    void MapperObserverHandleMapChanged();
+    void MapperObserverMapChanged();
 
     class MapperObserver : public MapObserver
     {
         Tracking * mpTracker;
     public:
         MapperObserver(Tracking * pTracker) : mpTracker(pTracker) {};
-        virtual void HandleReset() {mpTracker->MapperObserverHandleReset();};
-        virtual void HandleMapChanged(MapChangeEvent & mce) {mpTracker->MapperObserverHandleMapChanged();}
+        virtual void HandleReset() {mpTracker->MapperObserverReset();};
+        virtual void HandleMapChanged(MapChangeEvent & mce) {mpTracker->MapperObserverMapChanged();}
     };
 
     MapperObserver mMapperObserver;
