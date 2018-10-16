@@ -136,7 +136,7 @@ int main(int argc, char * argv[]) try
       std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
 #endif
 
-      double tframe = std::chrono::duration_cast<std::chrono::duration<double> >(t1 - tStart).count();
+      double tframe = std::chrono::duration_cast<std::chrono::duration<double>>(t1 - tStart).count();
 
       // Pass the images to the SLAM system
       SLAM.TrackStereo(irMat1, irMat2, tframe);
@@ -147,7 +147,7 @@ int main(int argc, char * argv[]) try
       std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
 #endif
 
-      double ttrack = std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+      double ttrack = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
 
       vTimesTrack.push_back(ttrack);
    }
@@ -158,7 +158,7 @@ int main(int argc, char * argv[]) try
    // Tracking time statistics
    sort(vTimesTrack.begin(), vTimesTrack.end());
    float totaltime = 0;
-   for (int i = 0; i<vTimesTrack.size(); i++)
+   for (int i = 0; i < vTimesTrack.size(); i++)
    {
       totaltime += vTimesTrack[i];
    }
@@ -175,11 +175,11 @@ catch (const rs2::error & e)
 }
 catch (const exception& e)
 {
-    std::cerr << std::endl << e.what() << std::endl;
-    return EXIT_FAILURE;
+   std::cerr << std::endl << e.what() << std::endl;
+   return EXIT_FAILURE;
 }
 catch (...)
 {
-    std::cerr << std::endl << "An exception was not caught in the main thread." << std::endl;
-    return EXIT_FAILURE;
+   std::cerr << std::endl << "An exception was not caught in the main thread." << std::endl;
+   return EXIT_FAILURE;
 }

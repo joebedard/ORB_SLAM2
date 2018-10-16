@@ -68,14 +68,14 @@ void ParseParams(int paramc, char * paramv[])
       exception e(usage);
       throw e;
    }
-   
+
    mVocFile = paramv[1];
-   
+
    mMapperSettings = paramv[2];
 
    for (int i = 0; i < TRACKER_QUANTITY; i++)
    {
-       mTrackerSettings[i] = paramv[i + 3];
+      mTrackerSettings[i] = paramv[i + 3];
    }
 }
 
@@ -91,11 +91,11 @@ void ParseSettings(FileStorage & settings, const char * settingsFilePath)
 
 void ParseTrackerSettings(FileStorage & settings, const char * settingsFilePath, string & serial)
 {
-    ParseSettings(settings, settingsFilePath);
+   ParseSettings(settings, settingsFilePath);
 
-    serial.append(settings["Camera.serial"]);
-    if (0 == serial.length())
-        throw exception("Camera.serial property is not set or value is not in quotes.");
+   serial.append(settings["Camera.serial"]);
+   if (0 == serial.length())
+      throw exception("Camera.serial property is not set or value is not in quotes.");
 
 }
 
@@ -125,7 +125,7 @@ void RunTracker(int threadId) try
       ss << "Can not resolve RealSense config for camera with serial number " << mThreadParams[threadId].serial;
       throw exception(ss.str().c_str());
    }
-    
+
    rs2::pipeline_profile profile = pipe.start(customConfig);
    rs2::depth_sensor sensor = profile.get_device().first<rs2::depth_sensor>();
 
@@ -146,13 +146,13 @@ void RunTracker(int threadId) try
 
       std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
-      double tframe = std::chrono::duration_cast<std::chrono::duration<double> >(t1 - tStart).count();
+      double tframe = std::chrono::duration_cast<std::chrono::duration<double>>(t1 - tStart).count();
 
       mThreadParams[threadId].tracker->GrabImageStereo(irMat1, irMat2, tframe);
 
       std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
-      double ttrack = std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+      double ttrack = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
 
       mThreadParams[threadId].timesTrack.push_back(ttrack);
    }
@@ -186,7 +186,7 @@ void printStatistics()
          // calculate time statistics
          sort(vTimesTrack.begin(), vTimesTrack.end());
          float totaltime = 0;
-         for (int i = 0; i<vTimesTrack.size(); i++)
+         for (int i = 0; i < vTimesTrack.size(); i++)
          {
             totaltime += vTimesTrack[i];
          }
@@ -251,15 +251,15 @@ int main(int paramc, char * paramv[]) try
    }
 
    {
-       //Initialize and start the Viewer thread
-       Viewer viewer(vFrameDrawers, vMapDrawers, vTrackers, pMapper);
-       for (auto tracker : vTrackers)
-       {
-           tracker->SetViewer(&viewer);
-       }
-       viewer.Run();
-       mShouldRun = false; //signal tracking threads to stop
-       // implicit Viewer destruction
+      //Initialize and start the Viewer thread
+      Viewer viewer(vFrameDrawers, vMapDrawers, vTrackers, pMapper);
+      for (auto tracker : vTrackers)
+      {
+         tracker->SetViewer(&viewer);
+      }
+      viewer.Run();
+      mShouldRun = false; //signal tracking threads to stop
+      // implicit Viewer destruction
    }
 
    // join threads and check return codes
@@ -276,10 +276,10 @@ int main(int paramc, char * paramv[]) try
    // destroy objects
    for (int i = 0; i < TRACKER_QUANTITY; ++i)
    {
-       delete mThreadParams[i].threadObj;
-       delete mThreadParams[i].tracker;
-       delete mThreadParams[i].serial;
-       delete vFrameDrawers[i];
+      delete mThreadParams[i].threadObj;
+      delete mThreadParams[i].tracker;
+      delete mThreadParams[i].serial;
+      delete vFrameDrawers[i];
    }
    delete pMapDrawer;
    delete pMapper;
@@ -290,13 +290,13 @@ int main(int paramc, char * paramv[]) try
 }
 catch (const rs2::error & e)
 {
-    cout << "RealSense error calling " << e.get_failed_function() + "(" + e.get_failed_args() + "):\n    " + e.what();
-    return EXIT_FAILURE;
+   cout << "RealSense error calling " << e.get_failed_function() + "(" + e.get_failed_args() + "):\n    " + e.what();
+   return EXIT_FAILURE;
 }
 catch (const exception& e)
 {
-    cout << "Exception in main thread: " << e.what();
-    return EXIT_FAILURE;
+   cout << "Exception in main thread: " << e.what();
+   return EXIT_FAILURE;
 }
 catch (...)
 {
