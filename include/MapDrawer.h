@@ -22,7 +22,7 @@
 #define MAPDRAWER_H
 
 #include "Map.h"
-#include "MapperServer.h"
+#include "Mapper.h"
 #include "MapPoint.h"
 #include "KeyFrame.h"
 #include "SyncPrint.h"
@@ -36,7 +36,7 @@ namespace ORB_SLAM2
    class MapDrawer : SyncPrint
    {
    public:
-      MapDrawer(MapperServer * pMapper, cv::FileStorage & fSettings);
+      MapDrawer(Mapper * pMapper, cv::FileStorage & fSettings);
       void Reset();
 
       void Follow(pangolin::OpenGlRenderState * pRenderState);
@@ -54,7 +54,7 @@ namespace ORB_SLAM2
    private:
       Map * mpMap;
 
-      MapperServer * mpMapper;
+      Mapper * mpMapper;
 
       float mKeyFrameSize;
 

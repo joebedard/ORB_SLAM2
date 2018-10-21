@@ -25,6 +25,7 @@
 #include "KeyFrame.h"
 #include "SyncPrint.h"
 #include <set>
+#include <unordered_map>
 
 #include <mutex>
 
@@ -39,17 +40,32 @@ namespace ORB_SLAM2
    public:
       Map();
 
-      void AddKeyFrame(KeyFrame* pKF);
-      void AddMapPoint(MapPoint* pMP);
-      void EraseMapPoint(MapPoint* pMP);
-      void EraseKeyFrame(KeyFrame* pKF);
+      void AddKeyFrame(KeyFrame * pKF);
+
+      void AddMapPoint(MapPoint * pMP);
+
+      void EraseMapPoint(MapPoint * pMP);
+
+      void EraseMapPoint(unsigned long int mapPointId);
+
+      void EraseKeyFrame(KeyFrame * pKF);
+
+      void EraseKeyFrame(unsigned long int keyFrameId);
+
       void InformNewBigChange();
+
       int GetLastBigChangeIdx();
 
-      std::vector<KeyFrame*> GetAllKeyFrames();
-      std::vector<MapPoint*> GetAllMapPoints();
+      std::vector<KeyFrame *> GetAllKeyFrames();
+
+      KeyFrame * GetKeyFrame(unsigned long int keyFrameId);
+
+      std::vector<MapPoint *> GetAllMapPoints();
+
+      MapPoint * GetMapPoint(unsigned long int mapPointId);
 
       long unsigned int MapPointsInMap();
+
       long unsigned  KeyFramesInMap();
 
       long unsigned int GetMaxKFid();
@@ -58,13 +74,9 @@ namespace ORB_SLAM2
 
       Map & operator=(const Map & map);
 
-      vector<KeyFrame*> mvpKeyFrameOrigins;
-
-      std::mutex mMutexMapUpdate;
+      vector<KeyFrame *> mvpKeyFrameOrigins;
 
    protected:
-      std::set<MapPoint*> mspMapPoints;
-      std::set<KeyFrame*> mspKeyFrames;
 
       long unsigned int mnMaxKFid;
 
@@ -78,6 +90,10 @@ namespace ORB_SLAM2
       std::mutex mMutexPointCreation;
 
       long unsigned int mnNextPointId;
+
+      std::unordered_map<unsigned long int, MapPoint *> mMapPoints;
+
+      std::unordered_map<unsigned long int, KeyFrame *> mKeyFrames;
    };
 
 } //namespace ORB_SLAM

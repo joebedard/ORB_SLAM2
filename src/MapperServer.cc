@@ -43,12 +43,12 @@ namespace ORB_SLAM2
       ResetTrackerStatus();
 
       //Initialize and start the Local Mapping thread
-      mpLocalMapper = new LocalMapping(mpMap, mpKeyFrameDB, mbMonocular, FIRST_MAPPOINT_ID_LOCALMAPPER, MAPPOINT_ID_SPAN);
+      mpLocalMapper = new LocalMapping(mpMap, mMutexMapUpdate, mpKeyFrameDB, mbMonocular, FIRST_MAPPOINT_ID_LOCALMAPPER, MAPPOINT_ID_SPAN);
       mpLocalMapper->AddObserver(&mLocalMappingObserver);
       mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run, mpLocalMapper);
 
       //Initialize and start the Loop Closing thread
-      mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDB, mpVocab, !mbMonocular);
+      mpLoopCloser = new LoopClosing(mpMap, mMutexMapUpdate, mpKeyFrameDB, mpVocab, !mbMonocular);
       mpLoopCloser->AddObserver(&mLoopClosingObserver);
       mptLoopClosing = new thread(&ORB_SLAM2::LoopClosing::Run, mpLoopCloser);
 
@@ -128,6 +128,8 @@ namespace ORB_SLAM2
 
    void MapperServer::Initialize(unsigned int trackerId, vector<MapPoint*> & mapPoints, vector<KeyFrame*> & keyframes)
    {
+      Print("begin Initialize");
+
       if (mInitialized)
          throw exception("The mapper may only be initialized once.");
 
@@ -167,6 +169,8 @@ namespace ORB_SLAM2
       UpdateTrackerIds(trackerId, mapPoints);
 
       mInitialized = true;
+
+      Print("end Initialize");
    }
 
    bool MapperServer::InsertKeyFrame(unsigned int trackerId, vector<MapPoint*> & mapPoints, KeyFrame *pKF)
@@ -175,6 +179,14 @@ namespace ORB_SLAM2
 
       if (mpLocalMapper->InsertKeyFrame(mapPoints, pKF))
       {
+         for (auto pMP : mapPoints)
+         {
+            mpMap->AddMapPoint(pMP);
+         }
+
+         // In the original code, this was not done until LocalMapping::ProcessNewKeyFrame
+         mpMap->AddKeyFrame(pKF);
+
          unique_lock<mutex> lock(mMutexTrackerStatus);
 
          // update TrackerStatus array with next KeyFrameId and MapPointId
@@ -281,6 +293,11 @@ namespace ORB_SLAM2
    Map * MapperServer::GetMap()
    {
       return mpMap;
+   }
+
+   std::mutex & MapperServer::GetMutexMapUpdate()
+   {
+      return mMutexMapUpdate;
    }
 
    void MapperServer::ResetTrackerStatus()

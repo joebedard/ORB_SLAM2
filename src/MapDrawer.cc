@@ -25,7 +25,7 @@ namespace ORB_SLAM2
 {
 
 
-   MapDrawer::MapDrawer(MapperServer * pMapper, cv::FileStorage & fSettings) :
+   MapDrawer::MapDrawer(Mapper * pMapper, cv::FileStorage & fSettings) :
       SyncPrint("MapDrawer: "),
       mpMap(pMapper->GetMap()),
       mpMapper(pMapper)
@@ -64,7 +64,7 @@ namespace ORB_SLAM2
       glGetFloatv(GL_CURRENT_COLOR, currentColor);
 
       Print("unique_lock<mutex> lock1(mpMap->mMutexMapUpdate);");
-      unique_lock<mutex> lock1(mpMap->mMutexMapUpdate);
+      unique_lock<mutex> lock1(mpMapper->GetMutexMapUpdate());
       Print("const vector<MapPoint*> &vpMPs = mpMap->GetAllMapPoints();");
       const vector<MapPoint*> &vpMPs = mpMap->GetAllMapPoints();
 
@@ -93,22 +93,27 @@ namespace ORB_SLAM2
       glBegin(GL_POINTS);
       glColor3f(0.0, 0.0, 0.0);
 
-      Print("for(size_t i=0, iend=vpMPs.size(); i<iend;i++)");
+      Print("for(size_t i=0, iend=vpMPs.size(); i < iend;i++)");
       for (size_t i = 0, iend = vpMPs.size(); i < iend;i++)
       {
+         Print("if (vpMPs[i]->isBad() || spRefMPs.count(vpMPs[i]))");
+         Print(vpMPs[i] == NULL ? "vpMPs[i] == NULL" : "vpMPs[i] != NULL");
          if (vpMPs[i]->isBad() || spRefMPs.count(vpMPs[i]))
             continue;
+         Print("cv::Mat pos = vpMPs[i]->GetWorldPos();");
          cv::Mat pos = vpMPs[i]->GetWorldPos();
+         Print("glVertex3f(pos.at<float>(0), pos.at<float>(1), pos.at<float>(2));");
          glVertex3f(pos.at<float>(0), pos.at<float>(1), pos.at<float>(2));
       }
+      Print("glEnd();");
       glEnd();
 
       glPointSize(mPointSize);
       glBegin(GL_POINTS);
       glColor3f(1.0, 0.0, 0.0);
 
-      Print("for(set<MapPoint*>::iterator sit=spRefMPs.begin(), send=spRefMPs.end(); sit!=send; sit++)");
-      /*for(set<MapPoint*>::iterator sit=spRefMPs.begin(), send=spRefMPs.end(); sit!=send; sit++)
+      /*Print("for(set<MapPoint*>::iterator sit=spRefMPs.begin(), send=spRefMPs.end(); sit!=send; sit++)");
+      for(set<MapPoint*>::iterator sit=spRefMPs.begin(), send=spRefMPs.end(); sit!=send; sit++)
       {
           //Print("if((*sit)->isBad())");
           if((*sit)->isBad())
@@ -123,6 +128,7 @@ namespace ORB_SLAM2
           glVertex3f(pos.at<float>(0),pos.at<float>(1),pos.at<float>(2));
       }*/
 
+      Print("for (MapPoint * pMP : mvpReferenceMapPoints)");
       for (MapPoint * pMP : mvpReferenceMapPoints)
       {
          if (pMP->isBad())
@@ -150,7 +156,7 @@ namespace ORB_SLAM2
 
    void MapDrawer::DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph)
    {
-      unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
+      unique_lock<mutex> lock(mpMapper->GetMutexMapUpdate());
       Print("begin DrawKeyFrames");
 
       float currentColor[4];

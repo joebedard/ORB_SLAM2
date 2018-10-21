@@ -25,6 +25,8 @@
 #include <thread>
 #include <pangolin/pangolin.h>
 #include <iomanip>
+#include "MapperServer.h"
+#include "MapperClient.h"
 
 namespace ORB_SLAM2
 {
@@ -76,7 +78,8 @@ namespace ORB_SLAM2
       mpMap = new Map();
 
       //Initialize the Mapper
-      mpMapper = new MapperServer(mpMap, mpVocabulary, mSensor == MONOCULAR);
+      //mpMapper = new MapperServer(mpMap, mpVocabulary, mSensor == MONOCULAR);
+      mpMapper = new MapperClient(mpMap, mpVocabulary, mSensor == MONOCULAR);
 
       //Create Drawers. These are used by the Viewer
       mpFrameDrawer = new FrameDrawer(fsSettings);

@@ -26,10 +26,10 @@
 #include<opencv2/core/core.hpp>
 #include<opencv2/features2d/features2d.hpp>
 
-#include"MapPoint.h"
-#include"KeyFrame.h"
-#include"Frame.h"
-
+#include "MapPoint.h"
+#include "KeyFrame.h"
+#include "Frame.h"
+#include "MapChangeEvent.h"
 
 namespace ORB_SLAM2
 {
@@ -77,10 +77,10 @@ namespace ORB_SLAM2
       int SearchBySim3(KeyFrame* pKF1, KeyFrame* pKF2, std::vector<MapPoint *> &vpMatches12, const float &s12, const cv::Mat &R12, const cv::Mat &t12, const float th);
 
       // Project MapPoints into KeyFrame and search for duplicated MapPoints.
-      int Fuse(KeyFrame * pKF, const vector<MapPoint *> & vpMapPoints, Map * pMap, const float th = 3.0);
+      int Fuse(MapChangeEvent & mapChanges, KeyFrame * pKF, const vector<MapPoint *> & vpMapPoints, Map * pMap, const float th = 3.0);
 
       // Project MapPoints into KeyFrame using a given Sim3 and search for duplicated MapPoints.
-      int Fuse(KeyFrame* pKF, cv::Mat Scw, const std::vector<MapPoint*> &vpPoints, float th, vector<MapPoint *> &vpReplacePoint);
+      int Fuse(MapChangeEvent & mapChanges, KeyFrame* pKF, cv::Mat Scw, const std::vector<MapPoint*> &vpPoints, float th, vector<MapPoint *> &vpReplacePoint);
 
    public:
 

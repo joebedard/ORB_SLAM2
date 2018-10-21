@@ -33,7 +33,7 @@
 #include "KeyFrameDatabase.h"
 #include "ORBVocabulary.h"
 #include "Viewer.h"
-#include "MapperServer.h"
+#include "Mapper.h"
 #include "Enums.h"
 #include "SyncPrint.h"
 
@@ -44,7 +44,7 @@ namespace ORB_SLAM2
    class FrameDrawer;
    class Map;
    class Tracking;
-   class MapperServer;
+   class Mapper;
 
    class System : SyncPrint
    {
@@ -128,7 +128,7 @@ namespace ORB_SLAM2
       Map * mpMap;
 
       // The Mapper encapsulates all mapping functionality of the system
-      MapperServer * mpMapper;
+      Mapper * mpMapper;
 
       // Tracker. It receives a frame and computes the associated camera pose.
       // It also decides when to insert a new keyframe, create some new MapPoints and

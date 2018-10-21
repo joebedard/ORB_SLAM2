@@ -56,7 +56,7 @@ namespace ORB_SLAM2
          ORBVocabulary* pVoc,
          FrameDrawer* pFrameDrawer,
          MapDrawer* pMapDrawer,
-         MapperServer* pMapper,
+         Mapper* pMapper,
          cv::FileStorage & settings,
          eSensor sensor
       );

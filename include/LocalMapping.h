@@ -44,6 +44,7 @@ namespace ORB_SLAM2
    public:
       LocalMapping(
          Map* pMap,
+         std::mutex & mutexMapUpdate,
          KeyFrameDatabase* pDB,
          const float bMonocular,
          unsigned long firstMapPointId,
@@ -82,13 +83,16 @@ namespace ORB_SLAM2
    protected:
 
       bool CheckNewKeyFrames();
-      void ProcessNewKeyFrame();
-      void CreateNewMapPoints();
 
-      void MapPointCulling();
-      void SearchInNeighbors();
+      void ProcessNewKeyFrame(MapChangeEvent & mapChanges);
 
-      void KeyFrameCulling();
+      void CreateNewMapPoints(MapChangeEvent & mapChanges);
+
+      void MapPointCulling(MapChangeEvent & mapChanges);
+
+      void SearchInNeighbors(MapChangeEvent & mapChanges);
+
+      void KeyFrameCulling(MapChangeEvent & mapChanges);
 
       cv::Mat ComputeF12(KeyFrame* &pKF1, KeyFrame* &pKF2);
 
@@ -126,6 +130,9 @@ namespace ORB_SLAM2
       mutex mMutexAccept;
 
    private:
+
+      mutex & mMutexMapUpdate;
+
       unsigned long mNextMapPointId;
 
       unsigned int mMapPointIdSpan;

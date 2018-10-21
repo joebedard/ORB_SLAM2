@@ -60,6 +60,8 @@ namespace ORB_SLAM2
 
       virtual Map * GetMap();
 
+      virtual std::mutex & GetMutexMapUpdate();
+
       virtual unsigned int LoginTracker(
          unsigned long  & firstKeyFrameId,
          unsigned int & keyFrameIdSpan,
@@ -101,6 +103,8 @@ namespace ORB_SLAM2
       TrackerStatus mTrackers[MAX_TRACKERS];
 
       std::mutex mMutexTrackerStatus;
+
+      std::mutex mMutexMapUpdate;
 
       ORBVocabulary * mpVocab;
 

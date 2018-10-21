@@ -51,6 +51,8 @@ namespace ORB_SLAM2
 
       virtual Map * GetMap() = 0;
 
+      virtual std::mutex & GetMutexMapUpdate() = 0;
+
       virtual unsigned int LoginTracker(
          unsigned long  & firstKeyFrameId,
          unsigned int & keyFrameIdSpan,

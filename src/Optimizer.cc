@@ -454,7 +454,7 @@ namespace ORB_SLAM2
       return nInitialCorrespondences - nBad;
    }
 
-   void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap)
+   void Optimizer::LocalBundleAdjustment(KeyFrame * pKF, bool * pbStopFlag, Map * pMap, std::mutex & mutexMapUpdate, MapChangeEvent & mapChanges)
    {
       Print("begin LocalBundleAdjustment");
 
@@ -762,7 +762,7 @@ namespace ORB_SLAM2
 
       // Get Map Mutex
       Print("unique_lock<mutex> lock(pMap->mMutexMapUpdate);");
-      unique_lock<mutex> lock(pMap->mMutexMapUpdate);
+      unique_lock<mutex> lock(mutexMapUpdate);
 
       Print("if(!vToErase.empty())");
       if (!vToErase.empty())
@@ -772,9 +772,12 @@ namespace ORB_SLAM2
             KeyFrame* pKFi = vToErase[i].first;
             MapPoint* pMPi = vToErase[i].second;
             pKFi->EraseMapPointMatch(pMPi);
-            // TODO - add to updated keyframes
+            // TODO OK - add to updated keyframes
+            mapChanges.updatedKeyFrames.insert(pKFi);
+
             pMPi->EraseObservation(pKFi, pMap);
-            // TODO - add to updated points
+            // TODO OK - add to updated points
+            mapChanges.updatedMapPoints.insert(pMPi);
          }
       }
 
@@ -788,7 +791,8 @@ namespace ORB_SLAM2
          g2o::VertexSE3Expmap* vSE3 = static_cast<g2o::VertexSE3Expmap*>(optimizer.vertex(pKF->GetId()));
          g2o::SE3Quat SE3quat = vSE3->estimate();
          pKF->SetPose(Converter::toCvMat(SE3quat));
-         // TODO - add to updated keyframes
+         // TODO OK - add to updated keyframes
+         mapChanges.updatedKeyFrames.insert(pKF);
       }
 
       //Points
@@ -798,13 +802,14 @@ namespace ORB_SLAM2
          g2o::VertexSBAPointXYZ* vPoint = static_cast<g2o::VertexSBAPointXYZ*>(optimizer.vertex(pMP->GetId() + maxKFid + 1));
          pMP->SetWorldPos(Converter::toCvMat(vPoint->estimate()));
          pMP->UpdateNormalAndDepth();
-         // TODO - add to updated points
+         // TODO OK - add to updated points
+         mapChanges.updatedMapPoints.insert(pMP);
       }
       Print("end LocalBundleAdjustment 2");
    }
 
 
-   void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* pCurKF,
+   void Optimizer::OptimizeEssentialGraph(Map* pMap, std::mutex & mutexMapUpdate, KeyFrame* pLoopKF, KeyFrame* pCurKF,
       const LoopClosing::KeyFrameAndPose &NonCorrectedSim3,
       const LoopClosing::KeyFrameAndPose &CorrectedSim3,
       const map<KeyFrame *, set<KeyFrame *> > &LoopConnections, const bool &bFixScale)
@@ -1012,7 +1017,7 @@ namespace ORB_SLAM2
       optimizer.initializeOptimization();
       optimizer.optimize(20);
 
-      unique_lock<mutex> lock(pMap->mMutexMapUpdate);
+      unique_lock<mutex> lock(mutexMapUpdate);
 
       // SE3 Pose Recovering. Sim3:[sR t;0 1] -> SE3:[R t/s;0 1]
       for (size_t i = 0;i < vpKFs.size();i++)

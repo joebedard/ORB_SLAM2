@@ -39,7 +39,7 @@ namespace ORB_SLAM2
    {
    public:
       // constructor for map points
-      MapPoint(long unsigned int id, const cv::Mat &Pos, KeyFrame* pRefKF);
+      MapPoint(unsigned long int id, const cv::Mat &Pos, KeyFrame* pRefKF);
 
       void SetWorldPos(const cv::Mat &Pos);
       cv::Mat GetWorldPos();
@@ -81,7 +81,7 @@ namespace ORB_SLAM2
       int PredictScale(const float &currentDist, Frame* pF);
 
    public:
-      unsigned long MapPoint::GetId();
+      unsigned long int MapPoint::GetId();
 
       long int mnFirstKFid;
       int nObs;
@@ -93,19 +93,19 @@ namespace ORB_SLAM2
       bool mbTrackInView;
       int mnTrackScaleLevel;
       float mTrackViewCos;
-      long unsigned int mnTrackReferenceForFrame;
-      long unsigned int mnLastFrameSeen;
+      unsigned long int mnTrackReferenceForFrame;
+      unsigned long int mnLastFrameSeen;
 
       // Variables used by local mapping
-      long unsigned int mnBALocalForKF;
-      long unsigned int mnFuseCandidateForKF;
+      unsigned long int mnBALocalForKF;
+      unsigned long int mnFuseCandidateForKF;
 
       // Variables used by loop closing
-      long unsigned int mnLoopPointForKF;
-      long unsigned int mnCorrectedByKF;
-      long unsigned int mnCorrectedReference;
+      unsigned long int mnLoopPointForKF;
+      unsigned long int mnCorrectedByKF;
+      unsigned long int mnCorrectedReference;
       cv::Mat mPosGBA;
-      long unsigned int mnBAGlobalForKF;
+      unsigned long int mnBAGlobalForKF;
 
 
       static std::mutex mGlobalMutex;
@@ -143,7 +143,7 @@ namespace ORB_SLAM2
       std::mutex mMutexFeatures;
 
    private:
-      long unsigned int mnId;
+      unsigned long int mnId;
    };
 
 } //namespace ORB_SLAM

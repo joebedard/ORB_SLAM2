@@ -30,17 +30,13 @@ namespace ORB_SLAM2
    {
    public:
 
-      set<KeyFrame *> createdKeyFrames;
-
       set<KeyFrame *> updatedKeyFrames;
 
-      set<KeyFrame *> deletedKeyFrames;
-
-      set<MapPoint *> createdMapPoints;
+      set<unsigned long int> deletedKeyFrames;
 
       set<MapPoint *> updatedMapPoints;
 
-      set<MapPoint *> deletedMapPoints;
+      set<unsigned long int> deletedMapPoints;
 
    };
 

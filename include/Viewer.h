@@ -26,7 +26,7 @@
 #include "MapDrawer.h"
 #include "Tracking.h"
 #include "SyncPrint.h"
-#include "MapperServer.h"
+#include "Mapper.h"
 
 #include <mutex>
 
@@ -40,9 +40,9 @@ namespace ORB_SLAM2
    class Viewer : SyncPrint
    {
    public:
-      Viewer(FrameDrawer * pFrameDrawer, MapDrawer * pMapDrawer, Tracking * pTracking, MapperServer * pMapper, bool embeddedFrameDrawer = false);
+      Viewer(FrameDrawer * pFrameDrawer, MapDrawer * pMapDrawer, Tracking * pTracking, Mapper * pMapper, bool embeddedFrameDrawer = false);
 
-      Viewer(vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers, MapperServer * pMapper, bool embeddedFrameDrawers = true);
+      Viewer(vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers, Mapper * pMapper, bool embeddedFrameDrawers = true);
 
       // Main thread function. Draw points, keyframes, the current camera pose and the last processed
       // frame. Drawing is refreshed according to the camera fps. We use Pangolin.
@@ -71,7 +71,7 @@ namespace ORB_SLAM2
       vector<FrameDrawer*> mvFrameDrawers;
       vector<MapDrawer *> mvMapDrawers;
       vector<Tracking*> mvTrackers;
-      MapperServer * mpMapper;
+      Mapper * mpMapper;
 
       void SetFinish();
       bool mbFinishRequested;

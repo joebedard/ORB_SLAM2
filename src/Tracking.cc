@@ -43,7 +43,7 @@ namespace ORB_SLAM2
       ORBVocabulary* pVoc,
       FrameDrawer* pFrameDrawer,
       MapDrawer* pMapDrawer,
-      MapperServer* pMapper,
+      Mapper* pMapper,
       cv::FileStorage & fSettings,
       eSensor sensor
    ) :
@@ -399,10 +399,10 @@ namespace ORB_SLAM2
 
    void Tracking::Track()
    {
-      // Get Map Mutex -> Map cannot be changed
-      unique_lock<mutex> lock(mpMapper->GetMap()->mMutexMapUpdate);
-
       Print("begin Track");
+      // Get Map Mutex -> Map cannot be changed
+      unique_lock<mutex> lock(mpMapper->GetMutexMapUpdate());
+
       mLastProcessedState = mState;
 
       Print("if (!mpMapper->GetInitialized())");
@@ -1475,7 +1475,7 @@ namespace ORB_SLAM2
       }
 
       {
-         unique_lock<mutex> lock(mpMapper->GetMap()->mMutexMapUpdate);
+         unique_lock<mutex> lock(mpMapper->GetMutexMapUpdate());
          mpMapper->Reset();
       }
 
@@ -1517,14 +1517,14 @@ namespace ORB_SLAM2
 
    void Tracking::CheckReset()
    {
-      Print("begin Reset");
+      Print("begin CheckReset");
       unique_lock<mutex> lock(mMutexReset);
       if (mbReset)
       {
          Reset();
          mbReset = false;
       }
-      Print("end Reset");
+      Print("end CheckReset");
    }
 
    KeyFrame * Tracking::CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor sensorType)
@@ -1532,7 +1532,7 @@ namespace ORB_SLAM2
       Print("begin CreateNewKeyFrame");
       KeyFrame* pKF = new KeyFrame(NewKeyFrameId(), currentFrame);
 
-      // Some KeyPoints (features) don't yet have MapPoints, se we create them.
+      // Some KeyPoints (features) don't yet have MapPoints, so we create them.
       // We sort points by the measured depth by the stereo/RGBD sensor.
       // We create all those MapPoints whose depth < mThDepth.
       // If there are less than 100 close points we create the 100 closest.
@@ -1672,7 +1672,9 @@ namespace ORB_SLAM2
 
    void Tracking::MapperObserverMapChanged()
    {
+      Print("begin MapperObserverMapChanged");
       // TODO - complete this
+      Print("end MapperObserverMapChanged");
    }
 
 } //namespace ORB_SLAM

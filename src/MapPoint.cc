@@ -28,7 +28,7 @@ namespace ORB_SLAM2
 
    mutex MapPoint::mGlobalMutex;
 
-   MapPoint::MapPoint(long unsigned int id, const cv::Mat &Pos, KeyFrame *pRefKF) :
+   MapPoint::MapPoint(unsigned long int id, const cv::Mat &Pos, KeyFrame *pRefKF) :
       mnFirstKFid(pRefKF->GetId()), nObs(0), mnTrackReferenceForFrame(0),
       mnLastFrameSeen(0), mnBALocalForKF(0), mnFuseCandidateForKF(0), mnLoopPointForKF(0), mnCorrectedByKF(0),
       mnCorrectedReference(0), mnBAGlobalForKF(0), mpRefKF(pRefKF), mnVisible(1), mnFound(1), mbBad(false),
@@ -397,7 +397,7 @@ namespace ORB_SLAM2
       return nScale;
    }
 
-   unsigned long MapPoint::GetId()
+   unsigned long int MapPoint::GetId()
    {
       return mnId;
    }

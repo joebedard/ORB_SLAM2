@@ -32,6 +32,7 @@ namespace ORB_SLAM2
 
    LoopClosing::LoopClosing(
       Map * pMap,
+      std::mutex & mutexMapUpdate,
       KeyFrameDatabase * pDB,
       ORBVocabulary * pVoc,
       const bool bFixScale
@@ -41,6 +42,7 @@ namespace ORB_SLAM2
       mpKeyFrameDB(pDB),
       mpORBVocabulary(pVoc),
       mbFixScale(bFixScale),
+      mMutexMapUpdate(mutexMapUpdate),
       mbResetRequested(false),
       mbFinishRequested(false),
       mbFinished(true),
@@ -77,10 +79,13 @@ namespace ORB_SLAM2
                // In the stereo/RGBD case s=1
                if (ComputeSim3())
                {
-                  // Perform loop fusion and pose graph optimization
-                  CorrectLoop();
+                  MapChangeEvent mapChanges;
 
-                  // TODO - notify observers
+                  // Perform loop fusion and pose graph optimization
+                  CorrectLoop(mapChanges);
+
+                  // TODO OK - notify observers
+                  NotifyMapChanged(mapChanges);
                }
             }
          }
@@ -431,7 +436,7 @@ namespace ORB_SLAM2
 
    }
 
-   void LoopClosing::CorrectLoop()
+   void LoopClosing::CorrectLoop(MapChangeEvent & mapChanges)
    {
       Print("Loop detected!");
 
@@ -462,7 +467,8 @@ namespace ORB_SLAM2
 
       // Ensure current keyframe is updated
       mpCurrentKF->UpdateConnections();
-      // TODO - add to updated keyframes
+      // TODO OK - add to updated keyframes
+      mapChanges.updatedKeyFrames.insert(mpCurrentKF);
 
       // Retrive keyframes connected to the current keyframe and compute corrected Sim3 pose by propagation
       mvpCurrentConnectedKFs = mpCurrentKF->GetVectorCovisibleKeyFrames();
@@ -475,7 +481,7 @@ namespace ORB_SLAM2
 
       {
          // Get Map Mutex
-         unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
+         unique_lock<mutex> lock(mMutexMapUpdate);
 
          for (vector<KeyFrame*>::iterator vit = mvpCurrentConnectedKFs.begin(), vend = mvpCurrentConnectedKFs.end(); vit != vend; vit++)
          {
@@ -531,7 +537,8 @@ namespace ORB_SLAM2
                pMPi->mnCorrectedByKF = mpCurrentKF->GetId();
                pMPi->mnCorrectedReference = pKFi->GetId();
                pMPi->UpdateNormalAndDepth();
-               // TODO - add to updated points
+               // TODO OK - add to updated points
+               mapChanges.updatedMapPoints.insert(pMPi);
             }
 
             // Update keyframe pose with corrected Sim3. First transform Sim3 to SE3 (scale translation)
@@ -548,7 +555,8 @@ namespace ORB_SLAM2
             // Make sure connections are updated
             pKFi->UpdateConnections();
 
-            // TODO - add to updated keyframes
+            // TODO OK - add to updated keyframes
+            mapChanges.updatedKeyFrames.insert(pKFi);
          }
 
          // Start Loop Fusion
@@ -562,15 +570,18 @@ namespace ORB_SLAM2
                if (pCurMP)
                {
                   pCurMP->Replace(pLoopMP, mpMap);
-                  // TODO - add pCurMP to deleted points
-                  // TODO - add pLoopMP to updated points
+                  // TODO OK - add pCurMP to deleted points
+                  mapChanges.deletedMapPoints.insert(pCurMP->GetId());
+                  // TODO OK - add pLoopMP to updated points
+                  mapChanges.updatedMapPoints.insert(pLoopMP);
                }
                else
                {
                   mpCurrentKF->AddMapPoint(pLoopMP, i);
                   pLoopMP->AddObservation(mpCurrentKF, i);
                   pLoopMP->ComputeDistinctiveDescriptors();
-                  // TODO - add to updated points
+                  // TODO OK - add to updated points
+                  mapChanges.updatedMapPoints.insert(pLoopMP);
                }
             }
          }
@@ -580,7 +591,7 @@ namespace ORB_SLAM2
       // Project MapPoints observed in the neighborhood of the loop keyframe
       // into the current keyframe and neighbors using corrected poses.
       // Fuse duplications.
-      SearchAndFuse(CorrectedSim3);
+      SearchAndFuse(CorrectedSim3, mapChanges);
 
 
       // After the MapPoint fusion, new links in the covisibility graph will appear attaching both sides of the loop
@@ -593,7 +604,9 @@ namespace ORB_SLAM2
 
          // Update connections. Detect new links.
          pKFi->UpdateConnections();
-         // TODO - add to updated keyframes
+         // TODO OK - add to updated keyframes
+         mapChanges.updatedKeyFrames.insert(pKFi);
+
          LoopConnections[pKFi] = pKFi->GetConnectedKeyFrames();
          for (vector<KeyFrame*>::iterator vit_prev = vpPreviousNeighbors.begin(), vend_prev = vpPreviousNeighbors.end(); vit_prev != vend_prev; vit_prev++)
          {
@@ -606,13 +619,15 @@ namespace ORB_SLAM2
       }
 
       // Optimize graph
-      Optimizer::OptimizeEssentialGraph(mpMap, mpMatchedKF, mpCurrentKF, NonCorrectedSim3, CorrectedSim3, LoopConnections, mbFixScale);
+      Optimizer::OptimizeEssentialGraph(mpMap, mMutexMapUpdate, mpMatchedKF, mpCurrentKF, NonCorrectedSim3, CorrectedSim3, LoopConnections, mbFixScale);
 
       mpMap->InformNewBigChange();
 
       // Add loop edge
       mpMatchedKF->AddLoopEdge(mpCurrentKF);
-      // TODO - add to updated keyframes
+      // TODO OK - add to updated keyframes
+      mapChanges.updatedKeyFrames.insert(mpMatchedKF);
+
       mpCurrentKF->AddLoopEdge(mpMatchedKF);
 
       // Launch a new thread to perform Global Bundle Adjustment
@@ -627,7 +642,7 @@ namespace ORB_SLAM2
       mLastLoopKFid = mpCurrentKF->GetId();
    }
 
-   void LoopClosing::SearchAndFuse(const KeyFrameAndPose &CorrectedPosesMap)
+   void LoopClosing::SearchAndFuse(const KeyFrameAndPose &CorrectedPosesMap, MapChangeEvent & mapChanges)
    {
       ORBmatcher matcher(0.8);
 
@@ -639,10 +654,10 @@ namespace ORB_SLAM2
          cv::Mat cvScw = Converter::toCvMat(g2oScw);
 
          vector<MapPoint*> vpReplacePoints(mvpLoopMapPoints.size(), static_cast<MapPoint*>(NULL));
-         matcher.Fuse(pKF, cvScw, mvpLoopMapPoints, 4, vpReplacePoints);
+         matcher.Fuse(mapChanges, pKF, cvScw, mvpLoopMapPoints, 4, vpReplacePoints);
 
          // Get Map Mutex
-         unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
+         unique_lock<mutex> lock(mMutexMapUpdate);
          const int nLP = mvpLoopMapPoints.size();
          for (int i = 0; i < nLP;i++)
          {
@@ -650,8 +665,10 @@ namespace ORB_SLAM2
             if (pRep)
             {
                pRep->Replace(mvpLoopMapPoints[i], mpMap);
-               // TODO - add pRep to deleted points
-               // TODO - add mvpLoopMapPoints[i] to updated points
+               // TODO OK - add pRep to deleted points
+               mapChanges.deletedMapPoints.insert(pRep->GetId());
+               // TODO OK - add mvpLoopMapPoints[i] to updated points
+               mapChanges.updatedMapPoints.insert(mvpLoopMapPoints[i]);
             }
          }
       }
@@ -716,7 +733,7 @@ namespace ORB_SLAM2
             }
 
             // Get Map Mutex
-            unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
+            unique_lock<mutex> lock(mMutexMapUpdate);
 
             // Correct keyframes starting at map first keyframe
             list<KeyFrame*> lpKFtoCheck(mpMap->mvpKeyFrameOrigins.begin(), mpMap->mvpKeyFrameOrigins.end());

@@ -28,7 +28,7 @@
 namespace ORB_SLAM2
 {
 
-   Viewer::Viewer(FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, MapperServer * pMapper, bool embeddedFrameDrawer) :
+   Viewer::Viewer(FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, Mapper * pMapper, bool embeddedFrameDrawer) :
       SyncPrint("Viewer: "),
       mpMapper(pMapper),
       mEmbeddedFrameDrawers(embeddedFrameDrawer),
@@ -44,7 +44,7 @@ namespace ORB_SLAM2
       mvTrackers.push_back(pTracking);
    }
 
-   Viewer::Viewer(vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers, MapperServer * pMapper, bool embeddedFrameDrawers) :
+   Viewer::Viewer(vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers, Mapper * pMapper, bool embeddedFrameDrawers) :
       SyncPrint("Viewer: "),
       mvFrameDrawers(vFrameDrawers),
       mvMapDrawers(vMapDrawers),

@@ -53,6 +53,7 @@ namespace ORB_SLAM2
 
       LoopClosing(
          Map * pMap,
+         std::mutex & mutexMapUpdate,
          KeyFrameDatabase * pDB,
          ORBVocabulary * pVoc,
          const bool bFixScale
@@ -94,9 +95,9 @@ namespace ORB_SLAM2
 
       bool ComputeSim3();
 
-      void SearchAndFuse(const KeyFrameAndPose &CorrectedPosesMap);
+      void SearchAndFuse(const KeyFrameAndPose &CorrectedPosesMap, MapChangeEvent & mapChanges);
 
-      void CorrectLoop();
+      void CorrectLoop(MapChangeEvent & mapChanges);
 
       void ResetIfRequested();
       bool mbResetRequested;
@@ -146,6 +147,10 @@ namespace ORB_SLAM2
       bool mbFixScale;
 
       bool mnFullBAIdx;
+
+   private:
+      
+      std::mutex & mMutexMapUpdate;
 
    };
 
