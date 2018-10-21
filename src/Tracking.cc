@@ -40,18 +40,18 @@ namespace ORB_SLAM2
 {
 
    Tracking::Tracking(
-      ORBVocabulary* pVoc,
+      cv::FileStorage & fSettings,
+      ORBVocabulary & vocab, 
+      Mapper & mapper,
       FrameDrawer* pFrameDrawer,
       MapDrawer* pMapDrawer,
-      Mapper* pMapper,
-      cv::FileStorage & fSettings,
       eSensor sensor
    ) :
       SyncPrint("Tracking: "),
-      mpORBVocabulary(pVoc),
+      mORBVocabulary(vocab),
+      mMapper(mapper),
       mpFrameDrawer(pFrameDrawer),
       mpMapDrawer(pMapDrawer),
-      mpMapper(pMapper),
       mSensor(sensor),
       mId(-1),
       mbOnlyTracking(false),
@@ -71,12 +71,12 @@ namespace ORB_SLAM2
    {
       LoadCameraParameters(fSettings, sensor);
       Login();
-      mpMapper->AddObserver(&mMapperObserver);
+      mMapper.AddObserver(&mMapperObserver);
    }
 
    Tracking::~Tracking()
    {
-      mpMapper->LogoutTracker(mId);
+      mMapper.LogoutTracker(mId);
       delete mFC;
    }
 
@@ -323,7 +323,7 @@ namespace ORB_SLAM2
          }
       }
 
-      mCurrentFrame = Frame(mImGray, imGrayRight, timestamp, mpORBextractorLeft, mpORBextractorRight, mpORBVocabulary, mFC, mbf, mThDepth);
+      mCurrentFrame = Frame(mImGray, imGrayRight, timestamp, mpORBextractorLeft, mpORBextractorRight, &mORBVocabulary, mFC, mbf, mThDepth);
 
       Track();
 
@@ -357,7 +357,7 @@ namespace ORB_SLAM2
       if ((fabs(mDepthMapFactor - 1.0f) > 1e-5) || imDepth.type() != CV_32F)
          imDepth.convertTo(imDepth, CV_32F, mDepthMapFactor);
 
-      mCurrentFrame = Frame(mImGray, imDepth, timestamp, mpORBextractorLeft, mpORBVocabulary, mFC, mbf, mThDepth);
+      mCurrentFrame = Frame(mImGray, imDepth, timestamp, mpORBextractorLeft, &mORBVocabulary, mFC, mbf, mThDepth);
 
       Track();
 
@@ -387,10 +387,10 @@ namespace ORB_SLAM2
             cvtColor(mImGray, mImGray, CV_BGRA2GRAY);
       }
 
-      if (!mpMapper->GetInitialized())
-         mCurrentFrame = Frame(mImGray, timestamp, mpIniORBextractor, mpORBVocabulary, mFC, mbf, mThDepth);
+      if (!mMapper.GetInitialized())
+         mCurrentFrame = Frame(mImGray, timestamp, mpIniORBextractor, &mORBVocabulary, mFC, mbf, mThDepth);
       else
-         mCurrentFrame = Frame(mImGray, timestamp, mpORBextractorLeft, mpORBVocabulary, mFC, mbf, mThDepth);
+         mCurrentFrame = Frame(mImGray, timestamp, mpORBextractorLeft, &mORBVocabulary, mFC, mbf, mThDepth);
 
       Track();
 
@@ -401,12 +401,12 @@ namespace ORB_SLAM2
    {
       Print("begin Track");
       // Get Map Mutex -> Map cannot be changed
-      unique_lock<mutex> lock(mpMapper->GetMutexMapUpdate());
+      unique_lock<mutex> lock(mMapper.GetMutexMapUpdate());
 
       mLastProcessedState = mState;
 
-      Print("if (!mpMapper->GetInitialized())");
-      if (!mpMapper->GetInitialized())
+      Print("if (!mMapper->GetInitialized())");
+      if (!mMapper.GetInitialized())
       {
          if (0 == mId)
          {
@@ -415,9 +415,9 @@ namespace ORB_SLAM2
             else
                MonocularInitialization();
 
-            mpFrameDrawer->Update(this, mpMapper->GetMap());
+            mpFrameDrawer->Update(*this, mMapper.GetMap());
 
-            if (!mpMapper->GetInitialized())
+            if (!mMapper.GetInitialized())
             {
                Print("end Track 1");
                return;
@@ -469,7 +469,7 @@ namespace ORB_SLAM2
             mState = TRACKING_LOST;
 
          // Update drawer
-         mpFrameDrawer->Update(this, mpMapper->GetMap());
+         mpFrameDrawer->Update(*this, mMapper.GetMap());
 
          // If tracking was good, check if we insert a keyframe
          if (bOK)
@@ -487,7 +487,7 @@ namespace ORB_SLAM2
                mVelocity = cv::Mat();
             }
 
-            mpMapper->UpdatePose(mId, mCurrentFrame.mTcw);
+            mMapper.UpdatePose(mId, mCurrentFrame.mTcw);
             if (mpMapDrawer)
                mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
 
@@ -519,7 +519,7 @@ namespace ORB_SLAM2
          // and this tracker is the initializer
          if (mState == TRACKING_LOST && mId == 0)
          {
-            if (mpMapper->KeyFramesInMap() <= 5)
+            if (mMapper.KeyFramesInMap() <= 5)
             {
                Print("Tracking lost soon after initialisation, reseting...");
                RequestReset();
@@ -613,7 +613,7 @@ namespace ORB_SLAM2
          mvpLocalMapPoints = points;
          mpReferenceKF = pKFini;
 
-         mpMapper->Initialize(mId, points, keyframes);
+         mMapper.Initialize(mId, points, keyframes);
          mState = TRACKING_OK;
 
          if (mpMapDrawer)
@@ -704,7 +704,7 @@ namespace ORB_SLAM2
 
    void Tracking::CreateInitialMapMonocular()
    {
-      Map * pMap = new Map();
+      Map map;
 
       // Create KeyFrames
       KeyFrame* pKFini = new KeyFrame(NewKeyFrameId(), mInitialFrame);
@@ -714,8 +714,8 @@ namespace ORB_SLAM2
       pKFcur->ComputeBoW();
 
       // Insert KFs in the map
-      pMap->AddKeyFrame(pKFini);
-      pMap->AddKeyFrame(pKFcur);
+      map.AddKeyFrame(pKFini);
+      map.AddKeyFrame(pKFcur);
       vector<KeyFrame *> keyframes;
       keyframes.push_back(pKFini);
       keyframes.push_back(pKFcur);
@@ -746,7 +746,7 @@ namespace ORB_SLAM2
          mCurrentFrame.mvbOutlier[mvIniMatches[i]] = false;
 
          //Add to Map
-         pMap->AddMapPoint(pMP);
+         map.AddMapPoint(pMP);
          points.push_back(pMP);
       }
 
@@ -759,7 +759,7 @@ namespace ORB_SLAM2
       ss << "New Map created with " << points.size() << " points";
       Print(ss.str().c_str());
 
-      Optimizer::GlobalBundleAdjustment(pMap, 20);
+      Optimizer::GlobalBundleAdjustment(map, 20);
 
       // Set median depth to 1
       float medianDepth = pKFini->ComputeSceneMedianDepth(2);
@@ -796,7 +796,7 @@ namespace ORB_SLAM2
       }
 
       mvpLocalMapPoints = points;
-      mpMapper->Initialize(mId, points, keyframes);
+      mMapper.Initialize(mId, points, keyframes);
 
       mCurrentFrame.SetPose(pKFcur->GetPose());
       mnLastFrameIdMadeIntoKeyFrame = mCurrentFrame.mnId;
@@ -815,7 +815,6 @@ namespace ORB_SLAM2
          mpMapDrawer->SetReferenceMapPoints(mvpLocalMapPoints);
       }
 
-      delete pMap;
       mState = TRACKING_OK;
    }
 
@@ -1021,13 +1020,13 @@ namespace ORB_SLAM2
       }
 
       // If Local Mapping is freezed by a Loop Closure do not insert keyframes
-      if (mpMapper->GetPauseRequested())
+      if (mMapper.GetPauseRequested())
       {
          Print("end NeedNewKeyFrame 2");
          return false;
       }
 
-      const int nKFs = mpMapper->KeyFramesInMap();
+      const int nKFs = mMapper.KeyFramesInMap();
 
       // Do not insert keyframes if not enough frames have passed from last relocalisation
       if (mCurrentFrame.mnId<mnLastRelocFrameId + mMaxFrames && nKFs>mMaxFrames)
@@ -1073,7 +1072,7 @@ namespace ORB_SLAM2
       const bool c1a = mCurrentFrame.mnId >= (mnLastFrameIdMadeIntoKeyFrame + mMaxFrames);
 
       // Condition 1b: More than "MinFrames" have passed and Local Mapping is idle
-      const bool c1b = (mCurrentFrame.mnId >= (mnLastFrameIdMadeIntoKeyFrame + mMinFrames)) && mpMapper->AcceptKeyFrames();
+      const bool c1b = (mCurrentFrame.mnId >= (mnLastFrameIdMadeIntoKeyFrame + mMinFrames)) && mMapper.AcceptKeyFrames();
 
       // Condition 1c: tracking is weak
       const bool c1c = (mSensor != MONOCULAR) && (mnMatchesInliers < (nRefMatches * 0.25) || bNeedToInsertClose);
@@ -1296,7 +1295,7 @@ namespace ORB_SLAM2
 
       // Relocalization is performed when tracking is lost
       // Track Lost: Query KeyFrame Database for keyframe candidates for relocalisation
-      vector<KeyFrame*> vpCandidateKFs = mpMapper->DetectRelocalizationCandidates(&mCurrentFrame);
+      vector<KeyFrame*> vpCandidateKFs = mMapper.DetectRelocalizationCandidates(&mCurrentFrame);
 
       if (vpCandidateKFs.empty())
       {
@@ -1475,8 +1474,8 @@ namespace ORB_SLAM2
       }
 
       {
-         unique_lock<mutex> lock(mpMapper->GetMutexMapUpdate());
-         mpMapper->Reset();
+         unique_lock<mutex> lock(mMapper.GetMutexMapUpdate());
+         mMapper.Reset();
       }
 
 
@@ -1578,7 +1577,7 @@ namespace ORB_SLAM2
          }
       }
 
-      if (mpMapper->InsertKeyFrame(mId, points, pKF))
+      if (mMapper.InsertKeyFrame(mId, points, pKF))
       {
          if (sensorType != MONOCULAR)
          {
@@ -1621,7 +1620,7 @@ namespace ORB_SLAM2
 
    void Tracking::Login()
    {
-      mId = mpMapper->LoginTracker(mNextKeyFrameId, mKeyFrameIdSpan, mNextMapPointId, mMapPointIdSpan, pivotCal);
+      mId = mMapper.LoginTracker(mNextKeyFrameId, mKeyFrameIdSpan, mNextMapPointId, mMapPointIdSpan, pivotCal);
       assert(mKeyFrameIdSpan != 0);
       assert(mMapPointIdSpan != 0);
 
@@ -1637,7 +1636,7 @@ namespace ORB_SLAM2
 
    void Tracking::Logout()
    {
-      mpMapper->LogoutTracker(mId);
+      mMapper.LogoutTracker(mId);
       mId = -1; //set to max positive integer
 
       stringstream ss;

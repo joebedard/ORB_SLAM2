@@ -31,8 +31,16 @@
 namespace ORB_SLAM2
 {
 
-   System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
-      const bool bUseViewer) :mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL))
+   System::System(
+      const string & strVocFile,
+      const string & strSettingsFile,
+      const eSensor sensor,
+      const bool bUseViewer
+   ) :
+      mSensor(sensor),
+      mpViewer(static_cast<Viewer*>(NULL)),
+      mpMapperServer(static_cast<MapperServer*>(NULL)),
+      mpMapperClient(static_cast<MapperClient*>(NULL))
    {
       // Output welcome message
       stringstream ss1;
@@ -74,21 +82,25 @@ namespace ORB_SLAM2
       }
       Print("Vocabulary loaded!");
 
-      //Create the Map
-      mpMap = new Map();
-
       //Initialize the Mapper
-      //mpMapper = new MapperServer(mpMap, mpVocabulary, mSensor == MONOCULAR);
-      mpMapper = new MapperClient(mpMap, mpVocabulary, mSensor == MONOCULAR);
+      mpMapperServer = new MapperServer(*mpVocabulary, mSensor == MONOCULAR);
+      if (true)
+      { // client and server
+         mpMapperClient = new MapperClient(*mpMapperServer, *mpVocabulary, mSensor == MONOCULAR);
+         mpMapper = mpMapperClient;
+      }
+      else
+      { // server only
+         mpMapper = mpMapperServer;
+      }
 
       //Create Drawers. These are used by the Viewer
       mpFrameDrawer = new FrameDrawer(fsSettings);
-      mpMapDrawer = new MapDrawer(mpMapper, fsSettings);
+      mpMapDrawer = new MapDrawer(fsSettings, *mpMapper);
 
       //Initialize the Tracking thread
       //(it will live in the main thread of execution, the one that called this constructor)
-      mpTracker = new Tracking(mpVocabulary, mpFrameDrawer, mpMapDrawer,
-         mpMapper, fsSettings, mSensor);
+      mpTracker = new Tracking(fsSettings, *mpVocabulary, *mpMapper, mpFrameDrawer, mpMapDrawer, mSensor);
 
       //Initialize the Viewer thread and launch
       if (bUseViewer)
@@ -105,7 +117,8 @@ namespace ORB_SLAM2
       delete mpFrameDrawer;
       delete mpMapDrawer;
       delete mpTracker;
-      delete mpMapper;
+      delete mpMapperServer;
+      delete mpMapperClient;
       delete mpVocabulary;
       delete mpMap;
    }

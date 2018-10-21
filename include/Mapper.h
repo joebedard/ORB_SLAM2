@@ -49,7 +49,7 @@ namespace ORB_SLAM2
 
       virtual bool GetInitialized() = 0;
 
-      virtual Map * GetMap() = 0;
+      virtual Map & GetMap() = 0;
 
       virtual std::mutex & GetMutexMapUpdate() = 0;
 

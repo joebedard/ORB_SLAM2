@@ -53,11 +53,11 @@ namespace ORB_SLAM2
 
    public:
       Tracking(
-         ORBVocabulary* pVoc,
+         cv::FileStorage & settings,
+         ORBVocabulary & vocab,
+         Mapper & mapper,
          FrameDrawer* pFrameDrawer,
          MapDrawer* pMapDrawer,
-         Mapper* pMapper,
-         cv::FileStorage & settings,
          eSensor sensor
       );
 
@@ -145,7 +145,7 @@ namespace ORB_SLAM2
       ORBextractor* mpIniORBextractor;
 
       //BoW
-      ORBVocabulary* mpORBVocabulary;
+      ORBVocabulary & mORBVocabulary;
 
       // Initalization (only for monocular)
       Initializer* mpInitializer;
@@ -207,7 +207,7 @@ namespace ORB_SLAM2
       std::mutex mMutexReset;
       bool mbReset;
 
-      Mapper * mpMapper;
+      Mapper & mMapper;
 
       unsigned int mId;
 

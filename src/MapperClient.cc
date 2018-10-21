@@ -23,33 +23,26 @@
 namespace ORB_SLAM2
 {
 
-   MapperClient::MapperClient(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular) :
+   MapperClient::MapperClient(Mapper & server, ORBVocabulary & vocab, const bool bMonocular) :
       SyncPrint("MapperClient: "),
-      mpMap(pMap),
-      mpVocab(pVocab),
+      mServer(server),
+      mVocab(vocab),
       mbMonocular(bMonocular),
       mInitialized(false),
-      server(new Map(), pVocab, bMonocular),
       mMapperServerObserver(this)
    {
-      if (pMap == NULL)
-         throw std::exception("pMap must not be NULL");
-
-      if (pVocab == NULL)
-         throw std::exception("pVocab must not be NULL");
-
-      server.AddObserver(&mMapperServerObserver);
+      mServer.AddObserver(&mMapperServerObserver);
    }
 
    long unsigned MapperClient::KeyFramesInMap()
    {
-      return mpMap->KeyFramesInMap();
+      return mMap.KeyFramesInMap();
    }
 
    void MapperClient::Reset()
    {
       Print("Begin Server Reset");
-      server.Reset();
+      mServer.Reset();
       Print("End Server Reset");
 
       // Reset will be received asynchronously from server
@@ -57,7 +50,7 @@ namespace ORB_SLAM2
 
       // Clear Map (this erase MapPoints and KeyFrames)
       Print("Begin Map Reset");
-      mpMap->Clear();
+      mMap.Clear();
       Print("End Map Reset");
 
       mInitialized = false;
@@ -66,7 +59,7 @@ namespace ORB_SLAM2
 
    std::vector<KeyFrame*> MapperClient::DetectRelocalizationCandidates(Frame* F)
    {
-      return server.DetectRelocalizationCandidates(F);
+      return mServer.DetectRelocalizationCandidates(F);
    }
 
    bool MapperClient::GetInitialized()
@@ -76,14 +69,14 @@ namespace ORB_SLAM2
 
    bool MapperClient::GetPauseRequested()
    {
-      return server.GetPauseRequested();
+      return mServer.GetPauseRequested();
       // TODO - temporary until network synchronization
       //return false;
    }
 
    bool MapperClient::AcceptKeyFrames()
    {
-      return server.AcceptKeyFrames();
+      return mServer.AcceptKeyFrames();
       // TODO - temporary until network synchronization
       //return true;
    }
@@ -100,19 +93,19 @@ namespace ORB_SLAM2
       // stereo and RGBD modes will create MapPoints
       for (auto it : mapPoints)
       {
-         mpMap->AddMapPoint(it);
+         mMap.AddMapPoint(it);
       }
 
       // is this needed for tracking client?
-      mpMap->mvpKeyFrameOrigins.push_back(keyframes[0]);
+      mMap.mvpKeyFrameOrigins.push_back(keyframes[0]);
 
       for (auto it : keyframes)
       {
          // Insert KeyFrame in the map
-         mpMap->AddKeyFrame(it);
+         mMap.AddKeyFrame(it);
       }
 
-      server.Initialize(trackerId, mapPoints, keyframes);
+      mServer.Initialize(trackerId, mapPoints, keyframes);
 
       mInitialized = true;
       Print("end Initialize");
@@ -122,14 +115,14 @@ namespace ORB_SLAM2
    {
       Print("begin InsertKeyFrame");
       // client: serialize KF and MPs and then send to server
-      if (server.InsertKeyFrame(trackerId, mapPoints, pKF))
+      if (mServer.InsertKeyFrame(trackerId, mapPoints, pKF))
       {
          // add points and keyframes to allow for for map synchronization with the server
          for (MapPoint * pMP : mapPoints)
          {
-            mpMap->AddMapPoint(pMP);
+            mMap.AddMapPoint(pMP);
          }
-         mpMap->AddKeyFrame(pKF);
+         mMap.AddKeyFrame(pKF);
 
          Print("end InsertKeyFrame 1");
          return true;
@@ -152,44 +145,44 @@ namespace ORB_SLAM2
       unique_lock<mutex> lock(mMutexLogin);
 
       // client: login and get Id values and return them
-      return server.LoginTracker(firstKeyFrameId, keyFrameIdSpan, firstMapPointId, mapPointIdSpan, cv::Mat::eye(4, 4, CV_32F));
+      return mServer.LoginTracker(firstKeyFrameId, keyFrameIdSpan, firstMapPointId, mapPointIdSpan, cv::Mat::eye(4, 4, CV_32F));
    }
 
    void MapperClient::LogoutTracker(unsigned int id)
    {
       unique_lock<mutex> lock(mMutexLogin);
 
-      server.LogoutTracker(id);
+      mServer.LogoutTracker(id);
    }
 
    void MapperClient::UpdatePose(unsigned int trackerId, const cv::Mat & poseTcw)
    {
       // TODO - serialize trackerId, pose and send to server
-      server.UpdatePose(trackerId, poseTcw);
+      mServer.UpdatePose(trackerId, poseTcw);
    }
 
    vector<cv::Mat> MapperClient::GetTrackerPoses()
    {
       // TODO - pose synchronization between client(s) and server
-      return server.GetTrackerPoses();
+      return mServer.GetTrackerPoses();
    }
 
    vector<cv::Mat> MapperClient::GetTrackerPivots()
    {
       // TODO - pivot synchronization between client(s) and server
-      return server.GetTrackerPivots();
+      return mServer.GetTrackerPivots();
    }
 
-   Map * MapperClient::GetMap()
+   Map & MapperClient::GetMap()
    {
       // TODO - map synchronization between client(s) and server
-      return mpMap;
+      return mMap;
    }
 
    std::mutex & MapperClient::GetMutexMapUpdate()
    {
       // TODO - replace with client mutex
-      return server.GetMutexMapUpdate();
+      return mServer.GetMutexMapUpdate();
    }
 
    void MapperClient::MapperServerObserverReset()
@@ -201,7 +194,7 @@ namespace ORB_SLAM2
    void MapperClient::MapperServerObserverMapChanged(MapChangeEvent & mce)
    {
       Print("begin MapperServerObserverMapChanged");
-      unique_lock<mutex> lock(server.GetMutexMapUpdate());
+      unique_lock<mutex> lock(mServer.GetMutexMapUpdate());
 
       // be careful - process map changes in the best order
 
@@ -209,10 +202,10 @@ namespace ORB_SLAM2
       Print(ss1);
       for (MapPoint * mp : mce.updatedMapPoints)
       {
-         MapPoint * pMP = mpMap->GetMapPoint(mp->GetId());
+         MapPoint * pMP = mMap.GetMapPoint(mp->GetId());
          if (pMP == NULL)
          {
-            mpMap->AddMapPoint(mp);
+            mMap.AddMapPoint(mp);
          }
          else
          {
@@ -225,11 +218,11 @@ namespace ORB_SLAM2
       for (KeyFrame * kf : mce.updatedKeyFrames)
       {
          stringstream ss; ss << "kf->GetId() == " << kf->GetId(); Print(ss);
-         KeyFrame * pKF = mpMap->GetKeyFrame(kf->GetId());
+         KeyFrame * pKF = mMap.GetKeyFrame(kf->GetId());
          if (pKF == NULL)
          {
             Print("pKF == NULL");
-            mpMap->AddKeyFrame(kf);
+            mMap.AddKeyFrame(kf);
          }
          else
          {
@@ -242,16 +235,17 @@ namespace ORB_SLAM2
       Print(ss3);
       for (unsigned long int id : mce.deletedKeyFrames)
       {
-         mpMap->EraseKeyFrame(id);
+         mMap.EraseKeyFrame(id);
       }
 
       stringstream ss4; ss4 << "mce.deletedMapPoints.size() == " << mce.deletedMapPoints.size();
       Print(ss4);
       for (unsigned long int id : mce.deletedMapPoints)
       {
-         mpMap->EraseMapPoint(id);
+         mMap.EraseMapPoint(id);
       }
 
+      mInitialized = true;
       NotifyMapChanged(mce);
       Print("end MapperServerObserverMapChanged");
    }

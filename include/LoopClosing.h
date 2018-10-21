@@ -52,10 +52,10 @@ namespace ORB_SLAM2
    public:
 
       LoopClosing(
-         Map * pMap,
-         std::mutex & mutexMapUpdate,
-         KeyFrameDatabase * pDB,
-         ORBVocabulary * pVoc,
+         Map & map,
+         std::mutex & mutexMapUpdate, 
+         KeyFrameDatabase & kfDB, 
+         ORBVocabulary & vocab,
          const bool bFixScale
       );
 
@@ -109,12 +109,13 @@ namespace ORB_SLAM2
       bool mbFinished;
       std::mutex mMutexFinish;
 
-      Map* mpMap;
+      Map & mMap;
 
-      KeyFrameDatabase* mpKeyFrameDB;
-      ORBVocabulary* mpORBVocabulary;
+      KeyFrameDatabase & mKeyFrameDB;
 
-      LocalMapping *mpLocalMapper;
+      ORBVocabulary & mORBVocabulary;
+
+      LocalMapping * mpLocalMapper;
 
       std::list<KeyFrame*> mlpLoopKeyFrameQueue;
 

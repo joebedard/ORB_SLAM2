@@ -31,16 +31,16 @@ namespace ORB_SLAM2
 {
 
    LoopClosing::LoopClosing(
-      Map * pMap,
-      std::mutex & mutexMapUpdate,
-      KeyFrameDatabase * pDB,
-      ORBVocabulary * pVoc,
+      Map & map,
+      std::mutex & mutexMapUpdate, 
+      KeyFrameDatabase & keyFrameDB, 
+      ORBVocabulary & vocab,
       const bool bFixScale
    ) :
       SyncPrint("LoopClosing: "),
-      mpMap(pMap),
-      mpKeyFrameDB(pDB),
-      mpORBVocabulary(pVoc),
+      mMap(map),
+      mKeyFrameDB(keyFrameDB),
+      mORBVocabulary(vocab),
       mbFixScale(bFixScale),
       mMutexMapUpdate(mutexMapUpdate),
       mbResetRequested(false),
@@ -141,8 +141,8 @@ namespace ORB_SLAM2
       //If the map contains less than 10 KF or less than 10 KF have passed from last loop detection
       if (mpCurrentKF->GetId() < mLastLoopKFid + 10)
       {
-         mpKeyFrameDB->add(mpCurrentKF);
-         mpCurrentKF->SetErase(mpMap, mpKeyFrameDB);
+         mKeyFrameDB.add(mpCurrentKF);
+         mpCurrentKF->SetErase(&mMap, &mKeyFrameDB);
          Print("end DetectLoop 1");
          return false;
       }
@@ -160,21 +160,21 @@ namespace ORB_SLAM2
             continue;
          const DBoW2::BowVector &BowVec = pKF->mBowVec;
 
-         float score = mpORBVocabulary->score(CurrentBowVec, BowVec);
+         float score = mORBVocabulary.score(CurrentBowVec, BowVec);
 
          if (score < minScore)
             minScore = score;
       }
 
       // Query the database imposing the minimum score
-      vector<KeyFrame*> vpCandidateKFs = mpKeyFrameDB->DetectLoopCandidates(mpCurrentKF, minScore);
+      vector<KeyFrame*> vpCandidateKFs = mKeyFrameDB.DetectLoopCandidates(mpCurrentKF, minScore);
 
       // If there are no loop candidates, just add new keyframe and return false
       if (vpCandidateKFs.empty())
       {
-         mpKeyFrameDB->add(mpCurrentKF);
+         mKeyFrameDB.add(mpCurrentKF);
          mvConsistentGroups.clear();
-         mpCurrentKF->SetErase(mpMap, mpKeyFrameDB);
+         mpCurrentKF->SetErase(&mMap, &mKeyFrameDB);
          Print("end DetectLoop 2");
          return false;
       }
@@ -242,11 +242,11 @@ namespace ORB_SLAM2
 
 
       // Add Current Keyframe to database
-      mpKeyFrameDB->add(mpCurrentKF);
+      mKeyFrameDB.add(mpCurrentKF);
 
       if (mvpEnoughConsistentCandidates.empty())
       {
-         mpCurrentKF->SetErase(mpMap, mpKeyFrameDB);
+         mpCurrentKF->SetErase(&mMap, &mKeyFrameDB);
          Print("end DetectLoop 3");
          return false;
       }
@@ -256,7 +256,7 @@ namespace ORB_SLAM2
          return true;
       }
 
-      mpCurrentKF->SetErase(mpMap, mpKeyFrameDB);
+      mpCurrentKF->SetErase(&mMap, &mKeyFrameDB);
       Print("end DetectLoop 5");
       return false;
    }
@@ -378,8 +378,8 @@ namespace ORB_SLAM2
       if (!bMatch)
       {
          for (int i = 0; i < nInitialCandidates; i++)
-            mvpEnoughConsistentCandidates[i]->SetErase(mpMap, mpKeyFrameDB);
-         mpCurrentKF->SetErase(mpMap, mpKeyFrameDB);
+            mvpEnoughConsistentCandidates[i]->SetErase(&mMap, &mKeyFrameDB);
+         mpCurrentKF->SetErase(&mMap, &mKeyFrameDB);
          Print("end ComputeSim3 1");
          return false;
       }
@@ -421,15 +421,15 @@ namespace ORB_SLAM2
       {
          for (int i = 0; i < nInitialCandidates; i++)
             if (mvpEnoughConsistentCandidates[i] != mpMatchedKF)
-               mvpEnoughConsistentCandidates[i]->SetErase(mpMap, mpKeyFrameDB);
+               mvpEnoughConsistentCandidates[i]->SetErase(&mMap, &mKeyFrameDB);
          Print("end ComputeSim3 2");
          return true;
       }
       else
       {
          for (int i = 0; i < nInitialCandidates; i++)
-            mvpEnoughConsistentCandidates[i]->SetErase(mpMap, mpKeyFrameDB);
-         mpCurrentKF->SetErase(mpMap, mpKeyFrameDB);
+            mvpEnoughConsistentCandidates[i]->SetErase(&mMap, &mKeyFrameDB);
+         mpCurrentKF->SetErase(&mMap, &mKeyFrameDB);
          Print("end ComputeSim3 3");
          return false;
       }
@@ -569,7 +569,7 @@ namespace ORB_SLAM2
                MapPoint* pCurMP = mpCurrentKF->GetMapPoint(i);
                if (pCurMP)
                {
-                  pCurMP->Replace(pLoopMP, mpMap);
+                  pCurMP->Replace(pLoopMP, &mMap);
                   // TODO OK - add pCurMP to deleted points
                   mapChanges.deletedMapPoints.insert(pCurMP->GetId());
                   // TODO OK - add pLoopMP to updated points
@@ -619,9 +619,9 @@ namespace ORB_SLAM2
       }
 
       // Optimize graph
-      Optimizer::OptimizeEssentialGraph(mpMap, mMutexMapUpdate, mpMatchedKF, mpCurrentKF, NonCorrectedSim3, CorrectedSim3, LoopConnections, mbFixScale);
+      Optimizer::OptimizeEssentialGraph(mMap, mMutexMapUpdate, mpMatchedKF, mpCurrentKF, NonCorrectedSim3, CorrectedSim3, LoopConnections, mbFixScale);
 
-      mpMap->InformNewBigChange();
+      mMap.InformNewBigChange();
 
       // Add loop edge
       mpMatchedKF->AddLoopEdge(mpCurrentKF);
@@ -664,7 +664,7 @@ namespace ORB_SLAM2
             MapPoint* pRep = vpReplacePoints[i];
             if (pRep)
             {
-               pRep->Replace(mvpLoopMapPoints[i], mpMap);
+               pRep->Replace(mvpLoopMapPoints[i], &mMap);
                // TODO OK - add pRep to deleted points
                mapChanges.deletedMapPoints.insert(pRep->GetId());
                // TODO OK - add mvpLoopMapPoints[i] to updated points
@@ -709,7 +709,7 @@ namespace ORB_SLAM2
       Print("Starting Global Bundle Adjustment");
 
       int idx = mnFullBAIdx;
-      Optimizer::GlobalBundleAdjustment(mpMap, 10, &mbStopGBA, nLoopKF, false);
+      Optimizer::GlobalBundleAdjustment(mMap, 10, &mbStopGBA, nLoopKF, false);
 
       // Update all MapPoints and KeyFrames
       // Local Mapping was active during BA, that means that there might be new keyframes
@@ -736,7 +736,7 @@ namespace ORB_SLAM2
             unique_lock<mutex> lock(mMutexMapUpdate);
 
             // Correct keyframes starting at map first keyframe
-            list<KeyFrame*> lpKFtoCheck(mpMap->mvpKeyFrameOrigins.begin(), mpMap->mvpKeyFrameOrigins.end());
+            list<KeyFrame*> lpKFtoCheck(mMap.mvpKeyFrameOrigins.begin(), mMap.mvpKeyFrameOrigins.end());
 
             while (!lpKFtoCheck.empty())
             {
@@ -762,7 +762,7 @@ namespace ORB_SLAM2
             }
 
             // Correct MapPoints
-            const vector<MapPoint*> vpMPs = mpMap->GetAllMapPoints();
+            const vector<MapPoint*> vpMPs = mMap.GetAllMapPoints();
 
             for (size_t i = 0; i < vpMPs.size(); i++)
             {
@@ -798,7 +798,7 @@ namespace ORB_SLAM2
                }
             }
 
-            mpMap->InformNewBigChange();
+            mMap.InformNewBigChange();
 
             mpLocalMapper->Resume();
 

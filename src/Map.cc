@@ -26,7 +26,7 @@ namespace ORB_SLAM2
 {
 
    Map::Map()
-      : mnMaxKFid(0), mnBigChangeIdx(0), mnNextPointId(0), SyncPrint("Map: ")
+      : mnMaxKFid(0), mnBigChangeIdx(0), mnNextPointId(0), SyncPrint("Map: ", false)
    {
 
    }

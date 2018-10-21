@@ -28,7 +28,7 @@ namespace ORB_SLAM2
 
    using namespace std;
 
-// #define ENABLE_SYNCPRINT
+#define ENABLE_SYNCPRINT
 
 #ifdef ENABLE_SYNCPRINT
 
@@ -38,9 +38,9 @@ namespace ORB_SLAM2
 
       SyncPrint();
 
-      SyncPrint(const char * prefix);
+      SyncPrint(const char * prefix, bool enable = true);
 
-      SyncPrint(const string & prefix);
+      SyncPrint(const string & prefix, bool enable = true);
 
       static void Print(const char * prefix, const char * message);
 
@@ -68,6 +68,8 @@ namespace ORB_SLAM2
 
       const string mPrefix;
 
+      bool mEnable;
+
    };
 
 #endif //ENABLE_SYNCPRINT
@@ -80,9 +82,9 @@ namespace ORB_SLAM2
 
       SyncPrint() {}
 
-      SyncPrint(const char * prefix) {}
+      SyncPrint(const char * prefix, bool enable) {}
 
-      SyncPrint(const string & prefix) {}
+      SyncPrint(const string & prefix, bool enable) {}
 
       static void Print(const char * prefix, const char * message) {}
 

@@ -29,7 +29,7 @@ namespace ORB_SLAM2
 {
 
    Viewer::Viewer(FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, Mapper * pMapper, bool embeddedFrameDrawer) :
-      SyncPrint("Viewer: "),
+      SyncPrint("Viewer: ", false),
       mpMapper(pMapper),
       mEmbeddedFrameDrawers(embeddedFrameDrawer),
       mbFinishRequested(false),
@@ -45,7 +45,7 @@ namespace ORB_SLAM2
    }
 
    Viewer::Viewer(vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers, Mapper * pMapper, bool embeddedFrameDrawers) :
-      SyncPrint("Viewer: "),
+      SyncPrint("Viewer: ", false),
       mvFrameDrawers(vFrameDrawers),
       mvMapDrawers(vMapDrawers),
       mvTrackers(vTrackers),
@@ -204,7 +204,7 @@ namespace ORB_SLAM2
          {
             if (menuFollowCamera)
             {
-               mvMapDrawers[i]->Follow(vMapStates[i]);
+               mvMapDrawers[i]->Follow(*vMapStates[i]);
             }
 
             vMapViews[i]->Activate(*vMapStates[i]);

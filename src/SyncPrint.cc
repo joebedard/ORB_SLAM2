@@ -29,9 +29,9 @@ namespace ORB_SLAM2
 
    SyncPrint::SyncPrint() {};
 
-   SyncPrint::SyncPrint(const char * prefix) : mPrefix(prefix) {};
+   SyncPrint::SyncPrint(const char * prefix, bool enable) : mPrefix(prefix), mEnable(enable) {};
 
-   SyncPrint::SyncPrint(const string & prefix) : mPrefix(prefix) {};
+   SyncPrint::SyncPrint(const string & prefix, bool enable) : mPrefix(prefix), mEnable(enable) {};
 
    //static
    void SyncPrint::Print(const char * prefix, const char * message)
@@ -73,6 +73,7 @@ namespace ORB_SLAM2
 
    void SyncPrint::Print(const char * message)
    {
+      if (!mEnable) return;
       unique_lock<mutex> lock(mMutexOutput);
 
       PrintPrefix(cout);

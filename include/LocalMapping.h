@@ -43,9 +43,9 @@ namespace ORB_SLAM2
    {
    public:
       LocalMapping(
-         Map* pMap,
-         std::mutex & mutexMapUpdate,
-         KeyFrameDatabase* pDB,
+         Map & map,
+         std::mutex & mutexMapUpdate, 
+         KeyFrameDatabase & keyFrameDB,
          const float bMonocular,
          unsigned long firstMapPointId,
          unsigned int mapPointIdSpan
@@ -110,8 +110,9 @@ namespace ORB_SLAM2
       bool mbFinished;
       mutex mMutexFinish;
 
-      Map* mpMap;
-      KeyFrameDatabase* mpKeyFrameDB;
+      Map & mMap;
+
+      KeyFrameDatabase & mKeyFrameDB;
 
       LoopClosing* mpLoopCloser;
 

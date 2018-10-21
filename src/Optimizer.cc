@@ -42,16 +42,26 @@ namespace ORB_SLAM2
       SyncPrint::Print("Optimizer: ", message);
    }
 
-   void Optimizer::GlobalBundleAdjustment(Map* pMap, int nIterations, bool* pbStopFlag, const unsigned long nLoopKF, const bool bRobust)
+   void Optimizer::GlobalBundleAdjustment(
+      Map & map, 
+      int nIterations, 
+      bool * pbStopFlag, 
+      const unsigned long nLoopKF, 
+      const bool bRobust)
    {
-      vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
-      vector<MapPoint*> vpMP = pMap->GetAllMapPoints();
+      vector<KeyFrame*> vpKFs = map.GetAllKeyFrames();
+      vector<MapPoint*> vpMP = map.GetAllMapPoints();
       BundleAdjustment(vpKFs, vpMP, nIterations, pbStopFlag, nLoopKF, bRobust);
    }
 
 
-   void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<MapPoint *> &vpMP,
-      int nIterations, bool* pbStopFlag, const unsigned long nLoopKF, const bool bRobust)
+   void Optimizer::BundleAdjustment(
+      const vector<KeyFrame *> & vpKFs,
+      const vector<MapPoint *> & vpMP,
+      int nIterations, 
+      bool * pbStopFlag,
+      const unsigned long nLoopKF, 
+      const bool bRobust)
    {
       vector<bool> vbNotIncludedMP;
       vbNotIncludedMP.resize(vpMP.size());
@@ -454,7 +464,12 @@ namespace ORB_SLAM2
       return nInitialCorrespondences - nBad;
    }
 
-   void Optimizer::LocalBundleAdjustment(KeyFrame * pKF, bool * pbStopFlag, Map * pMap, std::mutex & mutexMapUpdate, MapChangeEvent & mapChanges)
+   void Optimizer::LocalBundleAdjustment(
+      KeyFrame * pKF,
+      bool * pbStopFlag,
+      Map & map, 
+      std::mutex & mutexMapUpdate, 
+      MapChangeEvent & mapChanges)
    {
       Print("begin LocalBundleAdjustment");
 
@@ -497,8 +512,8 @@ namespace ORB_SLAM2
       list<KeyFrame*> lFixedCameras;
       for (list<MapPoint*>::iterator lit = lLocalMapPoints.begin(), lend = lLocalMapPoints.end(); lit != lend; lit++)
       {
-         map<KeyFrame*, size_t> observations = (*lit)->GetObservations();
-         for (map<KeyFrame*, size_t>::iterator mit = observations.begin(), mend = observations.end(); mit != mend; mit++)
+         std::map<KeyFrame *, size_t> observations = (*lit)->GetObservations();
+         for (std::map<KeyFrame *, size_t>::iterator mit = observations.begin(), mend = observations.end(); mit != mend; mit++)
          {
             KeyFrame* pKFi = mit->first;
 
@@ -591,10 +606,10 @@ namespace ORB_SLAM2
          vPoint->setMarginalized(true);
          optimizer.addVertex(vPoint);
 
-         const map<KeyFrame*, size_t> observations = pMP->GetObservations();
+         const std::map<KeyFrame*, size_t> observations = pMP->GetObservations();
 
          //Set edges
-         for (map<KeyFrame*, size_t>::const_iterator mit = observations.begin(), mend = observations.end(); mit != mend; mit++)
+         for (std::map<KeyFrame*, size_t>::const_iterator mit = observations.begin(), mend = observations.end(); mit != mend; mit++)
          {
             KeyFrame* pKFi = mit->first;
 
@@ -761,7 +776,7 @@ namespace ORB_SLAM2
       }
 
       // Get Map Mutex
-      Print("unique_lock<mutex> lock(pMap->mMutexMapUpdate);");
+      Print("unique_lock<mutex> lock(mutexMapUpdate);");
       unique_lock<mutex> lock(mutexMapUpdate);
 
       Print("if(!vToErase.empty())");
@@ -775,7 +790,7 @@ namespace ORB_SLAM2
             // TODO OK - add to updated keyframes
             mapChanges.updatedKeyFrames.insert(pKFi);
 
-            pMPi->EraseObservation(pKFi, pMap);
+            pMPi->EraseObservation(pKFi, &map);
             // TODO OK - add to updated points
             mapChanges.updatedMapPoints.insert(pMPi);
          }
@@ -809,10 +824,15 @@ namespace ORB_SLAM2
    }
 
 
-   void Optimizer::OptimizeEssentialGraph(Map* pMap, std::mutex & mutexMapUpdate, KeyFrame* pLoopKF, KeyFrame* pCurKF,
-      const LoopClosing::KeyFrameAndPose &NonCorrectedSim3,
-      const LoopClosing::KeyFrameAndPose &CorrectedSim3,
-      const map<KeyFrame *, set<KeyFrame *> > &LoopConnections, const bool &bFixScale)
+   void Optimizer::OptimizeEssentialGraph(
+      Map & map,
+      std::mutex & mutexMapUpdate, 
+      KeyFrame * pLoopKF, 
+      KeyFrame * pCurKF,
+      const LoopClosing::KeyFrameAndPose & NonCorrectedSim3,
+      const LoopClosing::KeyFrameAndPose & CorrectedSim3,
+      const std::map<KeyFrame *, set<KeyFrame *> > & LoopConnections, 
+      const bool & bFixScale)
    {
       // Setup optimizer
       g2o::SparseOptimizer optimizer;
@@ -825,10 +845,10 @@ namespace ORB_SLAM2
       solver->setUserLambdaInit(1e-16);
       optimizer.setAlgorithm(solver);
 
-      const vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
-      const vector<MapPoint*> vpMPs = pMap->GetAllMapPoints();
+      const vector<KeyFrame*> vpKFs = map.GetAllKeyFrames();
+      const vector<MapPoint*> vpMPs = map.GetAllMapPoints();
 
-      const unsigned int nMaxKFid = pMap->GetMaxKFid();
+      const unsigned int nMaxKFid = map.GetMaxKFid();
 
       vector<g2o::Sim3, Eigen::aligned_allocator<g2o::Sim3> > vScw(nMaxKFid + 1);
       vector<g2o::Sim3, Eigen::aligned_allocator<g2o::Sim3> > vCorrectedSwc(nMaxKFid + 1);
@@ -880,7 +900,7 @@ namespace ORB_SLAM2
       const Eigen::Matrix<double, 7, 7> matLambda = Eigen::Matrix<double, 7, 7>::Identity();
 
       // Set Loop edges
-      for (map<KeyFrame *, set<KeyFrame *> >::const_iterator mit = LoopConnections.begin(), mend = LoopConnections.end(); mit != mend; mit++)
+      for (std::map<KeyFrame *, set<KeyFrame *> >::const_iterator mit = LoopConnections.begin(), mend = LoopConnections.end(); mit != mend; mit++)
       {
          KeyFrame* pKF = mit->first;
          const long unsigned int nIDi = pKF->GetId();
@@ -1074,7 +1094,13 @@ namespace ORB_SLAM2
       }
    }
 
-   int Optimizer::OptimizeSim3(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint *> &vpMatches1, g2o::Sim3 &g2oS12, const float th2, const bool bFixScale)
+   int Optimizer::OptimizeSim3(
+      KeyFrame * pKF1,
+      KeyFrame * pKF2, 
+      vector<MapPoint *> & vpMatches1, 
+      g2o::Sim3 & g2oS12, 
+      const float th2, 
+      const bool bFixScale)
    {
       g2o::SparseOptimizer optimizer;
       g2o::BlockSolverX::LinearSolverType * linearSolver;

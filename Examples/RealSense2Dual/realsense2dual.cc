@@ -34,6 +34,8 @@
 #include <ORBVocabulary.h>
 #include <FrameDrawer.h>
 #include <Map.h>
+#include <Mapper.h>
+#include <MapperClient.h>
 #include <MapperServer.h>
 #include <SyncPrint.h>
 
@@ -47,6 +49,7 @@ struct ThreadParam
    int returnCode;
    string * serial;
    Tracking * tracker;
+   Mapper * mapper;
    int height;
    int width;
    vector<float> timesTrack;
@@ -106,8 +109,15 @@ void printDebug(int threadId, mutex * mutexPrint, const char * message)
    std::cerr << message << std::endl;
 }
 
+void PrintRunTracker(int threadId, const char * s)
+{
+   stringstream ss; ss << "RunTracker" << threadId << ": ";
+   SyncPrint::Print(ss.str().c_str(), s);
+}
+
 void RunTracker(int threadId) try
 {
+   PrintRunTracker(threadId, "begin RunTracker");
    int height = mThreadParams[threadId].height;
    int width = mThreadParams[threadId].width;
 
@@ -134,10 +144,14 @@ void RunTracker(int threadId) try
 
    std::chrono::steady_clock::time_point tStart = std::chrono::steady_clock::now();
 
+   PrintRunTracker(threadId, "while (mShouldRun)");
    while (mShouldRun)
    {
+      PrintRunTracker(threadId, "rs2::frameset data = pipe.wait_for_frames();");
       rs2::frameset data = pipe.wait_for_frames(); // Wait for next set of frames from the camera
+      PrintRunTracker(threadId, "rs2::video_frame irFrame1 = data.get_infrared_frame(1);");
       rs2::video_frame irFrame1 = data.get_infrared_frame(1);
+      PrintRunTracker(threadId, "rs2::video_frame irFrame2 = data.get_infrared_frame(2);");
       rs2::video_frame irFrame2 = data.get_infrared_frame(2);
 
       // Create OpenCV matrix of size (width, height)
@@ -158,6 +172,7 @@ void RunTracker(int threadId) try
    }
 
    mThreadParams[threadId].returnCode = EXIT_SUCCESS;
+   PrintRunTracker(threadId, "end RunTracker");
 }
 catch (const rs2::error & e)
 {
@@ -204,13 +219,10 @@ int main(int paramc, char * paramv[]) try
 {
    ParseParams(paramc, paramv);
 
-   //Create the Map
-   Map * pMap = new Map();
-
    //Load ORB Vocabulary
    SyncPrint::Print(NULL, "Loading ORB Vocabulary. This could take a while...");
-   ORBVocabulary * pVocab = new ORBVocabulary();
-   bool bVocLoad = pVocab->loadFromTextFile(mVocFile);
+   ORBVocabulary vocab;
+   bool bVocLoad = vocab.loadFromTextFile(mVocFile);
    if (!bVocLoad)
    {
       SyncPrint::Print("Failed to open vocabulary file at: ", mVocFile);
@@ -219,7 +231,7 @@ int main(int paramc, char * paramv[]) try
    SyncPrint::Print(NULL, "Vocabulary loaded!");
 
    //Initialize the Mapper
-   MapperServer * pMapper = new MapperServer(pMap, pVocab, false);
+   Mapper & mapperServer = MapperServer(vocab, false);
 
    vector<FrameDrawer *> vFrameDrawers;
    vector<MapDrawer *> vMapDrawers;
@@ -227,7 +239,7 @@ int main(int paramc, char * paramv[]) try
 
    FileStorage mapperSettings(mMapperSettings, FileStorage::READ);
    ParseSettings(mapperSettings, mMapperSettings);
-   MapDrawer * pMapDrawer = new MapDrawer(pMapper, mapperSettings);
+   MapDrawer * pMapDrawer = new MapDrawer(mapperSettings, mapperServer);
    vMapDrawers.push_back(pMapDrawer);
 
    for (int i = 0; i < TRACKER_QUANTITY; ++i)
@@ -240,11 +252,13 @@ int main(int paramc, char * paramv[]) try
       FrameDrawer * frameDrawer = new FrameDrawer(settings);
       vFrameDrawers.push_back(frameDrawer);
 
-      Tracking * tracker = new Tracking(pVocab, frameDrawer, NULL, pMapper, settings, eSensor::STEREO);
+      Mapper * mapperClient = new MapperClient(mapperServer, vocab, false);
+      Tracking * tracker = new Tracking(settings, vocab, *mapperClient, frameDrawer, NULL, eSensor::STEREO);
       vTrackers.push_back(tracker);
 
       mThreadParams[i].serial = pSerial;
       mThreadParams[i].tracker = tracker;
+      mThreadParams[i].mapper = mapperClient;
       mThreadParams[i].height = frameDrawer->GetImageHeight();
       mThreadParams[i].width = frameDrawer->GetImageWidth();
       mThreadParams[i].threadObj = new thread(RunTracker, i);
@@ -252,7 +266,7 @@ int main(int paramc, char * paramv[]) try
 
    {
       //Initialize and start the Viewer thread
-      Viewer viewer(vFrameDrawers, vMapDrawers, vTrackers, pMapper);
+      Viewer viewer(vFrameDrawers, vMapDrawers, vTrackers, &mapperServer);
       for (auto tracker : vTrackers)
       {
          tracker->SetViewer(&viewer);
@@ -278,13 +292,11 @@ int main(int paramc, char * paramv[]) try
    {
       delete mThreadParams[i].threadObj;
       delete mThreadParams[i].tracker;
+      delete mThreadParams[i].mapper;
       delete mThreadParams[i].serial;
       delete vFrameDrawers[i];
    }
    delete pMapDrawer;
-   delete pMapper;
-   delete pVocab;
-   delete pMap;
 
    return returnCode;
 }

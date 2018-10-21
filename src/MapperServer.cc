@@ -23,57 +23,45 @@
 namespace ORB_SLAM2
 {
 
-   MapperServer::MapperServer(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular) :
+   MapperServer::MapperServer(ORBVocabulary & vocab, const bool bMonocular) :
       SyncPrint("MapperServer: "),
-      mpMap(pMap),
-      mpVocab(pVocab),
-      mbMonocular(bMonocular),
+      mVocab(vocab),
+      mKeyFrameDB(vocab),
       mInitialized(false),
+      mLocalMapper(mMap, mMutexMapUpdate, mKeyFrameDB, bMonocular, FIRST_MAPPOINT_ID_LOCALMAPPER, MAPPOINT_ID_SPAN),
+      mLoopCloser(mMap, mMutexMapUpdate, mKeyFrameDB, mVocab, !bMonocular),
       mLocalMappingObserver(this),
       mLoopClosingObserver(this)
    {
-      if (pMap == NULL)
-         throw std::exception("pMap must not be NULL");
-
-      if (pVocab == NULL)
-         throw std::exception("pVocab must not be NULL");
-
-      mpKeyFrameDB = new KeyFrameDatabase(*pVocab);
-
       ResetTrackerStatus();
 
       //Initialize and start the Local Mapping thread
-      mpLocalMapper = new LocalMapping(mpMap, mMutexMapUpdate, mpKeyFrameDB, mbMonocular, FIRST_MAPPOINT_ID_LOCALMAPPER, MAPPOINT_ID_SPAN);
-      mpLocalMapper->AddObserver(&mLocalMappingObserver);
-      mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run, mpLocalMapper);
+      mLocalMapper.AddObserver(&mLocalMappingObserver);
+      mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run, &mLocalMapper);
 
       //Initialize and start the Loop Closing thread
-      mpLoopCloser = new LoopClosing(mpMap, mMutexMapUpdate, mpKeyFrameDB, mpVocab, !mbMonocular);
-      mpLoopCloser->AddObserver(&mLoopClosingObserver);
-      mptLoopClosing = new thread(&ORB_SLAM2::LoopClosing::Run, mpLoopCloser);
+      mLoopCloser.AddObserver(&mLoopClosingObserver);
+      mptLoopClosing = new thread(&ORB_SLAM2::LoopClosing::Run, &mLoopCloser);
 
-      mpLocalMapper->SetLoopCloser(mpLoopCloser);
-      mpLoopCloser->SetLocalMapper(mpLocalMapper);
+      mLocalMapper.SetLoopCloser(&mLoopCloser);
+      mLoopCloser.SetLocalMapper(&mLocalMapper);
    }
 
    MapperServer::~MapperServer()
    {
-      mpLocalMapper->RequestFinish();
-      mpLoopCloser->RequestFinish();
+      mLocalMapper.RequestFinish();
+      mLoopCloser.RequestFinish();
 
       mptLocalMapping->join();
       mptLoopClosing->join();
 
-      delete mpKeyFrameDB;
       delete mptLocalMapping;
-      delete mpLoopCloser;
       delete mptLoopClosing;
-      delete mpLocalMapper;
    }
 
    long unsigned MapperServer::KeyFramesInMap()
    {
-      return mpMap->KeyFramesInMap();
+      return mMap.KeyFramesInMap();
    }
 
    void MapperServer::Reset()
@@ -82,24 +70,24 @@ namespace ORB_SLAM2
 
       // Reset Local Mapping
       Print("Begin Local Mapper Reset");
-      mpLocalMapper->RequestReset();
+      mLocalMapper.RequestReset();
       Print("End Local Mapper Reset");
 
       // Reset Loop Closing
       Print("Begin Loop Closing Reset");
-      mpLoopCloser->RequestReset();
+      mLoopCloser.RequestReset();
       Print("End Loop Closing Reset");
 
       NotifyReset();
 
       // Clear BoW Database
       Print("Begin Database Reset");
-      mpKeyFrameDB->clear();
+      mKeyFrameDB.clear();
       Print("End Database Reset");
 
       // Clear Map (this erase MapPoints and KeyFrames)
       Print("Begin Map Reset");
-      mpMap->Clear();
+      mMap.Clear();
       Print("End Map Reset");
 
       mInitialized = false;
@@ -108,7 +96,7 @@ namespace ORB_SLAM2
 
    std::vector<KeyFrame*> MapperServer::DetectRelocalizationCandidates(Frame* F)
    {
-      return mpKeyFrameDB->DetectRelocalizationCandidates(F);
+      return mKeyFrameDB.DetectRelocalizationCandidates(F);
    }
 
    bool MapperServer::GetInitialized()
@@ -118,12 +106,12 @@ namespace ORB_SLAM2
 
    bool MapperServer::GetPauseRequested()
    {
-      return mpLocalMapper->PauseRequested();
+      return mLocalMapper.PauseRequested();
    }
 
    bool MapperServer::AcceptKeyFrames()
    {
-      return mpLocalMapper->AcceptKeyFrames();
+      return mLocalMapper.AcceptKeyFrames();
    }
 
    void MapperServer::Initialize(unsigned int trackerId, vector<MapPoint*> & mapPoints, vector<KeyFrame*> & keyframes)
@@ -141,15 +129,15 @@ namespace ORB_SLAM2
       // stereo and RGBD modes will create MapPoints
       for (auto it : mapPoints)
       {
-         mpMap->AddMapPoint(it);
+         mMap.AddMapPoint(it);
       }
 
-      mpMap->mvpKeyFrameOrigins.push_back(keyframes[0]);
+      mMap.mvpKeyFrameOrigins.push_back(keyframes[0]);
 
       for (auto it : keyframes)
       {
          // Insert KeyFrame in the map
-         mpMap->AddKeyFrame(it);
+         mMap.AddKeyFrame(it);
       }
 
       // all points are already added to the map
@@ -159,7 +147,7 @@ namespace ORB_SLAM2
       {
          if (!InsertKeyFrame(trackerId, noAdditionalPoints, it))
          {
-            mpMap->Clear();
+            mMap.Clear();
             throw exception("Unable to InsertKeyFrame during Initialize.");
          }
       }
@@ -177,15 +165,15 @@ namespace ORB_SLAM2
    {
       ValidateTracker(trackerId);
 
-      if (mpLocalMapper->InsertKeyFrame(mapPoints, pKF))
+      if (mLocalMapper.InsertKeyFrame(mapPoints, pKF))
       {
          for (auto pMP : mapPoints)
          {
-            mpMap->AddMapPoint(pMP);
+            mMap.AddMapPoint(pMP);
          }
 
          // In the original code, this was not done until LocalMapping::ProcessNewKeyFrame
-         mpMap->AddKeyFrame(pKF);
+         mMap.AddKeyFrame(pKF);
 
          unique_lock<mutex> lock(mMutexTrackerStatus);
 
@@ -290,9 +278,9 @@ namespace ORB_SLAM2
       return poses;
    }
 
-   Map * MapperServer::GetMap()
+   Map & MapperServer::GetMap()
    {
-      return mpMap;
+      return mMap;
    }
 
    std::mutex & MapperServer::GetMutexMapUpdate()

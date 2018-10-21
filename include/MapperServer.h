@@ -38,7 +38,7 @@ namespace ORB_SLAM2
    {
    public:
 
-      MapperServer(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular);
+      MapperServer(ORBVocabulary & vocab, const bool bMonocular);
 
       ~MapperServer();
 
@@ -58,7 +58,7 @@ namespace ORB_SLAM2
 
       virtual bool GetInitialized();
 
-      virtual Map * GetMap();
+      virtual Map & GetMap();
 
       virtual std::mutex & GetMutexMapUpdate();
 
@@ -106,19 +106,19 @@ namespace ORB_SLAM2
 
       std::mutex mMutexMapUpdate;
 
-      ORBVocabulary * mpVocab;
+      ORBVocabulary & mVocab;
 
       bool mbMonocular;
 
-      KeyFrameDatabase * mpKeyFrameDB;
+      KeyFrameDatabase mKeyFrameDB;
 
-      Map * mpMap;
+      Map mMap;
 
       bool mInitialized;
 
-      LocalMapping * mpLocalMapper;
+      LocalMapping mLocalMapper;
 
-      LoopClosing * mpLoopCloser;
+      LoopClosing mLoopCloser;
 
       std::thread * mptLocalMapping;
 

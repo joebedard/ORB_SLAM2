@@ -214,33 +214,33 @@ namespace ORB_SLAM2
       cv::putText(imText, s.str(), cv::Point(5, imText.rows - 5), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255, 255, 255), 1, 8);
    }
 
-   void FrameDrawer::Update(Tracking *pTracker, Map * pMap)
+   void FrameDrawer::Update(Tracking & tracker, Map & map)
    {
       Print("begin Update");
       unique_lock<mutex> lock(mMutex);
-      pTracker->mImGray.copyTo(mIm);
-      mvCurrentKeys = pTracker->mCurrentFrame.mvKeys;
+      tracker.mImGray.copyTo(mIm);
+      mvCurrentKeys = tracker.mCurrentFrame.mvKeys;
       N = mvCurrentKeys.size();
       mvbVO = vector<bool>(N, false);
       mvbMap = vector<bool>(N, false);
-      mbOnlyTracking = pTracker->mbOnlyTracking;
+      mbOnlyTracking = tracker.mbOnlyTracking;
 
-      mnKFs = pMap->KeyFramesInMap();
-      mnMPs = pMap->MapPointsInMap();
+      mnKFs = map.KeyFramesInMap();
+      mnMPs = map.MapPointsInMap();
 
-      if (pTracker->mLastProcessedState == NOT_INITIALIZED)
+      if (tracker.mLastProcessedState == NOT_INITIALIZED)
       {
-         mvIniKeys = pTracker->mInitialFrame.mvKeys;
-         mvIniMatches = pTracker->mvIniMatches;
+         mvIniKeys = tracker.mInitialFrame.mvKeys;
+         mvIniMatches = tracker.mvIniMatches;
       }
-      else if (pTracker->mLastProcessedState == TRACKING_OK)
+      else if (tracker.mLastProcessedState == TRACKING_OK)
       {
          for (int i = 0;i < N;i++)
          {
-            MapPoint* pMP = pTracker->mCurrentFrame.mvpMapPoints[i];
+            MapPoint* pMP = tracker.mCurrentFrame.mvpMapPoints[i];
             if (pMP)
             {
-               if (!pTracker->mCurrentFrame.mvbOutlier[i])
+               if (!tracker.mCurrentFrame.mvbOutlier[i])
                {
                   if (pMP->Observations() > 0)
                      mvbMap[i] = true;
@@ -250,7 +250,7 @@ namespace ORB_SLAM2
             }
          }
       }
-      mState = pTracker->mLastProcessedState;
+      mState = tracker.mLastProcessedState;
       Print("end Update");
    }
 

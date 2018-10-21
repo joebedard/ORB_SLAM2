@@ -26,7 +26,6 @@
 #include "Enums.h"
 #include "MapObserver.h"
 #include "Mapper.h"
-#include "MapperServer.h"
 
 namespace ORB_SLAM2
 {
@@ -39,7 +38,7 @@ namespace ORB_SLAM2
    {
    public:
 
-      MapperClient(Map * pMap, ORBVocabulary* pVocab, const bool bMonocular);
+      MapperClient(Mapper & server, ORBVocabulary & vocab, const bool bMonocular);
 
       virtual long unsigned  KeyFramesInMap();
 
@@ -57,7 +56,7 @@ namespace ORB_SLAM2
 
       virtual bool GetInitialized();
 
-      virtual Map * GetMap();
+      virtual Map & GetMap();
 
       virtual std::mutex & GetMutexMapUpdate();
 
@@ -101,15 +100,15 @@ namespace ORB_SLAM2
 
       std::mutex mMutexLogin;
 
-      ORBVocabulary * mpVocab;
+      ORBVocabulary & mVocab;
 
       bool mbMonocular;
 
-      Map * mpMap;
+      Map mMap;
 
       bool mInitialized;
 
-      MapperServer server;
+      Mapper & mServer;
 
       void MapperServerObserverReset();
 

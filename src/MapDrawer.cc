@@ -25,10 +25,10 @@ namespace ORB_SLAM2
 {
 
 
-   MapDrawer::MapDrawer(Mapper * pMapper, cv::FileStorage & fSettings) :
+   MapDrawer::MapDrawer(cv::FileStorage & fSettings, Mapper & mapper) :
       SyncPrint("MapDrawer: "),
-      mpMap(pMapper->GetMap()),
-      mpMapper(pMapper)
+      mMapper(mapper),
+      mMap(mapper.GetMap())
    {
       mKeyFrameSize = fSettings["Viewer.KeyFrameSize"];
       mKeyFrameLineWidth = fSettings["Viewer.KeyFrameLineWidth"];
@@ -49,28 +49,28 @@ namespace ORB_SLAM2
       mvpReferenceMapPoints.clear();
    }
 
-   void MapDrawer::Follow(pangolin::OpenGlRenderState * pRenderState)
+   void MapDrawer::Follow(pangolin::OpenGlRenderState & pRenderState)
    {
       unique_lock<mutex> lock(mMutexCamera);
       pangolin::OpenGlMatrix Twc;
       ConvertMatrixFromOpenCvToOpenGL(Twc, mCameraPose);
-      pRenderState->Follow(Twc);
+      pRenderState.Follow(Twc);
    }
 
    void MapDrawer::DrawMapPoints()
    {
-      Print("begin DrawMapPoints");
+      //Print("begin DrawMapPoints");
       float currentColor[4];
       glGetFloatv(GL_CURRENT_COLOR, currentColor);
 
-      Print("unique_lock<mutex> lock1(mpMap->mMutexMapUpdate);");
-      unique_lock<mutex> lock1(mpMapper->GetMutexMapUpdate());
-      Print("const vector<MapPoint*> &vpMPs = mpMap->GetAllMapPoints();");
-      const vector<MapPoint*> &vpMPs = mpMap->GetAllMapPoints();
+      //Print("unique_lock<mutex> lock1(mMap->mMutexMapUpdate);");
+      unique_lock<mutex> lock1(mMapper.GetMutexMapUpdate());
+      //Print("const vector<MapPoint*> &vpMPs = mMap->GetAllMapPoints();");
+      const vector<MapPoint*> &vpMPs = mMap.GetAllMapPoints();
 
-      Print("unique_lock<mutex> lock2(mMutexReferenceMapPoints);");
+      //Print("unique_lock<mutex> lock2(mMutexReferenceMapPoints);");
       unique_lock<mutex> lock2(mMutexReferenceMapPoints);
-      Print("set<MapPoint*> spRefMPs(mvpReferenceMapPoints.begin(), mvpReferenceMapPoints.end());");
+      //Print("set<MapPoint*> spRefMPs(mvpReferenceMapPoints.begin(), mvpReferenceMapPoints.end());");
       set<MapPoint*> spRefMPs(mvpReferenceMapPoints.begin(), mvpReferenceMapPoints.end());
       //stringstream ss;
       //ss << "spRefMPs = ";
@@ -85,7 +85,7 @@ namespace ORB_SLAM2
 
       if (vpMPs.empty())
       {
-         Print("end DrawMapPoints 1");
+         //Print("end DrawMapPoints 1");
          return;
       }
 
@@ -93,19 +93,19 @@ namespace ORB_SLAM2
       glBegin(GL_POINTS);
       glColor3f(0.0, 0.0, 0.0);
 
-      Print("for(size_t i=0, iend=vpMPs.size(); i < iend;i++)");
+      //Print("for(size_t i=0, iend=vpMPs.size(); i < iend;i++)");
       for (size_t i = 0, iend = vpMPs.size(); i < iend;i++)
       {
-         Print("if (vpMPs[i]->isBad() || spRefMPs.count(vpMPs[i]))");
-         Print(vpMPs[i] == NULL ? "vpMPs[i] == NULL" : "vpMPs[i] != NULL");
+         //Print("if (vpMPs[i]->isBad() || spRefMPs.count(vpMPs[i]))");
+         //Print(vpMPs[i] == NULL ? "vpMPs[i] == NULL" : "vpMPs[i] != NULL");
          if (vpMPs[i]->isBad() || spRefMPs.count(vpMPs[i]))
             continue;
-         Print("cv::Mat pos = vpMPs[i]->GetWorldPos();");
+         //Print("cv::Mat pos = vpMPs[i]->GetWorldPos();");
          cv::Mat pos = vpMPs[i]->GetWorldPos();
-         Print("glVertex3f(pos.at<float>(0), pos.at<float>(1), pos.at<float>(2));");
+         //Print("glVertex3f(pos.at<float>(0), pos.at<float>(1), pos.at<float>(2));");
          glVertex3f(pos.at<float>(0), pos.at<float>(1), pos.at<float>(2));
       }
-      Print("glEnd();");
+      //Print("glEnd();");
       glEnd();
 
       glPointSize(mPointSize);
@@ -128,7 +128,7 @@ namespace ORB_SLAM2
           glVertex3f(pos.at<float>(0),pos.at<float>(1),pos.at<float>(2));
       }*/
 
-      Print("for (MapPoint * pMP : mvpReferenceMapPoints)");
+      //Print("for (MapPoint * pMP : mvpReferenceMapPoints)");
       for (MapPoint * pMP : mvpReferenceMapPoints)
       {
          if (pMP->isBad())
@@ -136,7 +136,7 @@ namespace ORB_SLAM2
          cv::Mat pos = pMP->GetWorldPos();
          if (pos.empty())
          {
-            Print(to_string(pMP->GetId()) + "=MapPointId GetWorldPos() is empty! replaced=" + (pMP->GetReplaced() ? "true" : "false"));
+            //Print(to_string(pMP->GetId()) + "=MapPointId GetWorldPos() is empty! replaced=" + (pMP->GetReplaced() ? "true" : "false"));
             throw exception("GetWorldPos() is empty!!!!!!!!!!!!!!!!!!!!!!");
          }
          else
@@ -148,16 +148,16 @@ namespace ORB_SLAM2
          }
       }
 
-      Print("glEnd();");
+      //Print("glEnd();");
       glEnd();
       glColor4fv(currentColor);
-      Print("end DrawMapPoints 2");
+      //Print("end DrawMapPoints 2");
    }
 
    void MapDrawer::DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph)
    {
-      unique_lock<mutex> lock(mpMapper->GetMutexMapUpdate());
-      Print("begin DrawKeyFrames");
+      unique_lock<mutex> lock(mMapper.GetMutexMapUpdate());
+      //Print("begin DrawKeyFrames");
 
       float currentColor[4];
       glGetFloatv(GL_CURRENT_COLOR, currentColor);
@@ -166,7 +166,7 @@ namespace ORB_SLAM2
       const float h = w * 0.75;
       const float z = w * 0.6;
 
-      const vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
+      const vector<KeyFrame*> vpKFs = mMap.GetAllKeyFrames();
 
       if (bDrawKF)
       {
@@ -255,12 +255,12 @@ namespace ORB_SLAM2
          glEnd();
       }
       glColor4fv(currentColor);
-      Print("end DrawKeyFrames");
+      //Print("end DrawKeyFrames");
    }
 
    void MapDrawer::DrawCurrentCameras()
    {
-      Print("begin DrawCurrentCameras");
+      //Print("begin DrawCurrentCameras");
       float currentColor[4];
       glGetFloatv(GL_CURRENT_COLOR, currentColor);
 
@@ -269,8 +269,8 @@ namespace ORB_SLAM2
       const float z = w * 0.6;
 
       pangolin::OpenGlMatrix Twc, pivotGL;
-      vector<cv::Mat> poses = mpMapper->GetTrackerPoses();
-      vector<cv::Mat> pivots = mpMapper->GetTrackerPivots();
+      vector<cv::Mat> poses = mMapper.GetTrackerPoses();
+      vector<cv::Mat> pivots = mMapper.GetTrackerPivots();
       assert(poses.size() == pivots.size());
       for (int i = 0; i < poses.size(); i++)
       {
@@ -343,7 +343,7 @@ namespace ORB_SLAM2
       }
 
       glColor4fv(currentColor);
-      Print("end DrawCurrentCameras");
+      //Print("end DrawCurrentCameras");
    }
 
    void MapDrawer::SetCurrentCameraPose(const cv::Mat &Tcw)
@@ -391,7 +391,7 @@ namespace ORB_SLAM2
 
    void MapDrawer::SetReferenceMapPoints(const std::vector<MapPoint*>& vpMPs)
    {
-      Print("begin SetReferenceMapPoints");
+      //Print("begin SetReferenceMapPoints");
       unique_lock<mutex> lock(mMutexReferenceMapPoints);
       stringstream ss;
       //ss << "mvpReferenceMapPoints = ";
@@ -401,7 +401,7 @@ namespace ORB_SLAM2
       //}
       //Print(ss.str().c_str());
       mvpReferenceMapPoints = vpMPs;
-      Print("end SetReferenceMapPoints");
+      //Print("end SetReferenceMapPoints");
    }
 
    float MapDrawer::GetViewpointX()

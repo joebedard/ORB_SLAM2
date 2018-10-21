@@ -36,10 +36,10 @@ namespace ORB_SLAM2
    class MapDrawer : SyncPrint
    {
    public:
-      MapDrawer(Mapper * pMapper, cv::FileStorage & fSettings);
-      void Reset();
+      MapDrawer(cv::FileStorage & fSettings, Mapper & pMapper);
 
-      void Follow(pangolin::OpenGlRenderState * pRenderState);
+      void Reset();
+      void Follow(pangolin::OpenGlRenderState & pRenderState);
       void DrawMapPoints();
       void DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph);
       void DrawCurrentCameras();
@@ -52,9 +52,9 @@ namespace ORB_SLAM2
       float GetViewpointF();
 
    private:
-      Map * mpMap;
+      Map & mMap;
 
-      Mapper * mpMapper;
+      Mapper & mMapper;
 
       float mKeyFrameSize;
 
@@ -74,11 +74,11 @@ namespace ORB_SLAM2
 
       mutex mMutexReferenceMapPoints;
 
-      std::vector<MapPoint*> mvpReferenceMapPoints;
+      std::vector<MapPoint *> mvpReferenceMapPoints;
 
       float mViewpointX, mViewpointY, mViewpointZ, mViewpointF;
 
-      void ConvertMatrixFromOpenCvToOpenGL(pangolin::OpenGlMatrix &M, cv::Mat cameraPose);
+      void ConvertMatrixFromOpenCvToOpenGL(pangolin::OpenGlMatrix & M, cv::Mat cameraPose);
 
    };
 

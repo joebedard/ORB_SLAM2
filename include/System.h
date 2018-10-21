@@ -34,6 +34,8 @@
 #include "ORBVocabulary.h"
 #include "Viewer.h"
 #include "Mapper.h"
+#include "MapperClient.h"
+#include "MapperServer.h"
 #include "Enums.h"
 #include "SyncPrint.h"
 
@@ -129,6 +131,8 @@ namespace ORB_SLAM2
 
       // The Mapper encapsulates all mapping functionality of the system
       Mapper * mpMapper;
+      MapperServer * mpMapperServer;
+      MapperClient * mpMapperClient;
 
       // Tracker. It receives a frame and computes the associated camera pose.
       // It also decides when to insert a new keyframe, create some new MapPoints and
