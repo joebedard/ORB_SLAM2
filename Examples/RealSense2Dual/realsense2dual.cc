@@ -49,7 +49,6 @@ struct ThreadParam
    int returnCode;
    string * serial;
    Tracking * tracker;
-   Mapper * mapper;
    int height;
    int width;
    vector<float> timesTrack;
@@ -82,19 +81,19 @@ void ParseParams(int paramc, char * paramv[])
    }
 }
 
-void ParseSettings(FileStorage & settings, const char * settingsFilePath)
+void VerifySettings(FileStorage & settings, const char * settingsFilePath)
 {
    if (!settings.isOpened())
    {
-      std::string m("Failed to open settings file at: ");
+      std::string m("Failed to open trackerSettings file at: ");
       m.append(settingsFilePath);
       throw exception(m.c_str());
    }
 }
 
-void ParseTrackerSettings(FileStorage & settings, const char * settingsFilePath, string & serial)
+void VerifyTrackerSettings(FileStorage & settings, const char * settingsFilePath, string & serial)
 {
-   ParseSettings(settings, settingsFilePath);
+   VerifySettings(settings, settingsFilePath);
 
    serial.append(settings["Camera.serial"]);
    if (0 == serial.length())
@@ -102,22 +101,15 @@ void ParseTrackerSettings(FileStorage & settings, const char * settingsFilePath,
 
 }
 
-void printDebug(int threadId, mutex * mutexPrint, const char * message)
+void Print(int threadId, const char * s)
 {
-   if (threadId == 0) return;
-   unique_lock<mutex> lock(*mutexPrint);
-   std::cerr << message << std::endl;
-}
-
-void PrintRunTracker(int threadId, const char * s)
-{
-   stringstream ss; ss << "RunTracker" << threadId << ": ";
-   SyncPrint::Print(ss.str().c_str(), s);
+   /*stringstream ss; ss << "RunTracker" << threadId << ": ";
+   SyncPrint::Print(ss.str().c_str(), s);*/
 }
 
 void RunTracker(int threadId) try
 {
-   PrintRunTracker(threadId, "begin RunTracker");
+   Print(threadId, "begin RunTracker");
    int height = mThreadParams[threadId].height;
    int width = mThreadParams[threadId].width;
 
@@ -144,14 +136,14 @@ void RunTracker(int threadId) try
 
    std::chrono::steady_clock::time_point tStart = std::chrono::steady_clock::now();
 
-   PrintRunTracker(threadId, "while (mShouldRun)");
+   Print(threadId, "while (mShouldRun)");
    while (mShouldRun)
    {
-      PrintRunTracker(threadId, "rs2::frameset data = pipe.wait_for_frames();");
+      Print(threadId, "rs2::frameset data = pipe.wait_for_frames();");
       rs2::frameset data = pipe.wait_for_frames(); // Wait for next set of frames from the camera
-      PrintRunTracker(threadId, "rs2::video_frame irFrame1 = data.get_infrared_frame(1);");
+      Print(threadId, "rs2::video_frame irFrame1 = data.get_infrared_frame(1);");
       rs2::video_frame irFrame1 = data.get_infrared_frame(1);
-      PrintRunTracker(threadId, "rs2::video_frame irFrame2 = data.get_infrared_frame(2);");
+      Print(threadId, "rs2::video_frame irFrame2 = data.get_infrared_frame(2);");
       rs2::video_frame irFrame2 = data.get_infrared_frame(2);
 
       // Create OpenCV matrix of size (width, height)
@@ -172,7 +164,7 @@ void RunTracker(int threadId) try
    }
 
    mThreadParams[threadId].returnCode = EXIT_SUCCESS;
-   PrintRunTracker(threadId, "end RunTracker");
+   Print(threadId, "end RunTracker");
 }
 catch (const rs2::error & e)
 {
@@ -217,6 +209,18 @@ void printStatistics()
 
 int main(int paramc, char * paramv[]) try
 {
+   const bool SINGLE_MAPPER_CLIENT = true;
+
+   MapDrawer * pMapDrawer = NULL;
+   FrameDrawer * pFrameDrawer = NULL;
+   MapperClient * pMapperClient = NULL;
+   Tracking * pTracker = NULL;
+
+   vector<FrameDrawer *> vFrameDrawers;
+   vector<MapDrawer *> vMapDrawers;
+   vector<MapperClient *> vMapperClients;
+   vector<Tracking *> vTrackers;
+
    ParseParams(paramc, paramv);
 
    //Load ORB Vocabulary
@@ -230,44 +234,51 @@ int main(int paramc, char * paramv[]) try
    }
    SyncPrint::Print(NULL, "Vocabulary loaded!");
 
-   //Initialize the Mapper
-   Mapper & mapperServer = MapperServer(vocab, false);
+   MapperServer mapperServer(vocab, false);
+   FileStorage mapDrawSettings(mMapperSettings, FileStorage::READ);
+   VerifySettings(mapDrawSettings, mMapperSettings);
 
-   vector<FrameDrawer *> vFrameDrawers;
-   vector<MapDrawer *> vMapDrawers;
-   vector<Tracking *> vTrackers;
-
-   FileStorage mapperSettings(mMapperSettings, FileStorage::READ);
-   ParseSettings(mapperSettings, mMapperSettings);
-   MapDrawer * pMapDrawer = new MapDrawer(mapperSettings, mapperServer);
-   vMapDrawers.push_back(pMapDrawer);
+   if (SINGLE_MAPPER_CLIENT)
+   {
+      pMapperClient = new MapperClient(mapperServer, vocab, false);
+      vMapperClients.push_back(pMapperClient);
+      pMapDrawer = new MapDrawer(mapDrawSettings, *pMapperClient);
+      vMapDrawers.push_back(pMapDrawer);
+   }
 
    for (int i = 0; i < TRACKER_QUANTITY; ++i)
    {
-      FileStorage settings(mTrackerSettings[i], FileStorage::READ);
-
+      FileStorage trackerSettings(mTrackerSettings[i], FileStorage::READ);
       string * pSerial = new string();
-      ParseTrackerSettings(settings, mTrackerSettings[i], *pSerial);
+      VerifyTrackerSettings(trackerSettings, mTrackerSettings[i], *pSerial);
+      pFrameDrawer = new FrameDrawer(trackerSettings);
+      vFrameDrawers.push_back(pFrameDrawer);
 
-      FrameDrawer * frameDrawer = new FrameDrawer(settings);
-      vFrameDrawers.push_back(frameDrawer);
-
-      Mapper * mapperClient = new MapperClient(mapperServer, vocab, false);
-      Tracking * tracker = new Tracking(settings, vocab, *mapperClient, frameDrawer, NULL, eSensor::STEREO);
-      vTrackers.push_back(tracker);
+      if (SINGLE_MAPPER_CLIENT)
+      {
+         pTracker = new Tracking(trackerSettings, vocab, *pMapperClient, pFrameDrawer, NULL, eSensor::STEREO);
+      }
+      else
+      {
+         pMapperClient = new MapperClient(mapperServer, vocab, false);
+         vMapperClients.push_back(pMapperClient);
+         pMapDrawer = new MapDrawer(mapDrawSettings, *pMapperClient);
+         vMapDrawers.push_back(pMapDrawer);
+         pTracker = new Tracking(trackerSettings, vocab, *pMapperClient, pFrameDrawer, pMapDrawer, eSensor::STEREO);
+      }
+      vTrackers.push_back(pTracker);
 
       mThreadParams[i].serial = pSerial;
-      mThreadParams[i].tracker = tracker;
-      mThreadParams[i].mapper = mapperClient;
-      mThreadParams[i].height = frameDrawer->GetImageHeight();
-      mThreadParams[i].width = frameDrawer->GetImageWidth();
+      mThreadParams[i].tracker = pTracker;
+      mThreadParams[i].height = pFrameDrawer->GetImageHeight();
+      mThreadParams[i].width = pFrameDrawer->GetImageWidth();
       mThreadParams[i].threadObj = new thread(RunTracker, i);
    }
 
    {
       //Initialize and start the Viewer thread
       Viewer viewer(vFrameDrawers, vMapDrawers, vTrackers, &mapperServer);
-      for (auto tracker : vTrackers)
+      for (Tracking * tracker : vTrackers)
       {
          tracker->SetViewer(&viewer);
       }
@@ -292,11 +303,24 @@ int main(int paramc, char * paramv[]) try
    {
       delete mThreadParams[i].threadObj;
       delete mThreadParams[i].tracker;
-      delete mThreadParams[i].mapper;
       delete mThreadParams[i].serial;
       delete vFrameDrawers[i];
    }
-   delete pMapDrawer;
+
+   for (FrameDrawer * pFD : vFrameDrawers)
+   {
+      delete pFD;
+   }
+
+   for (MapDrawer * pMD : vMapDrawers)
+   {
+      delete pMD;
+   }
+
+   for (MapperClient * pMC : vMapperClients)
+   {
+      delete pMC;
+   }
 
    return returnCode;
 }
