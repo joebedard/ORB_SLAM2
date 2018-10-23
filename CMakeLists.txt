@@ -192,12 +192,21 @@ Examples/RealSense2Dual/realsense2dual.cc)
 target_include_directories(realsense2dual PUBLIC ${RealSense2_INCLUDE_DIRS})
 target_link_libraries(realsense2dual ${PROJECT_NAME} ${RealSense2_LIBS})
 
+add_executable(simple-client
+Examples/simple-client/client.cc)
+target_link_libraries(simple-client ${PROJECT_NAME})
+
+add_executable(simple-server
+Examples/simple-server/server.cc)
+target_link_libraries(simple-server ${PROJECT_NAME})
+
 # build client and server
 
-add_executable(client
-src-client/client.cc)
-target_link_libraries(client ${PROJECT_NAME} ${RealSense2_LIBS})
+add_executable(realsense2client
+src-client/realsense2client.cc)
+target_include_directories(realsense2client PUBLIC ${RealSense2_INCLUDE_DIRS})
+target_link_libraries(realsense2client ${PROJECT_NAME} ${RealSense2_LIBS})
 
-add_executable(server
+add_executable(ORB_SLAM2_server
 src-server/server.cc)
-target_link_libraries(server ${PROJECT_NAME} ${RealSense2_LIBS})
+target_link_libraries(ORB_SLAM2_server ${PROJECT_NAME})

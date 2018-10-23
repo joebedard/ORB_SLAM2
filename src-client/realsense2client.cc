@@ -41,7 +41,6 @@
 
 using namespace ORB_SLAM2;
 
-const int TRACKER_QUANTITY = 2;
 struct ThreadParam
 {
    int returnCode;
@@ -52,31 +51,24 @@ struct ThreadParam
    vector<float> timesTrack;
    thread * threadObj;
 };
-ThreadParam mThreadParams[TRACKER_QUANTITY];
 bool mShouldRun = true;
 
 // command line parameters
 char * mVocFile = NULL;
 char * mMapperSettings = NULL;
-char * mTrackerSettings[TRACKER_QUANTITY];
+char * mTrackerSettings = NULL;
 
 void ParseParams(int paramc, char * paramv[])
 {
-   if (paramc != 5)
+   if (paramc != 4)
    {
-      const char * usage = "Usage: ./realsense2dual vocabulary_file_and_path mapper_settings_file_and_path tracker1_settings_file_and_path tracker2_settings_file_and_path";
+      const char * usage = "Usage: ./realsense2client vocabulary_file_and_path mapper_settings_file_and_path tracker_settings_file_and_path";
       exception e(usage);
       throw e;
    }
-
    mVocFile = paramv[1];
-
    mMapperSettings = paramv[2];
-
-   for (int i = 0; i < TRACKER_QUANTITY; i++)
-   {
-      mTrackerSettings[i] = paramv[i + 3];
-   }
+   mTrackerSettings = paramv[3];
 }
 
 void VerifySettings(cv::FileStorage & settings, const char * settingsFilePath)
@@ -99,30 +91,30 @@ void VerifyTrackerSettings(cv::FileStorage & settings, const char * settingsFile
 
 }
 
-void Print(int threadId, const char * s)
+void Print(const char * s)
 {
-   /*stringstream ss; ss << "RunTracker" << threadId << ": ";
-   SyncPrint::Print(ss.str().c_str(), s);*/
+   SyncPrint::Print("RunTracker: ", s);
 }
 
-void RunTracker(int threadId) try
+void RunTracker(void * param) try
 {
-   Print(threadId, "begin RunTracker");
-   int height = mThreadParams[threadId].height;
-   int width = mThreadParams[threadId].width;
+   Print("begin RunTracker");
+   ThreadParam * threadParam = (ThreadParam *)param;
+   int height = threadParam->height;
+   int width = threadParam->width;
 
    // Declare RealSense pipeline, encapsulating the actual device and sensors
    rs2::pipeline pipe;  //ok to create more than one pipe in different threads?
 
-   // create and resolve custom configuration for RealSense
+                        // create and resolve custom configuration for RealSense
    rs2::config customConfig;
-   customConfig.enable_device(*mThreadParams[threadId].serial);
+   customConfig.enable_device(*threadParam->serial);
    customConfig.enable_stream(RS2_STREAM_INFRARED, 1, width, height, RS2_FORMAT_Y8, 30);
    customConfig.enable_stream(RS2_STREAM_INFRARED, 2, width, height, RS2_FORMAT_Y8, 30);
    if (!customConfig.can_resolve(pipe))
    {
       stringstream ss;
-      ss << "Can not resolve RealSense config for camera with serial number " << mThreadParams[threadId].serial;
+      ss << "Can not resolve RealSense config for camera with serial number " << threadParam->serial;
       throw exception(ss.str().c_str());
    }
 
@@ -134,14 +126,14 @@ void RunTracker(int threadId) try
 
    std::chrono::steady_clock::time_point tStart = std::chrono::steady_clock::now();
 
-   Print(threadId, "while (mShouldRun)");
+   Print("while (mShouldRun)");
    while (mShouldRun)
    {
-      Print(threadId, "rs2::frameset data = pipe.wait_for_frames();");
+      Print("rs2::frameset data = pipe.wait_for_frames();");
       rs2::frameset data = pipe.wait_for_frames(); // Wait for next set of frames from the camera
-      Print(threadId, "rs2::video_frame irFrame1 = data.get_infrared_frame(1);");
+      Print("rs2::video_frame irFrame1 = data.get_infrared_frame(1);");
       rs2::video_frame irFrame1 = data.get_infrared_frame(1);
-      Print(threadId, "rs2::video_frame irFrame2 = data.get_infrared_frame(2);");
+      Print("rs2::video_frame irFrame2 = data.get_infrared_frame(2);");
       rs2::video_frame irFrame2 = data.get_infrared_frame(2);
 
       // Create OpenCV matrix of size (width, height)
@@ -152,74 +144,67 @@ void RunTracker(int threadId) try
 
       double tframe = std::chrono::duration_cast<std::chrono::duration<double>>(t1 - tStart).count();
 
-      mThreadParams[threadId].tracker->GrabImageStereo(irMat1, irMat2, tframe);
+      threadParam->tracker->GrabImageStereo(irMat1, irMat2, tframe);
 
       std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
       double ttrack = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
 
-      mThreadParams[threadId].timesTrack.push_back(ttrack);
+      threadParam->timesTrack.push_back(ttrack);
    }
 
-   mThreadParams[threadId].returnCode = EXIT_SUCCESS;
-   Print(threadId, "end RunTracker");
+   threadParam->returnCode = EXIT_SUCCESS;
+   Print("end RunTracker");
 }
 catch (const rs2::error & e)
 {
    SyncPrint::Print("RealSense error calling ", e.get_failed_function() + "(" + e.get_failed_args() + "):\n    " + e.what());
-   mThreadParams[threadId].returnCode = EXIT_FAILURE;
+   ThreadParam * threadParam = (ThreadParam *)param;
+   threadParam->returnCode = EXIT_FAILURE;
 }
 catch (const exception& e)
 {
    SyncPrint::Print("Exception in RunTracker: ", e.what());
-   mThreadParams[threadId].returnCode = EXIT_FAILURE;
+   ThreadParam * threadParam = (ThreadParam *)param;
+   threadParam->returnCode = EXIT_FAILURE;
 }
 catch (...)
 {
-   SyncPrint::Print("An exception was not caught in RunTracker ", to_string(threadId));
-   mThreadParams[threadId].returnCode = EXIT_FAILURE;
+   SyncPrint::Print(NULL, "An exception was not caught in RunTracker ");
+   ThreadParam * threadParam = (ThreadParam *)param;
+   threadParam->returnCode = EXIT_FAILURE;
 }
 
-void printStatistics()
+void printStatistics(vector<float> & vTimesTrack)
 {
-   for (int i = 0; i < TRACKER_QUANTITY; ++i)
+   if (vTimesTrack.size() > 0)
    {
-      vector<float> & vTimesTrack = mThreadParams[i].timesTrack;
-
-      if (vTimesTrack.size() > 0)
+      // calculate time statistics
+      sort(vTimesTrack.begin(), vTimesTrack.end());
+      float totaltime = 0;
+      for (int i = 0; i < vTimesTrack.size(); i++)
       {
-         // calculate time statistics
-         sort(vTimesTrack.begin(), vTimesTrack.end());
-         float totaltime = 0;
-         for (int i = 0; i < vTimesTrack.size(); i++)
-         {
-            totaltime += vTimesTrack[i];
-         }
-
-         stringstream ss;
-         ss << "tracking time statistics for thread " << i << ":\n";
-         ss << "   median tracking time: " << vTimesTrack[vTimesTrack.size() / 2] << "\n";
-         ss << "   mean tracking time: " << totaltime / vTimesTrack.size() << "\n";
-         SyncPrint::Print(NULL, ss);
+         totaltime += vTimesTrack[i];
       }
+
+      stringstream ss;
+      ss << "tracking time statistics for client:\n";
+      ss << "   median tracking time: " << vTimesTrack[vTimesTrack.size() / 2] << "\n";
+      ss << "   mean tracking time: " << totaltime / vTimesTrack.size() << "\n";
+      SyncPrint::Print(NULL, ss);
    }
 }
 
 int main(int paramc, char * paramv[]) try
 {
-   const bool SINGLE_MAPPER_CLIENT = true;
-
-   MapDrawer * pMapDrawer = NULL;
-   FrameDrawer * pFrameDrawer = NULL;
-   MapperClient * pMapperClient = NULL;
-   Tracking * pTracker = NULL;
-
-   vector<FrameDrawer *> vFrameDrawers;
-   vector<MapDrawer *> vMapDrawers;
-   vector<MapperClient *> vMapperClients;
-   vector<Tracking *> vTrackers;
-
    ParseParams(paramc, paramv);
+
+   cv::FileStorage mapDrawSettings(mMapperSettings, cv::FileStorage::READ);
+   VerifySettings(mapDrawSettings, mMapperSettings);
+
+   cv::FileStorage trackerSettings(mTrackerSettings, cv::FileStorage::READ);
+   string serial;
+   VerifyTrackerSettings(trackerSettings, mTrackerSettings, serial);
 
    //Load ORB Vocabulary
    SyncPrint::Print(NULL, "Loading ORB Vocabulary. This could take a while...");
@@ -233,92 +218,32 @@ int main(int paramc, char * paramv[]) try
    SyncPrint::Print(NULL, "Vocabulary loaded!");
 
    MapperServer mapperServer(vocab, false);
-   cv::FileStorage mapDrawSettings(mMapperSettings, cv::FileStorage::READ);
-   VerifySettings(mapDrawSettings, mMapperSettings);
+   MapperClient mapperClient(mapperServer, vocab, false);
+   MapDrawer mapDrawer(mapDrawSettings, mapperClient);
+   FrameDrawer frameDrawer(trackerSettings);
+   Tracking tracker(trackerSettings, vocab, mapperClient, &frameDrawer, NULL, eSensor::STEREO);
 
-   if (SINGLE_MAPPER_CLIENT)
-   {
-      pMapperClient = new MapperClient(mapperServer, vocab, false);
-      vMapperClients.push_back(pMapperClient);
-      pMapDrawer = new MapDrawer(mapDrawSettings, *pMapperClient);
-      vMapDrawers.push_back(pMapDrawer);
-   }
-
-   for (int i = 0; i < TRACKER_QUANTITY; ++i)
-   {
-      cv::FileStorage trackerSettings(mTrackerSettings[i], cv::FileStorage::READ);
-      string * pSerial = new string();
-      VerifyTrackerSettings(trackerSettings, mTrackerSettings[i], *pSerial);
-      pFrameDrawer = new FrameDrawer(trackerSettings);
-      vFrameDrawers.push_back(pFrameDrawer);
-
-      if (SINGLE_MAPPER_CLIENT)
-      {
-         pTracker = new Tracking(trackerSettings, vocab, *pMapperClient, pFrameDrawer, NULL, eSensor::STEREO);
-      }
-      else
-      {
-         pMapperClient = new MapperClient(mapperServer, vocab, false);
-         vMapperClients.push_back(pMapperClient);
-         pMapDrawer = new MapDrawer(mapDrawSettings, *pMapperClient);
-         vMapDrawers.push_back(pMapDrawer);
-         pTracker = new Tracking(trackerSettings, vocab, *pMapperClient, pFrameDrawer, pMapDrawer, eSensor::STEREO);
-      }
-      vTrackers.push_back(pTracker);
-
-      mThreadParams[i].serial = pSerial;
-      mThreadParams[i].tracker = pTracker;
-      mThreadParams[i].height = pFrameDrawer->GetImageHeight();
-      mThreadParams[i].width = pFrameDrawer->GetImageWidth();
-      mThreadParams[i].threadObj = new thread(RunTracker, i);
-   }
+   ThreadParam threadParam;
+   threadParam.serial = &serial;
+   threadParam.tracker = &tracker;
+   threadParam.height = frameDrawer.GetImageHeight();
+   threadParam.width = frameDrawer.GetImageWidth();
+   thread trackerThread(RunTracker, &threadParam);
 
    {
       //Initialize and start the Viewer thread
-      Viewer viewer(vFrameDrawers, vMapDrawers, vTrackers, &mapperServer);
-      for (Tracking * tracker : vTrackers)
-      {
-         tracker->SetViewer(&viewer);
-      }
+      Viewer viewer(&frameDrawer, &mapDrawer, &tracker, &mapperServer);
+      tracker.SetViewer(&viewer);
       viewer.Run(); //ends when window is closed
       mShouldRun = false; //signal tracking threads to stop
       // implicit Viewer destruction
    }
 
    // join threads and check return codes
-   int returnCode = EXIT_SUCCESS;
-   for (int i = 0; i < TRACKER_QUANTITY; ++i)
-   {
-      mThreadParams[i].threadObj->join();
-      if (mThreadParams[i].returnCode == EXIT_FAILURE)
-         returnCode = EXIT_FAILURE;
-   }
+   threadParam.threadObj->join();
+   int returnCode = threadParam.returnCode;
 
-   printStatistics();
-
-   // destroy objects
-   for (int i = 0; i < TRACKER_QUANTITY; ++i)
-   {
-      delete mThreadParams[i].threadObj;
-      delete mThreadParams[i].tracker;
-      delete mThreadParams[i].serial;
-      delete vFrameDrawers[i];
-   }
-
-   for (FrameDrawer * pFD : vFrameDrawers)
-   {
-      delete pFD;
-   }
-
-   for (MapDrawer * pMD : vMapDrawers)
-   {
-      delete pMD;
-   }
-
-   for (MapperClient * pMC : vMapperClients)
-   {
-      delete pMC;
-   }
+   printStatistics(threadParam.timesTrack);
 
    return returnCode;
 }
