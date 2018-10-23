@@ -1,21 +1,21 @@
 /**
-* This file is part of ORB-SLAM2-CS.
+* This file is part of ORB-SLAM2-NET.
 *
 * Copyright (C) 2018 Joe Bedard <mr dot joe dot bedard at gmail dot com>
-* For more information see <https://github.com/joebedard/ORB_SLAM2_CS>
+* For more information see <https://github.com/joebedard/ORB_SLAM2_NET>
 *
-* ORB-SLAM2-CS is free software: you can redistribute it and/or modify
+* ORB-SLAM2-NET is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
 *
-* ORB-SLAM2-CS is distributed in the hope that it will be useful,
+* ORB-SLAM2-NET is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with ORB-SLAM2-CS. If not, see <http://www.gnu.org/licenses/>.
+* along with ORB-SLAM2-NET. If not, see <http://www.gnu.org/licenses/>.
 */
 
 
@@ -39,9 +39,7 @@
 #include <MapperServer.h>
 #include <SyncPrint.h>
 
-using namespace std;
 using namespace ORB_SLAM2;
-using namespace cv;
 
 const int TRACKER_QUANTITY = 2;
 struct ThreadParam
@@ -81,7 +79,7 @@ void ParseParams(int paramc, char * paramv[])
    }
 }
 
-void VerifySettings(FileStorage & settings, const char * settingsFilePath)
+void VerifySettings(cv::FileStorage & settings, const char * settingsFilePath)
 {
    if (!settings.isOpened())
    {
@@ -91,7 +89,7 @@ void VerifySettings(FileStorage & settings, const char * settingsFilePath)
    }
 }
 
-void VerifyTrackerSettings(FileStorage & settings, const char * settingsFilePath, string & serial)
+void VerifyTrackerSettings(cv::FileStorage & settings, const char * settingsFilePath, string & serial)
 {
    VerifySettings(settings, settingsFilePath);
 
@@ -147,8 +145,8 @@ void RunTracker(int threadId) try
       rs2::video_frame irFrame2 = data.get_infrared_frame(2);
 
       // Create OpenCV matrix of size (width, height)
-      Mat irMat1(Size(width, height), CV_8UC1, (void*)irFrame1.get_data(), Mat::AUTO_STEP);
-      Mat irMat2(Size(width, height), CV_8UC1, (void*)irFrame2.get_data(), Mat::AUTO_STEP);
+      cv::Mat irMat1(cv::Size(width, height), CV_8UC1, (void*)irFrame1.get_data(), cv::Mat::AUTO_STEP);
+      cv::Mat irMat2(cv::Size(width, height), CV_8UC1, (void*)irFrame2.get_data(), cv::Mat::AUTO_STEP);
 
       std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
@@ -235,7 +233,7 @@ int main(int paramc, char * paramv[]) try
    SyncPrint::Print(NULL, "Vocabulary loaded!");
 
    MapperServer mapperServer(vocab, false);
-   FileStorage mapDrawSettings(mMapperSettings, FileStorage::READ);
+   cv::FileStorage mapDrawSettings(mMapperSettings, cv::FileStorage::READ);
    VerifySettings(mapDrawSettings, mMapperSettings);
 
    if (SINGLE_MAPPER_CLIENT)
@@ -248,7 +246,7 @@ int main(int paramc, char * paramv[]) try
 
    for (int i = 0; i < TRACKER_QUANTITY; ++i)
    {
-      FileStorage trackerSettings(mTrackerSettings[i], FileStorage::READ);
+      cv::FileStorage trackerSettings(mTrackerSettings[i], cv::FileStorage::READ);
       string * pSerial = new string();
       VerifyTrackerSettings(trackerSettings, mTrackerSettings[i], *pSerial);
       pFrameDrawer = new FrameDrawer(trackerSettings);
