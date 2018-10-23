@@ -36,7 +36,7 @@ namespace ORB_SLAM2
       unsigned long firstMapPointId,
       unsigned int mapPointIdSpan
    ) :
-      SyncPrint("LocalMapping: "),
+      SyncPrint("LocalMapping: ", false),
       mMap(map),
       mMutexMapUpdate(mutexMapUpdate),
       mKeyFrameDB(keyFrameDB),
