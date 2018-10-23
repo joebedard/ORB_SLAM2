@@ -62,16 +62,12 @@ find_package(RealSense2 REQUIRED)
 # https://github.com/zeromq/cppzmq
 find_package(cppzmq REQUIRED)
 
+# S.I.M.P.L.E. networking library
+# https://github.com/IFL-CAMP/simple
+find_package(simple REQUIRED)
+
 add_subdirectory("Thirdparty/DBoW2" ${PROJECT_BINARY_DIR}/Thirdparty/DBoW2)
 add_subdirectory("Thirdparty/g2o" ${PROJECT_BINARY_DIR}/Thirdparty/g2o)
-
-include_directories(
-${PROJECT_SOURCE_DIR}
-${PROJECT_SOURCE_DIR}/include
-${EIGEN3_INCLUDE_DIR}
-${Pangolin_INCLUDE_DIRS}
-${RealSense2_INCLUDE_DIRS}
-)
 
 add_library(${PROJECT_NAME} STATIC
 include/Converter.h
@@ -130,27 +126,35 @@ src/Tracking.cc
 src/Viewer.cc
 )
 
+target_include_directories(${PROJECT_NAME} PUBLIC
+   ${PROJECT_SOURCE_DIR}
+   ${PROJECT_SOURCE_DIR}/include
+   ${EIGEN3_INCLUDE_DIR}
+   ${Pangolin_INCLUDE_DIRS}
+)
+
 IF(WIN32)
-   SET(ORB_SLAM_LINK_LIBS 
+   target_link_libraries(${PROJECT_NAME}
+      ${OpenCV_LIBS}
+      ${EIGEN3_LIBS}
+      ${Pangolin_LIBRARIES}
       ${PROJECT_BINARY_DIR}/Thirdparty/DBoW2/$(Configuration)/DBoW2.lib
       ${PROJECT_BINARY_DIR}/Thirdparty/g2o/$(Configuration)/g2o.lib
       ws2_32 #ZeroMQ dependency
       Iphlpapi #ZeroMQ dependency
+      simple::simple-static
    )
 ELSE(WIN32)
-   SET(ORB_SLAM_LINK_LIBS 
+   target_link_libraries(${PROJECT_NAME}
+      ${OpenCV_LIBS}
+      ${EIGEN3_LIBS}
+      ${Pangolin_LIBRARIES}
       ${PROJECT_BINARY_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
       ${PROJECT_BINARY_DIR}/Thirdparty/g2o/lib/libg2o.so
+      simple::simple-static
    )
 ENDIF(WIN32)
 
-target_link_libraries(${PROJECT_NAME}
-${OpenCV_LIBS}
-${EIGEN3_LIBS}
-${Pangolin_LIBRARIES}
-${ORB_SLAM_LINK_LIBS}
-cppzmq-static
-)
 
 # Build examples
 
@@ -180,10 +184,12 @@ target_link_libraries(mono_euroc ${PROJECT_NAME})
 
 add_executable(realsense2
 Examples/RealSense2/realsense2.cc)
+target_include_directories(realsense2 PUBLIC ${RealSense2_INCLUDE_DIRS})
 target_link_libraries(realsense2 ${PROJECT_NAME} ${RealSense2_LIBS})
 
 add_executable(realsense2dual
 Examples/RealSense2Dual/realsense2dual.cc)
+target_include_directories(realsense2dual PUBLIC ${RealSense2_INCLUDE_DIRS})
 target_link_libraries(realsense2dual ${PROJECT_NAME} ${RealSense2_LIBS})
 
 # build client and server

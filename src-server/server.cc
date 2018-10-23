@@ -19,13 +19,40 @@
 */
 
 #include <iostream>
+#include "simple_msgs\point.h"
+#include "simple\server.hpp"
+#include "simple\publisher.hpp"
+
+/****************************************
+ basic program for testing simple/zeromq
+****************************************/
+
+simple::Publisher<simple_msgs::Point> * pPublisher = NULL;
+
+void server_callback(simple_msgs::Point& p)
+{
+   std::cout << "Received a point: " << p << std::endl;
+   pPublisher->publish(p);
+}
 
 int main(int argc, char * argv[]) try
 {
+   simple::Publisher<simple_msgs::Point> publisher{ "tcp://*:6000" };
+   pPublisher = &publisher;
+   simple::Server<simple_msgs::Point> server{ "tcp://*:5000", server_callback };
+
+   std::cout << "Press a key to exit.\n";
+   std::cin.get();
+
    return 0;
 }
 catch (const std::exception& e)
 {
    std::cerr << e.what() << std::endl;
    return -1;
+}
+catch (...)
+{
+   std::cerr << std::endl << "An exception was not caught in the main thread." << std::endl;
+   return EXIT_FAILURE;
 }
