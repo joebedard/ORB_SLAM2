@@ -34,8 +34,8 @@
 
 using namespace std;
 
-char * strVocFile = NULL;
-char * strSettingsFile = NULL;
+char * gVocabFilename = NULL;
+char * gSettingsFilename = NULL;
 
 void parseArgs(int argc, char * argv[])
 {
@@ -45,8 +45,8 @@ void parseArgs(int argc, char * argv[])
       std::exception e(usage);
       throw e;
    }
-   strVocFile = argv[1];
-   strSettingsFile = argv[2];
+   gVocabFilename = argv[1];
+   gSettingsFilename = argv[2];
 }
 
 cv::Mat depth_frame_to_meters(const rs2::pipeline& pipe, const cv::Mat depthMat)
@@ -69,10 +69,10 @@ int main(int argc, char * argv[]) try
    parseArgs(argc, argv);
 
    //Check settings file
-   cv::FileStorage fsSettings(strSettingsFile, cv::FileStorage::READ);
+   cv::FileStorage fsSettings(gSettingsFilename, cv::FileStorage::READ);
    if (!fsSettings.isOpened())
    {
-      cerr << "Failed to open settings file at: " << strSettingsFile << endl;
+      cerr << "Failed to open settings file at: " << gSettingsFilename << endl;
       return EXIT_FAILURE;
    }
 
@@ -117,7 +117,7 @@ int main(int argc, char * argv[]) try
    sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 0);
 
    // Create SLAM system. It initializes all system threads and gets ready to process frames.
-   ORB_SLAM2::System SLAM(strVocFile, strSettingsFile, ORB_SLAM2::eSensor::STEREO, true);
+   ORB_SLAM2::System SLAM(gVocabFilename, gSettingsFilename, ORB_SLAM2::eSensor::STEREO, true);
 
    using namespace cv;
    while (!SLAM.IsQuitting())

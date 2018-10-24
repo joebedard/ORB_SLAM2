@@ -34,8 +34,8 @@ namespace ORB_SLAM2
 {
 
    System::System(
-      const string & strVocFile,
-      const string & strSettingsFile,
+      const string & vocabFilename,
+      const string & settingsFilename,
       const eSensor sensor,
       const bool bUseViewer
    ) :
@@ -66,22 +66,22 @@ namespace ORB_SLAM2
       Print(ss2);
 
       //Check settings file
-      cv::FileStorage fsSettings(strSettingsFile.c_str(), cv::FileStorage::READ);
+      cv::FileStorage fsSettings(settingsFilename.c_str(), cv::FileStorage::READ);
       if (!fsSettings.isOpened())
       {
          string m("Failed to open settings file at: ");
-         m.append(strSettingsFile);
+         m.append(settingsFilename);
          throw exception(m.c_str());
       }
 
       //Load ORB Vocabulary
       Print("Loading ORB Vocabulary. This could take a while...");
       mpVocabulary = new ORBVocabulary();
-      bool bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
+      bool bVocLoad = mpVocabulary->loadFromTextFile(vocabFilename);
       if (!bVocLoad)
       {
          string m("Wrong path to vocabulary. Failed to open at: ");
-         m.append(strVocFile);
+         m.append(vocabFilename);
          throw exception(m.c_str());
       }
       Print("Vocabulary loaded!");

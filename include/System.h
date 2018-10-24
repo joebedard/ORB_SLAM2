@@ -55,7 +55,7 @@ namespace ORB_SLAM2
    public:
 
       // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
-      System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true);
+      System(const string &vocabFilename, const string &settingsFilename, const eSensor sensor, const bool bUseViewer = true);
 
       ~System();
 
@@ -116,6 +116,7 @@ namespace ORB_SLAM2
       // Information from most recent processed frame
       // You can call this right after TrackMonocular (or stereo or RGBD)
       int GetTrackingState();
+
       std::vector<MapPoint*> GetTrackedMapPoints();
       std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 

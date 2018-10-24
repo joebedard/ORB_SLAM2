@@ -49,14 +49,13 @@ struct ThreadParam
    int height;
    int width;
    vector<float> timesTrack;
-   thread * threadObj;
 };
-bool mShouldRun = true;
+bool gShouldRun = true;
 
 // command line parameters
-char * mVocFile = NULL;
-char * mMapperSettings = NULL;
-char * mTrackerSettings = NULL;
+char * gVocabFilename = NULL;
+char * gMapperFilename = NULL;
+char * gTrackerFilename = NULL;
 
 void ParseParams(int paramc, char * paramv[])
 {
@@ -66,9 +65,9 @@ void ParseParams(int paramc, char * paramv[])
       exception e(usage);
       throw e;
    }
-   mVocFile = paramv[1];
-   mMapperSettings = paramv[2];
-   mTrackerSettings = paramv[3];
+   gVocabFilename = paramv[1];
+   gMapperFilename = paramv[2];
+   gTrackerFilename = paramv[3];
 }
 
 void VerifySettings(cv::FileStorage & settings, const char * settingsFilePath)
@@ -126,8 +125,8 @@ void RunTracker(void * param) try
 
    std::chrono::steady_clock::time_point tStart = std::chrono::steady_clock::now();
 
-   Print("while (mShouldRun)");
-   while (mShouldRun)
+   Print("while (gShouldRun)");
+   while (gShouldRun)
    {
       Print("rs2::frameset data = pipe.wait_for_frames();");
       rs2::frameset data = pipe.wait_for_frames(); // Wait for next set of frames from the camera
@@ -199,20 +198,20 @@ int main(int paramc, char * paramv[]) try
 {
    ParseParams(paramc, paramv);
 
-   cv::FileStorage mapDrawSettings(mMapperSettings, cv::FileStorage::READ);
-   VerifySettings(mapDrawSettings, mMapperSettings);
+   cv::FileStorage mapDrawSettings(gMapperFilename, cv::FileStorage::READ);
+   VerifySettings(mapDrawSettings, gMapperFilename);
 
-   cv::FileStorage trackerSettings(mTrackerSettings, cv::FileStorage::READ);
+   cv::FileStorage trackerSettings(gTrackerFilename, cv::FileStorage::READ);
    string serial;
-   VerifyTrackerSettings(trackerSettings, mTrackerSettings, serial);
+   VerifyTrackerSettings(trackerSettings, gTrackerFilename, serial);
 
    //Load ORB Vocabulary
    SyncPrint::Print(NULL, "Loading ORB Vocabulary. This could take a while...");
    ORBVocabulary vocab;
-   bool bVocLoad = vocab.loadFromTextFile(mVocFile);
+   bool bVocLoad = vocab.loadFromTextFile(gVocabFilename);
    if (!bVocLoad)
    {
-      SyncPrint::Print("Failed to open vocabulary file at: ", mVocFile);
+      SyncPrint::Print("Failed to open vocabulary file at: ", gVocabFilename);
       exit(-1);
    }
    SyncPrint::Print(NULL, "Vocabulary loaded!");
@@ -235,17 +234,15 @@ int main(int paramc, char * paramv[]) try
       Viewer viewer(&frameDrawer, &mapDrawer, &tracker, &mapperServer);
       tracker.SetViewer(&viewer);
       viewer.Run(); //ends when window is closed
-      mShouldRun = false; //signal tracking threads to stop
+      gShouldRun = false; //signal tracking threads to stop
       // implicit Viewer destruction
    }
 
-   // join threads and check return codes
-   threadParam.threadObj->join();
-   int returnCode = threadParam.returnCode;
+   trackerThread.join();
 
    printStatistics(threadParam.timesTrack);
 
-   return returnCode;
+   return threadParam.returnCode;
 }
 catch (const rs2::error & e)
 {
