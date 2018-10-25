@@ -130,7 +130,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
    ${PROJECT_SOURCE_DIR}
    ${PROJECT_SOURCE_DIR}/include
    ${EIGEN3_INCLUDE_DIR}
-   ${Pangolin_INCLUDE_DIRS}
+   ${Pangolin_INCLUDE_DIR}
+   ${cppzmq_INCLUDE_DIR}
 )
 
 IF(WIN32)
@@ -142,7 +143,7 @@ IF(WIN32)
       ${PROJECT_BINARY_DIR}/Thirdparty/g2o/$(Configuration)/g2o.lib
       ws2_32 #ZeroMQ dependency
       Iphlpapi #ZeroMQ dependency
-      simple::simple-static
+      cppzmq-static
    )
 ELSE(WIN32)
    target_link_libraries(${PROJECT_NAME}
@@ -151,7 +152,7 @@ ELSE(WIN32)
       ${Pangolin_LIBRARIES}
       ${PROJECT_BINARY_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
       ${PROJECT_BINARY_DIR}/Thirdparty/g2o/lib/libg2o.so
-      simple::simple-static
+      cppzmq-static
    )
 ENDIF(WIN32)
 
@@ -194,11 +195,17 @@ target_link_libraries(realsense2dual ${PROJECT_NAME} ${RealSense2_LIBS})
 
 add_executable(simple-client
 Examples/simple-client/client.cc)
-target_link_libraries(simple-client ${PROJECT_NAME})
+target_link_libraries(simple-client
+   ${PROJECT_NAME}
+   simple::simple-static
+)
 
 add_executable(simple-server
 Examples/simple-server/server.cc)
-target_link_libraries(simple-server ${PROJECT_NAME})
+target_link_libraries(simple-server
+   ${PROJECT_NAME}
+   simple::simple-static
+)
 
 # build client and server
 

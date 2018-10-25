@@ -33,6 +33,7 @@
 #include <Tracking.h>
 #include <ORBVocabulary.h>
 #include <FrameDrawer.h>
+#include <MapDrawer.h>
 #include <Map.h>
 #include <Mapper.h>
 #include <MapperClient.h>
@@ -74,7 +75,7 @@ void VerifySettings(cv::FileStorage & settings, const char * settingsFilePath)
 {
    if (!settings.isOpened())
    {
-      std::string m("Failed to open trackerSettings file at: ");
+      std::string m("Failed to open settings file at: ");
       m.append(settingsFilePath);
       throw exception(m.c_str());
    }
@@ -161,7 +162,7 @@ catch (const rs2::error & e)
    ThreadParam * threadParam = (ThreadParam *)param;
    threadParam->returnCode = EXIT_FAILURE;
 }
-catch (const exception& e)
+catch (const std::exception & e)
 {
    SyncPrint::Print("Exception in RunTracker: ", e.what());
    ThreadParam * threadParam = (ThreadParam *)param;

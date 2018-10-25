@@ -83,7 +83,7 @@ void VerifySettings(cv::FileStorage & settings, const char * settingsFilePath)
 {
    if (!settings.isOpened())
    {
-      std::string m("Failed to open trackerSettings file at: ");
+      std::string m("Failed to open settings file at: ");
       m.append(settingsFilePath);
       throw exception(m.c_str());
    }
