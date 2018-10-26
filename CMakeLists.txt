@@ -62,10 +62,6 @@ find_package(RealSense2 REQUIRED)
 # https://github.com/zeromq/cppzmq
 find_package(cppzmq REQUIRED)
 
-# S.I.M.P.L.E. networking library
-# https://github.com/IFL-CAMP/simple
-find_package(simple REQUIRED)
-
 add_subdirectory("Thirdparty/DBoW2" ${PROJECT_BINARY_DIR}/Thirdparty/DBoW2)
 add_subdirectory("Thirdparty/g2o" ${PROJECT_BINARY_DIR}/Thirdparty/g2o)
 
@@ -192,20 +188,6 @@ add_executable(realsense2dual
 Examples/RealSense2Dual/realsense2dual.cc)
 target_include_directories(realsense2dual PUBLIC ${RealSense2_INCLUDE_DIRS})
 target_link_libraries(realsense2dual ${PROJECT_NAME} ${RealSense2_LIBS})
-
-add_executable(simple-client
-Examples/simple-client/client.cc)
-target_link_libraries(simple-client
-   ${PROJECT_NAME}
-   simple::simple-static
-)
-
-add_executable(simple-server
-Examples/simple-server/server.cc)
-target_link_libraries(simple-server
-   ${PROJECT_NAME}
-   simple::simple-static
-)
 
 # build client and server
 
