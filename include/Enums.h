@@ -40,6 +40,21 @@ namespace ORB_SLAM2
       RGBD = 2
    };
 
+   enum ReplyCode
+   {
+      UnknownService,
+      Succeeded,
+      Failed
+   };
+
+   enum ServiceID
+   {
+      Hello,
+      Login,
+      Logout,
+      QUANTITY
+   };
+
 }
 
 #endif // TRACKINGSTATE_H

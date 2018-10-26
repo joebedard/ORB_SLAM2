@@ -24,6 +24,7 @@
 #include <zmq.hpp>
 #include <SyncPrint.h>
 #include <Sleep.h>
+#include <Enums.h>
 
 using namespace ORB_SLAM2;
 
@@ -43,7 +44,10 @@ char * gMapperFilename = NULL;
 struct ServerParam
 {
    int returnCode;
-   std::string * serverAddress;
+   std::string serverAddress;
+   int timeout;
+   int linger;
+   std::string publisherAddress;
 };
 bool gShouldRun = true;
 
@@ -59,7 +63,7 @@ void ParseParams(int paramc, char * paramv[])
    gMapperFilename = paramv[2];
 }
 
-void VerifySettings(cv::FileStorage & settings, const char * settingsFilePath, std::string & serverAddress, std::string & publisherAddress)
+void VerifySettings(cv::FileStorage & settings, const char * settingsFilePath, ServerParam & param)
 {
    if (!settings.isOpened())
    {
@@ -68,14 +72,60 @@ void VerifySettings(cv::FileStorage & settings, const char * settingsFilePath, s
       throw std::exception(m.c_str());
    }
 
-   serverAddress.append(settings["Server.Address"]);
-   if (0 == serverAddress.length())
+   param.serverAddress.append(settings["Server.Address"]);
+   if (0 == param.serverAddress.length())
       throw std::exception("Server.Address property is not set or value is not in quotes.");
 
-   publisherAddress.append(settings["Publisher.Address"]);
-   if (0 == publisherAddress.length())
+   param.publisherAddress.append(settings["Publisher.Address"]);
+   if (0 == param.publisherAddress.length())
       throw std::exception("Publisher.Address property is not set or value is not in quotes.");
+
+   param.timeout = settings["Server.Timeout"];
+
+   param.linger = settings["Server.Linger"];
+
 }
+
+zmq::message_t BuildReplyString(ReplyCode code, const char * str)
+{
+   size_t msgSize = sizeof(ReplyCode) + sizeof(char) * (strlen(str) + 1);
+   zmq::message_t reply(msgSize);
+   ReplyCode * pReplyCode = (ReplyCode *)reply.data();
+   *pReplyCode = code;
+   char * pStr = (char *)(pReplyCode + 1);
+   strcpy(pStr, str);
+   return reply;
+}
+
+zmq::message_t HelloService(void * requestData, size_t requestSize)
+{
+   gOutServ.Print(string("Received ") + (const char *)requestData);
+   if (0 == strcmp((const char *)requestData, "Hello"))
+   {
+      gOutServ.Print("Replying World");
+      return BuildReplyString(ReplyCode::Succeeded, "World");
+   }
+   else
+   {
+      gOutServ.Print("Replying Hello");
+      return BuildReplyString(ReplyCode::Succeeded, "Hello");
+   }
+}
+
+zmq::message_t LoginService(void * requestData, size_t requestSize)
+{
+   zmq::message_t reply;
+   return reply;
+}
+
+zmq::message_t LogoutService(void * requestData, size_t requestSize)
+{
+   zmq::message_t reply;
+   return reply;
+}
+
+// array of function pointer
+zmq::message_t(*gServices[ServiceID::QUANTITY]) (void * requestData, size_t requestSize) = { HelloService, LoginService, LogoutService };
 
 void RunServer(void * param) try
 {
@@ -83,23 +133,32 @@ void RunServer(void * param) try
 
    zmq::context_t context(1);
    zmq::socket_t socket(context, ZMQ_REP);
-   socket.bind(*serverParam->serverAddress);
+   socket.setsockopt(ZMQ_RCVTIMEO, &serverParam->timeout, sizeof(ServerParam::timeout));
+   socket.setsockopt(ZMQ_LINGER, &serverParam->linger, sizeof(ServerParam::linger));
+   socket.bind(serverParam->serverAddress);
 
    zmq::message_t request;
-   while (gShouldRun) {
-      // check for request from client
+   while (gShouldRun) 
+   {
       if (socket.recv(&request, ZMQ_NOBLOCK))
       {
-         if (strncmp((const char *)request.data(), "Hello", 5))
+         try 
          {
-            std::cout << "Received Hello" << std::endl;
-
-            //  TODO - dispatch request
-            sleep(1000);
-
-            // send reply back to client
-            zmq::message_t reply(5);
-            memcpy(reply.data(), "World", 5);
+            ServiceID * pServiceID = (ServiceID *)request.data();
+            if (*pServiceID < ServiceID::QUANTITY)
+            {
+               zmq::message_t reply = gServices[*pServiceID](pServiceID + 1, request.size());
+               socket.send(reply);
+            }
+            else
+            {
+               zmq::message_t reply = BuildReplyString(ReplyCode::UnknownService, "Unknown Service");
+               socket.send(reply);
+            }
+         } 
+         catch (std::exception & e)
+         {
+            zmq::message_t reply = BuildReplyString(ReplyCode::Failed, e.what());
             socket.send(reply);
          }
       }
@@ -108,18 +167,23 @@ void RunServer(void * param) try
          sleep(1000);
       }
    }
-
    serverParam->returnCode = EXIT_SUCCESS;
 }
-catch (const std::exception& e)
+catch (zmq::error_t & e)
 {
-   gOutServ.Print(e.what());
+   gOutServ.Print(string("error_t: ") + e.what());
+   ServerParam * serverParam = (ServerParam *)param;
+   serverParam->returnCode = EXIT_FAILURE;
+}
+catch (const std::exception & e)
+{
+   gOutServ.Print(string("exception: ") + e.what());
    ServerParam * serverParam = (ServerParam *)param;
    serverParam->returnCode = EXIT_FAILURE;
 }
 catch (...)
 {
-   gOutServ.Print("an exception was not caught");
+   gOutServ.Print("an exception was not caught in RunServer");
    ServerParam * serverParam = (ServerParam *)param;
    serverParam->returnCode = EXIT_FAILURE;
 }
@@ -130,11 +194,9 @@ int main(int argc, char * argv[]) try
    ParseParams(argc, argv);
 
    cv::FileStorage mapperSettings(gMapperFilename, cv::FileStorage::READ);
-   std::string serverAddress, publisherAddress;
-   VerifySettings(mapperSettings, gMapperFilename, serverAddress, publisherAddress);
-
    ServerParam param;
-   param.serverAddress = &serverAddress;
+   VerifySettings(mapperSettings, gMapperFilename, param);
+
    thread serverThread(RunServer, &param);
 
    // Output welcome message
@@ -146,8 +208,8 @@ int main(int argc, char * argv[]) try
    ss1 << "This program comes with ABSOLUTELY NO WARRANTY;" << endl;
    ss1 << "This is free software, and you are welcome to redistribute it" << endl;
    ss1 << "under certain conditions. See LICENSE.txt." << endl << endl;
-   ss1 << "Server.Address=" << serverAddress << endl;
-   ss1 << "Publisher.Address=" << publisherAddress << endl;
+   ss1 << "Server.Address=" << param.serverAddress << endl;
+   ss1 << "Publisher.Address=" << param.publisherAddress << endl;
    ss1 << "Press X to exit." << endl << endl;
    gOutMain.Print(NULL, ss1);
 
@@ -155,7 +217,7 @@ int main(int argc, char * argv[]) try
    while (key != 'x' && key != 'X' && key != 27) // 27 == Esc
    {
       sleep(1000);
-      key = getch();
+      key = _getch();
    }
    gOutMain.Print(NULL, "Shutting down server...");
    gShouldRun = false; //signal threads to stop
@@ -165,11 +227,11 @@ int main(int argc, char * argv[]) try
 }
 catch (const std::exception& e)
 {
-   gOutMain.Print(e.what());
+   gOutMain.Print(string("exception: ") + e.what());
    return EXIT_FAILURE;
 }
 catch (...)
 {
-   gOutMain.Print("an exception was not caught");
+   gOutMain.Print("an exception was not caught in main");
    return EXIT_FAILURE;
 }

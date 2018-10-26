@@ -21,14 +21,12 @@
 */
 
 
+#include "MapperClient.h"
+#include "MapperServer.h"
+#include "Sleep.h"
 #include "System.h"
 #include "Converter.h"
-#include "Sleep.h"
-#include <thread>
 #include <pangolin/pangolin.h>
-#include <iomanip>
-#include "MapperServer.h"
-#include "MapperClient.h"
 
 namespace ORB_SLAM2
 {
@@ -41,8 +39,7 @@ namespace ORB_SLAM2
    ) :
       mSensor(sensor),
       mpViewer(static_cast<Viewer*>(NULL)),
-      mpMapperServer(static_cast<MapperServer*>(NULL)),
-      mpMapperClient(static_cast<MapperClient*>(NULL))
+      mpMapper(static_cast<Mapper*>(NULL))
    {
       // Output welcome message
       stringstream ss1;
@@ -66,17 +63,28 @@ namespace ORB_SLAM2
       Print(ss2);
 
       //Check settings file
-      cv::FileStorage fsSettings(settingsFilename.c_str(), cv::FileStorage::READ);
-      if (!fsSettings.isOpened())
+      cv::FileStorage settings(settingsFilename.c_str(), cv::FileStorage::READ);
+      if (!settings.isOpened())
       {
          string m("Failed to open settings file at: ");
          m.append(settingsFilename);
          throw exception(m.c_str());
       }
 
+      mpVocabulary = new ORBVocabulary();
+      //Initialize the Mapper
+      Print("creating Mapper...");
+      if (true)
+      { // client and server
+         mpMapper = new MapperClient(settings, *mpVocabulary, mSensor == MONOCULAR);
+      }
+      else
+      { // server only
+         mpMapper = new MapperServer(*mpVocabulary, mSensor == MONOCULAR);
+      }
+
       //Load ORB Vocabulary
       Print("Loading ORB Vocabulary. This could take a while...");
-      mpVocabulary = new ORBVocabulary();
       bool bVocLoad = mpVocabulary->loadFromTextFile(vocabFilename);
       if (!bVocLoad)
       {
@@ -86,25 +94,13 @@ namespace ORB_SLAM2
       }
       Print("Vocabulary loaded!");
 
-      //Initialize the Mapper
-      mpMapperServer = new MapperServer(*mpVocabulary, mSensor == MONOCULAR);
-      if (true)
-      { // client and server
-         mpMapperClient = new MapperClient(*mpMapperServer, *mpVocabulary, mSensor == MONOCULAR);
-         mpMapper = mpMapperClient;
-      }
-      else
-      { // server only
-         mpMapper = mpMapperServer;
-      }
-
       //Create Drawers. These are used by the Viewer
-      mpFrameDrawer = new FrameDrawer(fsSettings);
-      mpMapDrawer = new MapDrawer(fsSettings, *mpMapper);
+      mpFrameDrawer = new FrameDrawer(settings);
+      mpMapDrawer = new MapDrawer(settings, *mpMapper);
 
       //Initialize the Tracking thread
       //(it will live in the main thread of execution, the one that called this constructor)
-      mpTracker = new Tracking(fsSettings, *mpVocabulary, *mpMapper, mpFrameDrawer, mpMapDrawer, mSensor);
+      mpTracker = new Tracking(settings, *mpVocabulary, *mpMapper, mpFrameDrawer, mpMapDrawer, mSensor);
 
       //Initialize the Viewer thread and launch
       if (bUseViewer)
@@ -121,10 +117,8 @@ namespace ORB_SLAM2
       delete mpFrameDrawer;
       delete mpMapDrawer;
       delete mpTracker;
-      delete mpMapperServer;
-      delete mpMapperClient;
+      delete mpMapper;
       delete mpVocabulary;
-      delete mpMap;
    }
 
    cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp)
@@ -180,7 +174,7 @@ namespace ORB_SLAM2
    bool System::MapChanged()
    {
       static int n = 0;
-      int curn = mpMap->GetLastBigChangeIdx();
+      int curn = mpMapper->GetMap().GetLastBigChangeIdx();
       if (n < curn)
       {
          n = curn;
@@ -214,7 +208,7 @@ namespace ORB_SLAM2
          throw exception("ERROR: SaveTrajectoryTUM cannot be used for monocular.");
       }
 
-      vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
+      vector<KeyFrame*> vpKFs = mpMapper->GetMap().GetAllKeyFrames();
       sort(vpKFs.begin(), vpKFs.end(), KeyFrame::lId);
 
       // Transform all keyframes so that the first keyframe is at the origin.
@@ -272,7 +266,7 @@ namespace ORB_SLAM2
       ss << endl << "Saving keyframe trajectory to " << filename << " ...";
       Print(ss);
 
-      vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
+      vector<KeyFrame*> vpKFs = mpMapper->GetMap().GetAllKeyFrames();
       sort(vpKFs.begin(), vpKFs.end(), KeyFrame::lId);
 
       // Transform all keyframes so that the first keyframe is at the origin.
@@ -315,7 +309,7 @@ namespace ORB_SLAM2
          throw exception("ERROR: SaveTrajectoryKITTI cannot be used for monocular.");
       }
 
-      vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
+      vector<KeyFrame*> vpKFs = mpMapper->GetMap().GetAllKeyFrames();
       sort(vpKFs.begin(), vpKFs.end(), KeyFrame::lId);
 
       // Transform all keyframes so that the first keyframe is at the origin.

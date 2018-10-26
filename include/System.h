@@ -24,31 +24,22 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
-#include<string>
-#include<thread>
-#include<opencv2/core/core.hpp>
+#include <string>
+#include <thread>
+#include <opencv2/core/core.hpp>
 
 #include "Tracking.h"
 #include "FrameDrawer.h"
 #include "MapDrawer.h"
-#include "Map.h"
 #include "KeyFrameDatabase.h"
 #include "ORBVocabulary.h"
 #include "Viewer.h"
 #include "Mapper.h"
-#include "MapperClient.h"
-#include "MapperServer.h"
 #include "Enums.h"
 #include "SyncPrint.h"
 
 namespace ORB_SLAM2
 {
-
-   class Viewer;
-   class FrameDrawer;
-   class Map;
-   class Tracking;
-   class Mapper;
 
    class System : SyncPrint
    {
@@ -129,13 +120,8 @@ namespace ORB_SLAM2
       // KeyFrame database for place recognition (relocalization and loop detection).
       KeyFrameDatabase* mpKeyFrameDatabase;
 
-      // Map structure that stores the pointers to all KeyFrames and MapPoints.
-      Map * mpMap;
-
       // The Mapper encapsulates all mapping functionality of the system
       Mapper * mpMapper;
-      MapperServer * mpMapperServer;
-      MapperClient * mpMapperClient;
 
       // Tracker. It receives a frame and computes the associated camera pose.
       // It also decides when to insert a new keyframe, create some new MapPoints and

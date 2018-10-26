@@ -24,10 +24,10 @@
 #include <fstream>
 #include <iomanip>
 #include <chrono>
-
 #include <librealsense2/rs.hpp>
 #include <opencv2/core/core.hpp>
 
+#include <MapperClient.h>
 #include <Sleep.h>
 #include <Enums.h>
 #include <Tracking.h>
@@ -35,7 +35,6 @@
 #include <FrameDrawer.h>
 #include <Map.h>
 #include <Mapper.h>
-#include <MapperClient.h>
 #include <MapperServer.h>
 #include <SyncPrint.h>
 
@@ -233,14 +232,14 @@ int main(int paramc, char * paramv[]) try
    SyncPrint::Print(NULL, "Vocabulary loaded!");
 
    MapperServer mapperServer(vocab, false);
-   cv::FileStorage mapDrawSettings(gMapperFilename, cv::FileStorage::READ);
-   VerifySettings(mapDrawSettings, gMapperFilename);
+   cv::FileStorage mapperSettings(gMapperFilename, cv::FileStorage::READ);
+   VerifySettings(mapperSettings, gMapperFilename);
 
    if (SINGLE_MAPPER_CLIENT)
    {
-      pMapperClient = new MapperClient(mapperServer, vocab, false);
+      pMapperClient = new MapperClient(mapperSettings, vocab, false);
       vMapperClients.push_back(pMapperClient);
-      pMapDrawer = new MapDrawer(mapDrawSettings, *pMapperClient);
+      pMapDrawer = new MapDrawer(mapperSettings, *pMapperClient);
       vMapDrawers.push_back(pMapDrawer);
    }
 
@@ -258,9 +257,9 @@ int main(int paramc, char * paramv[]) try
       }
       else
       {
-         pMapperClient = new MapperClient(mapperServer, vocab, false);
+         pMapperClient = new MapperClient(mapperSettings, vocab, false);
          vMapperClients.push_back(pMapperClient);
-         pMapDrawer = new MapDrawer(mapDrawSettings, *pMapperClient);
+         pMapDrawer = new MapDrawer(mapperSettings, *pMapperClient);
          vMapDrawers.push_back(pMapDrawer);
          pTracker = new Tracking(trackerSettings, vocab, *pMapperClient, pFrameDrawer, pMapDrawer, eSensor::STEREO);
       }

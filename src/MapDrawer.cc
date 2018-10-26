@@ -27,22 +27,22 @@ namespace ORB_SLAM2
 {
 
 
-   MapDrawer::MapDrawer(cv::FileStorage & fSettings, Mapper & mapper) :
+   MapDrawer::MapDrawer(cv::FileStorage & settings, Mapper & mapper) :
       SyncPrint("MapDrawer: "),
       mMapper(mapper),
       mMap(mapper.GetMap())
    {
-      mKeyFrameSize = fSettings["Viewer.KeyFrameSize"];
-      mKeyFrameLineWidth = fSettings["Viewer.KeyFrameLineWidth"];
-      mGraphLineWidth = fSettings["Viewer.GraphLineWidth"];
-      mPointSize = fSettings["Viewer.PointSize"];
-      mCameraSize = fSettings["Viewer.CameraSize"];
-      mCameraLineWidth = fSettings["Viewer.CameraLineWidth"];
+      mKeyFrameSize = settings["Viewer.KeyFrameSize"];
+      mKeyFrameLineWidth = settings["Viewer.KeyFrameLineWidth"];
+      mGraphLineWidth = settings["Viewer.GraphLineWidth"];
+      mPointSize = settings["Viewer.PointSize"];
+      mCameraSize = settings["Viewer.CameraSize"];
+      mCameraLineWidth = settings["Viewer.CameraLineWidth"];
 
-      mViewpointX = fSettings["Viewer.ViewpointX"];
-      mViewpointY = fSettings["Viewer.ViewpointY"];
-      mViewpointZ = fSettings["Viewer.ViewpointZ"];
-      mViewpointF = fSettings["Viewer.ViewpointF"];
+      mViewpointX = settings["Viewer.ViewpointX"];
+      mViewpointY = settings["Viewer.ViewpointY"];
+      mViewpointZ = settings["Viewer.ViewpointZ"];
+      mViewpointF = settings["Viewer.ViewpointF"];
    }
 
    void MapDrawer::Reset()

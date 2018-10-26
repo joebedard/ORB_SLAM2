@@ -30,7 +30,7 @@ namespace ORB_SLAM2
 
    mutex SyncPrint::mMutexOutput;
 
-   SyncPrint::SyncPrint() {};
+   SyncPrint::SyncPrint(bool enable) {};
 
    SyncPrint::SyncPrint(const char * prefix, bool enable) : mPrefix(prefix), mEnable(enable) {};
 

@@ -39,7 +39,7 @@ namespace ORB_SLAM2
    {
    public:
 
-      SyncPrint();
+      SyncPrint(bool enable = true);
 
       SyncPrint(const char * prefix, bool enable = true);
 
@@ -83,7 +83,7 @@ namespace ORB_SLAM2
    {
    public:
 
-      SyncPrint() {}
+      SyncPrint(bool enable = true) {}
 
       SyncPrint(const char * prefix, bool enable = true) {}
 

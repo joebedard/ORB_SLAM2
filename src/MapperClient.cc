@@ -26,15 +26,37 @@
 namespace ORB_SLAM2
 {
 
-   MapperClient::MapperClient(Mapper & server, ORBVocabulary & vocab, const bool bMonocular) :
+   MapperClient::MapperClient(cv::FileStorage & settings, ORBVocabulary & vocab, const bool bMonocular) :
       SyncPrint("MapperClient: "),
-      mServer(server),
+      mServer(vocab, bMonocular),
       mVocab(vocab),
       mbMonocular(bMonocular),
       mInitialized(false),
-      mMapperServerObserver(this)
+      mMapperServerObserver(this),
+      mContext(1),
+      mSocketReq(mContext, ZMQ_REQ)
    {
+      mServerAddress.append(settings["Server.Address"]);
+      if (0 == mServerAddress.length())
+         throw std::exception("Server.Address property is not set or value is not in quotes.");
+      Print(string("mServerAddress=") + mServerAddress);
+
+      mPublisherAddress.append(settings["Publisher.Address"]);
+      if (0 == mPublisherAddress.length())
+         throw std::exception("Publisher.Address property is not set or value is not in quotes.");
+      Print(string("mPublisherAddress=") + mPublisherAddress);
+
+      int timeout = settings["Server.Timeout"];
+      mSocketReq.setsockopt(ZMQ_RCVTIMEO, &timeout, sizeof(timeout));
+
+      int linger = settings["Server.Linger"];
+      mSocketReq.setsockopt(ZMQ_LINGER, &linger, sizeof(linger));
+
+      mSocketReq.connect(mServerAddress);
+
       mServer.AddObserver(&mMapperServerObserver);
+
+      GreetServer();
    }
 
    long unsigned MapperClient::KeyFramesInMap()
@@ -145,10 +167,13 @@ namespace ORB_SLAM2
       unsigned int & mapPointIdSpan,
       const cv::Mat & pivotCalib)
    {
+      Print("begin LoginTracker");
       unique_lock<mutex> lock(mMutexLogin);
 
       // client: login and get Id values and return them
-      return mServer.LoginTracker(firstKeyFrameId, keyFrameIdSpan, firstMapPointId, mapPointIdSpan, pivotCalib);
+      int id = mServer.LoginTracker(firstKeyFrameId, keyFrameIdSpan, firstMapPointId, mapPointIdSpan, pivotCalib);
+      Print("end LoginTracker");
+      return id;
    }
 
    void MapperClient::LogoutTracker(unsigned int id)
@@ -186,6 +211,52 @@ namespace ORB_SLAM2
    {
       // TODO - replace with client mutex
       return mServer.GetMutexMapUpdate();
+   }
+
+   zmq::message_t MapperClient::RequestReply(zmq::message_t & request)
+   {
+      mSocketReq.send(request);
+      zmq::message_t reply;
+      mSocketReq.recv(&reply);
+      ReplyCode * pReplyCode = (ReplyCode *)reply.data();
+      char * pStr = (char *)(pReplyCode + 1);
+      switch (*pReplyCode)
+      {
+      case ReplyCode::Succeeded:
+         return reply;
+
+      case ReplyCode::Failed:
+         throw exception(string("server failed: ").append(pStr).c_str());
+
+      case ReplyCode::UnknownService:
+         throw exception("the server does not support the requested service");
+
+      default:
+         throw exception("received an unknown reply code");
+      }
+   }
+
+   void MapperClient::GreetServer()
+   {
+      const char * HELLO = "Hello";
+      size_t sizeMsg = sizeof(ServiceID) + sizeof(char) * (strlen(HELLO) + 1);
+      zmq::message_t request(sizeMsg);
+      ServiceID * pServiceID = (ServiceID *)request.data();
+      *pServiceID = ServiceID::Hello;
+      char * str = (char *)(pServiceID + 1);
+      strcpy(str, HELLO);
+      Print("Sending Hello");
+      zmq::message_t reply = RequestReply(request);
+      ReplyCode * pReplyCode = (ReplyCode *)reply.data();
+      char * pStr = (char *)(pReplyCode + 1);
+      if (0 == strcmp(pStr, "World"))
+      {
+         Print("Received World");
+      }
+      else
+      {
+         Print("unable to greet server");
+      }
    }
 
    void MapperClient::MapperServerObserverReset()

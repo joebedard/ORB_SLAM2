@@ -24,10 +24,10 @@
 #include <fstream>
 #include <iomanip>
 #include <chrono>
-
 #include <librealsense2/rs.hpp>
 #include <opencv2/core/core.hpp>
 
+#include <MapperClient.h>
 #include <Sleep.h>
 #include <Enums.h>
 #include <Tracking.h>
@@ -36,11 +36,13 @@
 #include <MapDrawer.h>
 #include <Map.h>
 #include <Mapper.h>
-#include <MapperClient.h>
-#include <MapperServer.h>
 #include <SyncPrint.h>
 
 using namespace ORB_SLAM2;
+
+// logging variables
+SyncPrint gOutMain("main: ");
+SyncPrint gOutTrak("RunTracker: ");
 
 struct ThreadParam
 {
@@ -91,14 +93,9 @@ void VerifyTrackerSettings(cv::FileStorage & settings, const char * settingsFile
 
 }
 
-void Print(const char * s)
-{
-   SyncPrint::Print("RunTracker: ", s);
-}
-
 void RunTracker(void * param) try
 {
-   Print("begin RunTracker");
+   gOutTrak.Print("begin RunTracker");
    ThreadParam * threadParam = (ThreadParam *)param;
    int height = threadParam->height;
    int width = threadParam->width;
@@ -126,14 +123,14 @@ void RunTracker(void * param) try
 
    std::chrono::steady_clock::time_point tStart = std::chrono::steady_clock::now();
 
-   Print("while (gShouldRun)");
+   gOutTrak.Print("while (gShouldRun)");
    while (gShouldRun)
    {
-      Print("rs2::frameset data = pipe.wait_for_frames();");
+      gOutTrak.Print("rs2::frameset data = pipe.wait_for_frames();");
       rs2::frameset data = pipe.wait_for_frames(); // Wait for next set of frames from the camera
-      Print("rs2::video_frame irFrame1 = data.get_infrared_frame(1);");
+      gOutTrak.Print("rs2::video_frame irFrame1 = data.get_infrared_frame(1);");
       rs2::video_frame irFrame1 = data.get_infrared_frame(1);
-      Print("rs2::video_frame irFrame2 = data.get_infrared_frame(2);");
+      gOutTrak.Print("rs2::video_frame irFrame2 = data.get_infrared_frame(2);");
       rs2::video_frame irFrame2 = data.get_infrared_frame(2);
 
       // Create OpenCV matrix of size (width, height)
@@ -154,7 +151,7 @@ void RunTracker(void * param) try
    }
 
    threadParam->returnCode = EXIT_SUCCESS;
-   Print("end RunTracker");
+   gOutTrak.Print("end RunTracker");
 }
 catch (const rs2::error & e)
 {
@@ -199,16 +196,29 @@ int main(int paramc, char * paramv[]) try
 {
    ParseParams(paramc, paramv);
 
-   cv::FileStorage mapDrawSettings(gMapperFilename, cv::FileStorage::READ);
-   VerifySettings(mapDrawSettings, gMapperFilename);
+   cv::FileStorage mapperSettings(gMapperFilename, cv::FileStorage::READ);
+   VerifySettings(mapperSettings, gMapperFilename);
 
    cv::FileStorage trackerSettings(gTrackerFilename, cv::FileStorage::READ);
    string serial;
    VerifyTrackerSettings(trackerSettings, gTrackerFilename, serial);
 
+   // Output welcome message
+   stringstream ss1;
+   ss1 << endl;
+   ss1 << "ORB-SLAM2-NET RealSense2 Client" << endl;
+   ss1 << "Copyright (C) 2014-2016 Raul Mur-Artal, University of Zaragoza" << endl;
+   ss1 << "Copyright (C) 2018 Joe Bedard" << endl;
+   ss1 << "This program comes with ABSOLUTELY NO WARRANTY;" << endl;
+   ss1 << "This is free software, and you are welcome to redistribute it" << endl;
+   ss1 << "under certain conditions. See LICENSE.txt." << endl << endl;
+   gOutMain.Print(NULL, ss1);
+
+   ORBVocabulary vocab;
+   MapperClient mapperClient(mapperSettings, vocab, false);
+
    //Load ORB Vocabulary
    SyncPrint::Print(NULL, "Loading ORB Vocabulary. This could take a while...");
-   ORBVocabulary vocab;
    bool bVocLoad = vocab.loadFromTextFile(gVocabFilename);
    if (!bVocLoad)
    {
@@ -217,9 +227,7 @@ int main(int paramc, char * paramv[]) try
    }
    SyncPrint::Print(NULL, "Vocabulary loaded!");
 
-   MapperServer mapperServer(vocab, false);
-   MapperClient mapperClient(mapperServer, vocab, false);
-   MapDrawer mapDrawer(mapDrawSettings, mapperClient);
+   MapDrawer mapDrawer(mapperSettings, mapperClient);
    FrameDrawer frameDrawer(trackerSettings);
    Tracking tracker(trackerSettings, vocab, mapperClient, &frameDrawer, NULL, eSensor::STEREO);
 
@@ -232,7 +240,7 @@ int main(int paramc, char * paramv[]) try
 
    {
       //Initialize and start the Viewer thread
-      Viewer viewer(&frameDrawer, &mapDrawer, &tracker, &mapperServer);
+      Viewer viewer(&frameDrawer, &mapDrawer, &tracker, &mapperClient);
       tracker.SetViewer(&viewer);
       viewer.Run(); //ends when window is closed
       gShouldRun = false; //signal tracking threads to stop
@@ -247,16 +255,16 @@ int main(int paramc, char * paramv[]) try
 }
 catch (const rs2::error & e)
 {
-   cout << "RealSense error calling " << e.get_failed_function() + "(" + e.get_failed_args() + "):\n    " + e.what();
+   std::cout << "RealSense error calling " << e.get_failed_function() + "(" + e.get_failed_args() + "):\n    " + e.what();
    return EXIT_FAILURE;
 }
 catch (const exception& e)
 {
-   cout << "Exception in main thread: " << e.what();
+   std::cout << "Exception in main thread: " << e.what();
    return EXIT_FAILURE;
 }
 catch (...)
 {
-   cout << "There was an unknown exception in the main thread.";
+   std::cout << "There was an unknown exception in the main thread.";
    return EXIT_FAILURE;
 }

@@ -42,7 +42,7 @@ namespace ORB_SLAM2
    class FrameDrawer : SyncPrint
    {
    public:
-      FrameDrawer(cv::FileStorage & fSettings);
+      FrameDrawer(cv::FileStorage & settings);
 
       void Reset();
 

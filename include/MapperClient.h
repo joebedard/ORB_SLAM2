@@ -21,6 +21,8 @@
 #ifndef MAPPERCLIENT_H
 #define MAPPERCLIENT_H
 
+#include <zmq.hpp>
+
 #include "Map.h"
 #include "KeyFrame.h"
 #include "KeyFrameDatabase.h"
@@ -29,6 +31,7 @@
 #include "Enums.h"
 #include "MapObserver.h"
 #include "Mapper.h"
+#include "MapperServer.h"
 
 namespace ORB_SLAM2
 {
@@ -41,7 +44,7 @@ namespace ORB_SLAM2
    {
    public:
 
-      MapperClient(Mapper & server, ORBVocabulary & vocab, const bool bMonocular);
+      MapperClient(cv::FileStorage & settings, ORBVocabulary & vocab, const bool bMonocular);
 
       virtual long unsigned  KeyFramesInMap();
 
@@ -111,7 +114,19 @@ namespace ORB_SLAM2
 
       bool mInitialized;
 
-      Mapper & mServer;
+      MapperServer mServer;
+
+      string mServerAddress;
+
+      string mPublisherAddress;
+
+      zmq::context_t mContext;
+
+      zmq::socket_t mSocketReq;
+
+      zmq::message_t RequestReply(zmq::message_t & request);
+
+      void MapperClient::GreetServer();
 
       void MapperServerObserverReset();
 
