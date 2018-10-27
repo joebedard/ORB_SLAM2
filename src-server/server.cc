@@ -108,7 +108,7 @@ zmq::message_t HelloService(void * requestData, size_t requestSize)
    else
    {
       gOutServ.Print("Replying Hello");
-      return BuildReplyString(ReplyCode::Succeeded, "Hello");
+      return BuildReplyString(ReplyCode::SUCCEEDED, "Hello");
    }
 }
 
