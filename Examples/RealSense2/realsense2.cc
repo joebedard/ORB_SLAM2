@@ -19,18 +19,12 @@
 */
 
 
-#include <iostream>
-#include <algorithm>
-#include <fstream>
-#include <iomanip>
 #include <chrono>
-
 #include <librealsense2/rs.hpp>
 #include <opencv2/core/core.hpp>
 
 #include <System.h>
-#include "Sleep.h"
-#include "Enums.h"
+#include <Enums.h>
 
 using namespace ORB_SLAM2;
 

@@ -19,22 +19,16 @@
 */
 
 
-#include <iostream>
-#include <algorithm>
-#include <fstream>
-#include <iomanip>
 #include <chrono>
 #include <librealsense2/rs.hpp>
 #include <opencv2/core/core.hpp>
 
 #include <MapperClient.h>
-#include <Sleep.h>
 #include <Enums.h>
 #include <Tracking.h>
 #include <ORBVocabulary.h>
 #include <FrameDrawer.h>
 #include <MapDrawer.h>
-#include <Map.h>
 #include <Mapper.h>
 #include <SyncPrint.h>
 
