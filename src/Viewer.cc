@@ -41,9 +41,14 @@ namespace ORB_SLAM2
       mbResetting(false),
       mWindowTitle("ORB-SLAM2-NET Viewer")
    {
-      mvFrameDrawers.push_back(pFrameDrawer);
-      mvMapDrawers.push_back(pMapDrawer);
-      mvTrackers.push_back(pTracking);
+      if (pFrameDrawer)
+         mvFrameDrawers.push_back(pFrameDrawer);
+      
+      if (pMapDrawer)
+         mvMapDrawers.push_back(pMapDrawer);
+
+      if (pTracking)
+         mvTrackers.push_back(pTracking);
    }
 
    Viewer::Viewer(vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers, Mapper * pMapper, bool embeddedFrameDrawers) :

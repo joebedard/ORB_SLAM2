@@ -65,13 +65,13 @@ namespace ORB_SLAM2
 
       virtual std::mutex & GetMutexMapUpdate();
 
-      virtual unsigned int LoginTracker(
+      virtual void LoginTracker(
+         const cv::Mat & pivotCalib,
+         unsigned int & trackerId,
          unsigned long  & firstKeyFrameId,
          unsigned int & keyFrameIdSpan,
          unsigned long & firstMapPointId,
-         unsigned int & mapPointIdSpan,
-         const cv::Mat & pivotCalib
-      );
+         unsigned int & mapPointIdSpan);
 
       virtual void LogoutTracker(unsigned int id);
 
@@ -129,7 +129,7 @@ namespace ORB_SLAM2
 
       void ResetTrackerStatus();
 
-      void UpdateTrackerIds(unsigned int trackerId, vector<MapPoint *> mapPoints);
+      void UpdateTrackerStatus(unsigned int trackerId, KeyFrame * pKF, vector<MapPoint *> mapPoints);
 
       void ValidateTracker(unsigned int trackerId);
 

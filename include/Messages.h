@@ -37,6 +37,12 @@ namespace ORB_SLAM2
       float pivotCalib[16];
    };
 
+   struct LogoutTrackerRequest
+   {
+      ServiceId serviceId;
+      unsigned int trackerId;
+   };
+
    struct GeneralReply
    {
       ReplyCode replyCode;
@@ -46,7 +52,7 @@ namespace ORB_SLAM2
    struct LoginTrackerReply
    {
       ReplyCode replyCode;
-      int id;
+      unsigned int trackerId;
       unsigned long firstKeyFrameId;
       unsigned int keyFrameIdSpan;
       unsigned long firstMapPointId;

@@ -26,6 +26,10 @@
 #include <Sleep.h>
 #include <Enums.h>
 #include <Messages.h>
+#include <ORBVocabulary.h>
+#include <MapperServer.h>
+#include <MapDrawer.h>
+#include <Viewer.h>
 
 using namespace ORB_SLAM2;
 
@@ -41,7 +45,7 @@ SyncPrint gOutServ("server: ");
 char * gVocabFilename = NULL;
 char * gMapperFilename = NULL;
 
-// reply server variables
+// server variables
 struct ServerParam
 {
    int returnCode;
@@ -51,6 +55,7 @@ struct ServerParam
    std::string publisherAddress;
 };
 bool gShouldRun = true;
+MapperServer * gMapper = NULL;
 
 void ParseParams(int paramc, char * paramv[])
 {
@@ -115,14 +120,49 @@ zmq::message_t HelloService(zmq::message_t & request)
 
 zmq::message_t LoginService(zmq::message_t & request)
 {
-   zmq::message_t reply;
-   return BuildReplyString(ReplyCode::FAILED, "LoginService Not Implemented");
+   gOutServ.Print("begin LoginService");
+   LoginTrackerRequest * pReqData = request.data<LoginTrackerRequest>();
+   cv::Mat pivotCalib(4, 4, CV_32F);
+   pivotCalib.at<float>(0, 0) = pReqData->pivotCalib[0];
+   pivotCalib.at<float>(0, 1) = pReqData->pivotCalib[1];
+   pivotCalib.at<float>(0, 2) = pReqData->pivotCalib[2];
+   pivotCalib.at<float>(0, 3) = pReqData->pivotCalib[3];
+   pivotCalib.at<float>(1, 0) = pReqData->pivotCalib[4];
+   pivotCalib.at<float>(1, 1) = pReqData->pivotCalib[5];
+   pivotCalib.at<float>(1, 2) = pReqData->pivotCalib[6];
+   pivotCalib.at<float>(1, 3) = pReqData->pivotCalib[7];
+   pivotCalib.at<float>(2, 0) = pReqData->pivotCalib[8];
+   pivotCalib.at<float>(2, 1) = pReqData->pivotCalib[9];
+   pivotCalib.at<float>(2, 2) = pReqData->pivotCalib[10];
+   pivotCalib.at<float>(2, 3) = pReqData->pivotCalib[11];
+   pivotCalib.at<float>(3, 0) = pReqData->pivotCalib[12];
+   pivotCalib.at<float>(3, 1) = pReqData->pivotCalib[13];
+   pivotCalib.at<float>(3, 2) = pReqData->pivotCalib[14];
+   pivotCalib.at<float>(3, 3) = pReqData->pivotCalib[15];
+
+   zmq::message_t reply(sizeof(LoginTrackerReply));
+   LoginTrackerReply * pRepData = reply.data<LoginTrackerReply>();
+   gMapper->LoginTracker(pivotCalib, pRepData->trackerId, pRepData->firstKeyFrameId, pRepData->keyFrameIdSpan,
+      pRepData->firstMapPointId, pRepData->mapPointIdSpan);
+   pRepData->replyCode = ReplyCode::SUCCEEDED;
+
+   gOutServ.Print("end LoginService");
+   return reply;
 }
 
 zmq::message_t LogoutService(zmq::message_t & request)
 {
-   zmq::message_t reply;
-   return BuildReplyString(ReplyCode::FAILED, "LogoutService Not Implemented");
+   gOutServ.Print("begin LogoutService");
+   LogoutTrackerRequest * pReqData = request.data<LogoutTrackerRequest>();
+   pReqData->trackerId;
+
+   zmq::message_t reply(sizeof(GeneralReply));
+   GeneralReply * pRepData = reply.data<GeneralReply>();
+   gMapper->LogoutTracker(pReqData->trackerId);
+   pRepData->replyCode = ReplyCode::SUCCEEDED;
+
+   gOutServ.Print("end LogoutService");
+   return reply;
 }
 
 // array of function pointer
@@ -197,8 +237,6 @@ int main(int argc, char * argv[]) try
    ServerParam param;
    VerifySettings(mapperSettings, gMapperFilename, param);
 
-   thread serverThread(RunServer, &param);
-
    // Output welcome message
    stringstream ss1;
    ss1 << endl;
@@ -210,17 +248,42 @@ int main(int argc, char * argv[]) try
    ss1 << "under certain conditions. See LICENSE.txt." << endl << endl;
    ss1 << "Server.Address=" << param.serverAddress << endl;
    ss1 << "Publisher.Address=" << param.publisherAddress << endl;
-   ss1 << "Press X to exit." << endl << endl;
    gOutMain.Print(NULL, ss1);
 
+   ORBVocabulary vocab;
+   MapperServer mapperServer(vocab, false);
+   gMapper = &mapperServer;
+   MapDrawer mapDrawer(mapperSettings, mapperServer);
+
+   //Load ORB Vocabulary
+   SyncPrint::Print(NULL, "Loading ORB Vocabulary. This could take a while...");
+   bool bVocLoad = vocab.loadFromTextFile(gVocabFilename);
+   if (!bVocLoad)
+   {
+      SyncPrint::Print("Failed to open vocabulary file at: ", gVocabFilename);
+      exit(-1);
+   }
+   SyncPrint::Print(NULL, "Vocabulary loaded!");
+
+   thread serverThread(RunServer, &param);
+
+   //Initialize and start the Viewer thread
+   Viewer viewer(NULL, &mapDrawer, NULL, &mapperServer);
+   viewer.Run(); //ends when window is closed
+   gShouldRun = false; //signal tracking threads to stop
+
+   /*
+   gOutMain.Print("Press X to exit.");
    int key = 0;
    while (key != 'x' && key != 'X' && key != 27) // 27 == Esc
    {
       sleep(1000);
       key = _getch();
    }
-   gOutMain.Print(NULL, "Shutting down server...");
    gShouldRun = false; //signal threads to stop
+   */
+
+   gOutMain.Print(NULL, "Shutting down server...");
    serverThread.join();
 
    return EXIT_SUCCESS;

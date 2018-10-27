@@ -156,8 +156,7 @@ namespace ORB_SLAM2
       }
 
       // stereo and RGBD modes will create MapPoints
-      unique_lock<mutex> lock(mMutexTrackerStatus);
-      UpdateTrackerIds(trackerId, mapPoints);
+      UpdateTrackerStatus(trackerId, NULL, mapPoints);
 
       mInitialized = true;
 
@@ -178,17 +177,8 @@ namespace ORB_SLAM2
          // In the original code, this was not done until LocalMapping::ProcessNewKeyFrame
          mMap.AddKeyFrame(pKF);
 
-         unique_lock<mutex> lock(mMutexTrackerStatus);
-
-         // update TrackerStatus array with next KeyFrameId and MapPointId
-         assert((pKF->GetId() - trackerId) % KEYFRAME_ID_SPAN == 0);
-         if (mTrackers[trackerId].nextKeyFrameId <= pKF->GetId())
-         {
-            mTrackers[trackerId].nextKeyFrameId = pKF->GetId() + KEYFRAME_ID_SPAN;
-         }
-
          // stereo and RGBD modes will create MapPoints
-         UpdateTrackerIds(trackerId, mapPoints);
+         UpdateTrackerStatus(trackerId, pKF, mapPoints);
 
          return true;
       }
@@ -196,8 +186,20 @@ namespace ORB_SLAM2
          return false;
    }
 
-   void MapperServer::UpdateTrackerIds(unsigned int trackerId, vector<MapPoint *> mapPoints)
+   void MapperServer::UpdateTrackerStatus(unsigned int trackerId, KeyFrame * pKF, vector<MapPoint *> mapPoints)
    {
+      unique_lock<mutex> lock(mMutexTrackerStatus);
+
+      // update TrackerStatus array with next KeyFrameId and MapPointId
+      if (pKF)
+      {
+         assert((pKF->GetId() - trackerId) % KEYFRAME_ID_SPAN == 0);
+         if (mTrackers[trackerId].nextKeyFrameId <= pKF->GetId())
+         {
+            mTrackers[trackerId].nextKeyFrameId = pKF->GetId() + KEYFRAME_ID_SPAN;
+         }
+      }
+
       for (auto pMP : mapPoints)
       {
          assert((pMP->GetId() - trackerId) % MAPPOINT_ID_SPAN == 0);
@@ -208,12 +210,13 @@ namespace ORB_SLAM2
       }
    }
 
-   unsigned int MapperServer::LoginTracker(
+   void MapperServer::LoginTracker(
+      const cv::Mat & pivotCalib,
+      unsigned int & trackerId,
       unsigned long  & firstKeyFrameId,
       unsigned int & keyFrameIdSpan,
       unsigned long & firstMapPointId,
-      unsigned int & mapPointIdSpan,
-      const cv::Mat & pivotCalib)
+      unsigned int & mapPointIdSpan)
    {
       unique_lock<mutex> lock(mMutexTrackerStatus);
 
@@ -231,12 +234,11 @@ namespace ORB_SLAM2
       if (id >= MAX_TRACKERS)
          throw std::exception("Maximum number of trackers reached. Additional trackers are not supported.");
 
+      trackerId = id;
       firstKeyFrameId = mTrackers[id].nextKeyFrameId;
       keyFrameIdSpan = KEYFRAME_ID_SPAN;
       firstMapPointId = mTrackers[id].nextMapPointId;
       mapPointIdSpan = MAPPOINT_ID_SPAN;
-
-      return id;
    }
 
    void MapperServer::LogoutTracker(unsigned int id)

@@ -160,15 +160,15 @@ namespace ORB_SLAM2
 
    }
 
-   unsigned int MapperClient::LoginTracker(
+   void MapperClient::LoginTracker(
+      const cv::Mat & pivotCalib,
+      unsigned int & trackerId,
       unsigned long  & firstKeyFrameId,
       unsigned int & keyFrameIdSpan,
       unsigned long & firstMapPointId,
-      unsigned int & mapPointIdSpan,
-      const cv::Mat & pivotCalib)
+      unsigned int & mapPointIdSpan)
    {
       Print("begin LoginTracker");
-      unique_lock<mutex> lock(mMutexLogin);
 
       zmq::message_t request(sizeof(LoginTrackerRequest));
       LoginTrackerRequest * pReqData = request.data<LoginTrackerRequest>();
@@ -192,24 +192,30 @@ namespace ORB_SLAM2
 
       zmq::message_t reply = RequestReply(request);
       LoginTrackerReply * pRepData = reply.data<LoginTrackerReply>();
+      trackerId = pRepData->trackerId;
       firstKeyFrameId = pRepData->firstKeyFrameId;
       keyFrameIdSpan = pRepData->keyFrameIdSpan;
       firstMapPointId = pRepData->firstMapPointId;
       mapPointIdSpan = pRepData->mapPointIdSpan;
-      Print("end LoginTracker");
-      return pRepData->id;
 
       // client: login and get Id values and return them
-      //int id = mServer.LoginTracker(firstKeyFrameId, keyFrameIdSpan, firstMapPointId, mapPointIdSpan, pivotCalib);
-      //Print("end LoginTracker");
-      //return id;
+      //mServer.LoginTracker(pivotCalib, trackerId, firstKeyFrameId, keyFrameIdSpan, firstMapPointId, mapPointIdSpan);
+      Print("end LoginTracker");
    }
 
    void MapperClient::LogoutTracker(unsigned int id)
    {
-      unique_lock<mutex> lock(mMutexLogin);
+      Print("begin LogoutTracker");
 
-      mServer.LogoutTracker(id);
+      zmq::message_t request(sizeof(LoginTrackerRequest));
+      LogoutTrackerRequest * pReqData = request.data<LogoutTrackerRequest>();
+      pReqData->serviceId = ServiceId::LOGOUT_TRACKER;
+      pReqData->trackerId = id;
+
+      zmq::message_t reply = RequestReply(request);
+
+      //mServer.LogoutTracker(id);
+      Print("end LogoutTracker");
    }
 
    void MapperClient::UpdatePose(unsigned int trackerId, const cv::Mat & poseTcw)

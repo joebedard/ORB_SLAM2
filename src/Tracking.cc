@@ -1622,7 +1622,7 @@ namespace ORB_SLAM2
 
    void Tracking::Login()
    {
-      mId = mMapper.LoginTracker(mNextKeyFrameId, mKeyFrameIdSpan, mNextMapPointId, mMapPointIdSpan, pivotCal);
+      mMapper.LoginTracker(pivotCal, mId, mNextKeyFrameId, mKeyFrameIdSpan, mNextMapPointId, mMapPointIdSpan);
       assert(mKeyFrameIdSpan != 0);
       assert(mMapPointIdSpan != 0);
 
