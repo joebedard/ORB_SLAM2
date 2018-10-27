@@ -18,10 +18,10 @@
 * along with ORB-SLAM2-NET. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <exception>
 #include "MapperClient.h"
 #include "Optimizer.h"
-#include "Sleep.h"
-#include <exception>
+#include "Messages.h"
 
 namespace ORB_SLAM2
 {
@@ -170,10 +170,39 @@ namespace ORB_SLAM2
       Print("begin LoginTracker");
       unique_lock<mutex> lock(mMutexLogin);
 
-      // client: login and get Id values and return them
-      int id = mServer.LoginTracker(firstKeyFrameId, keyFrameIdSpan, firstMapPointId, mapPointIdSpan, pivotCalib);
+      zmq::message_t request(sizeof(LoginTrackerRequest));
+      LoginTrackerRequest * pReqData = request.data<LoginTrackerRequest>();
+      pReqData->serviceId = ServiceId::LOGIN_TRACKER;
+      pReqData->pivotCalib[0] = pivotCalib.at<float>(0, 0);
+      pReqData->pivotCalib[1] = pivotCalib.at<float>(0, 1);
+      pReqData->pivotCalib[2] = pivotCalib.at<float>(0, 2);
+      pReqData->pivotCalib[3] = pivotCalib.at<float>(0, 3);
+      pReqData->pivotCalib[4] = pivotCalib.at<float>(1, 0);
+      pReqData->pivotCalib[5] = pivotCalib.at<float>(1, 1);
+      pReqData->pivotCalib[6] = pivotCalib.at<float>(1, 2);
+      pReqData->pivotCalib[7] = pivotCalib.at<float>(1, 3);
+      pReqData->pivotCalib[8] = pivotCalib.at<float>(2, 0);
+      pReqData->pivotCalib[9] = pivotCalib.at<float>(2, 1);
+      pReqData->pivotCalib[10] = pivotCalib.at<float>(2, 2);
+      pReqData->pivotCalib[11] = pivotCalib.at<float>(2, 3);
+      pReqData->pivotCalib[12] = pivotCalib.at<float>(3, 0);
+      pReqData->pivotCalib[13] = pivotCalib.at<float>(3, 1);
+      pReqData->pivotCalib[14] = pivotCalib.at<float>(3, 2);
+      pReqData->pivotCalib[15] = pivotCalib.at<float>(3, 3);
+
+      zmq::message_t reply = RequestReply(request);
+      LoginTrackerReply * pRepData = reply.data<LoginTrackerReply>();
+      firstKeyFrameId = pRepData->firstKeyFrameId;
+      keyFrameIdSpan = pRepData->keyFrameIdSpan;
+      firstMapPointId = pRepData->firstMapPointId;
+      mapPointIdSpan = pRepData->mapPointIdSpan;
       Print("end LoginTracker");
-      return id;
+      return pRepData->id;
+
+      // client: login and get Id values and return them
+      //int id = mServer.LoginTracker(firstKeyFrameId, keyFrameIdSpan, firstMapPointId, mapPointIdSpan, pivotCalib);
+      //Print("end LoginTracker");
+      //return id;
    }
 
    void MapperClient::LogoutTracker(unsigned int id)
@@ -215,18 +244,20 @@ namespace ORB_SLAM2
 
    zmq::message_t MapperClient::RequestReply(zmq::message_t & request)
    {
+      Print("begin RequestReply");
+
       mSocketReq.send(request);
       zmq::message_t reply;
       mSocketReq.recv(&reply);
-      ReplyCode * pReplyCode = (ReplyCode *)reply.data();
-      char * pStr = (char *)(pReplyCode + 1);
-      switch (*pReplyCode)
+      GeneralReply * pReplyData = reply.data<GeneralReply>();
+      switch (pReplyData->replyCode)
       {
       case ReplyCode::SUCCEEDED:
+         Print("end RequestReply");
          return reply;
 
       case ReplyCode::FAILED:
-         throw exception(string("server failed: ").append(pStr).c_str());
+         throw exception(string("server failed: ").append(pReplyData->message).c_str());
 
       case ReplyCode::UNKNOWN_SERVICE:
          throw exception("the server does not support the requested service");
@@ -234,22 +265,23 @@ namespace ORB_SLAM2
       default:
          throw exception("received an unknown reply code");
       }
+
    }
 
    void MapperClient::GreetServer()
    {
       const char * HELLO = "Hello";
-      size_t sizeMsg = sizeof(ServiceId) + sizeof(char) * (strlen(HELLO) + 1);
+      size_t sizeMsg = sizeof(GeneralRequest) + sizeof(char) * strlen(HELLO);
       zmq::message_t request(sizeMsg);
-      ServiceId * pServiceID = (ServiceId *)request.data();
-      *pServiceID = ServiceId::HELLO;
-      char * str = (char *)(pServiceID + 1);
-      strcpy(str, HELLO);
+      GeneralRequest * pReqData = request.data<GeneralRequest>();
+      pReqData->serviceId = ServiceId::HELLO;
+      strcpy(pReqData->message, HELLO);
+
       Print("Sending Hello");
       zmq::message_t reply = RequestReply(request);
-      ReplyCode * pReplyCode = (ReplyCode *)reply.data();
-      char * pStr = (char *)(pReplyCode + 1);
-      if (0 == strcmp(pStr, "World"))
+      
+      GeneralReply * pRepData = reply.data<GeneralReply>();
+      if (0 == strcmp(pRepData->message, "World"))
       {
          Print("Received World");
       }

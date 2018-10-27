@@ -25,6 +25,7 @@
 #include <SyncPrint.h>
 #include <Sleep.h>
 #include <Enums.h>
+#include <Messages.h>
 
 using namespace ORB_SLAM2;
 
@@ -90,17 +91,17 @@ zmq::message_t BuildReplyString(ReplyCode code, const char * str)
 {
    size_t msgSize = sizeof(ReplyCode) + sizeof(char) * (strlen(str) + 1);
    zmq::message_t reply(msgSize);
-   ReplyCode * pReplyCode = (ReplyCode *)reply.data();
-   *pReplyCode = code;
-   char * pStr = (char *)(pReplyCode + 1);
-   strcpy(pStr, str);
+   GeneralReply * pRepData = reply.data<GeneralReply>();
+   pRepData->replyCode = code;
+   strcpy(pRepData->message, str);
    return reply;
 }
 
-zmq::message_t HelloService(void * requestData, size_t requestSize)
+zmq::message_t HelloService(zmq::message_t & request)
 {
-   gOutServ.Print(string("Received ") + (const char *)requestData);
-   if (0 == strcmp((const char *)requestData, "Hello"))
+   GeneralRequest * pReqData = request.data<GeneralRequest>();
+   gOutServ.Print(string("Received ") + pReqData->message);
+   if (0 == strcmp(pReqData->message, "Hello"))
    {
       gOutServ.Print("Replying World");
       return BuildReplyString(ReplyCode::SUCCEEDED, "World");
@@ -112,20 +113,20 @@ zmq::message_t HelloService(void * requestData, size_t requestSize)
    }
 }
 
-zmq::message_t LoginService(void * requestData, size_t requestSize)
+zmq::message_t LoginService(zmq::message_t & request)
 {
    zmq::message_t reply;
-   return reply;
+   return BuildReplyString(ReplyCode::FAILED, "LoginService Not Implemented");
 }
 
-zmq::message_t LogoutService(void * requestData, size_t requestSize)
+zmq::message_t LogoutService(zmq::message_t & request)
 {
    zmq::message_t reply;
-   return reply;
+   return BuildReplyString(ReplyCode::FAILED, "LogoutService Not Implemented");
 }
 
 // array of function pointer
-zmq::message_t(*gServices[ServiceId::quantity]) (void * requestData, size_t requestSize) = { HelloService, LoginService, LogoutService };
+zmq::message_t (*gServices[ServiceId::quantity])(zmq::message_t & request) = { HelloService, LoginService, LogoutService };
 
 void RunServer(void * param) try
 {
@@ -144,10 +145,10 @@ void RunServer(void * param) try
       {
          try 
          {
-            ServiceId * pServiceID = (ServiceId *)request.data();
-            if (*pServiceID < ServiceId::quantity)
+            GeneralRequest * pReqData = request.data<GeneralRequest>();
+            if (pReqData->serviceId < ServiceId::quantity)
             {
-               zmq::message_t reply = gServices[*pServiceID](pServiceID + 1, request.size());
+               zmq::message_t reply = gServices[pReqData->serviceId](request);
                socket.send(reply);
             }
             else

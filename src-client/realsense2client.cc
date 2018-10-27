@@ -210,6 +210,9 @@ int main(int paramc, char * paramv[]) try
 
    ORBVocabulary vocab;
    MapperClient mapperClient(mapperSettings, vocab, false);
+   MapDrawer mapDrawer(mapperSettings, mapperClient);
+   FrameDrawer frameDrawer(trackerSettings);
+   Tracking tracker(trackerSettings, vocab, mapperClient, &frameDrawer, NULL, SensorType::STEREO);
 
    //Load ORB Vocabulary
    SyncPrint::Print(NULL, "Loading ORB Vocabulary. This could take a while...");
@@ -220,10 +223,6 @@ int main(int paramc, char * paramv[]) try
       exit(-1);
    }
    SyncPrint::Print(NULL, "Vocabulary loaded!");
-
-   MapDrawer mapDrawer(mapperSettings, mapperClient);
-   FrameDrawer frameDrawer(trackerSettings);
-   Tracking tracker(trackerSettings, vocab, mapperClient, &frameDrawer, NULL, SensorType::STEREO);
 
    ThreadParam threadParam;
    threadParam.serial = &serial;

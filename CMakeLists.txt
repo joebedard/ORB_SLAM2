@@ -85,6 +85,7 @@ include/MapperClient.h
 include/MapperServer.h
 include/MapPoint.h
 include/MapSubject.h
+include/Messages.h
 include/Optimizer.h
 include/ORBextractor.h
 include/ORBmatcher.h

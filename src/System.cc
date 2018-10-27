@@ -20,8 +20,6 @@
 * along with ORB-SLAM2-NET. If not, see <http://www.gnu.org/licenses/>.
 */
 
-
-#include "MapperClient.h"
 #include "MapperServer.h"
 #include "Sleep.h"
 #include "System.h"
@@ -74,14 +72,7 @@ namespace ORB_SLAM2
       mpVocabulary = new ORBVocabulary();
       //Initialize the Mapper
       Print("creating Mapper...");
-      if (true)
-      { // client and server
-         mpMapper = new MapperClient(settings, *mpVocabulary, mSensor == MONOCULAR);
-      }
-      else
-      { // server only
-         mpMapper = new MapperServer(*mpVocabulary, mSensor == MONOCULAR);
-      }
+      mpMapper = new MapperServer(*mpVocabulary, mSensor == MONOCULAR);
 
       //Load ORB Vocabulary
       Print("Loading ORB Vocabulary. This could take a while...");
