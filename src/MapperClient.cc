@@ -222,13 +222,13 @@ namespace ORB_SLAM2
       char * pStr = (char *)(pReplyCode + 1);
       switch (*pReplyCode)
       {
-      case ReplyCode::Succeeded:
+      case ReplyCode::SUCCEEDED:
          return reply;
 
-      case ReplyCode::Failed:
+      case ReplyCode::FAILED:
          throw exception(string("server failed: ").append(pStr).c_str());
 
-      case ReplyCode::UnknownService:
+      case ReplyCode::UNKNOWN_SERVICE:
          throw exception("the server does not support the requested service");
 
       default:
@@ -239,10 +239,10 @@ namespace ORB_SLAM2
    void MapperClient::GreetServer()
    {
       const char * HELLO = "Hello";
-      size_t sizeMsg = sizeof(ServiceID) + sizeof(char) * (strlen(HELLO) + 1);
+      size_t sizeMsg = sizeof(ServiceId) + sizeof(char) * (strlen(HELLO) + 1);
       zmq::message_t request(sizeMsg);
-      ServiceID * pServiceID = (ServiceID *)request.data();
-      *pServiceID = ServiceID::Hello;
+      ServiceId * pServiceID = (ServiceId *)request.data();
+      *pServiceID = ServiceId::HELLO;
       char * str = (char *)(pServiceID + 1);
       strcpy(str, HELLO);
       Print("Sending Hello");

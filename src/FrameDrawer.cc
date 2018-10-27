@@ -82,7 +82,7 @@ namespace ORB_SLAM2
       vector<int> vMatches; // Initialization: correspondeces with reference keypoints
       vector<cv::KeyPoint> vCurrentKeys; // KeyPoints in current frame
       vector<bool> vbVO, vbMap; // Tracked MapPoints in current frame
-      eTrackingState state; // Tracking state
+      TrackingState state; // Tracking state
 
       //Copy variables within scoped mutex
       {
@@ -183,7 +183,7 @@ namespace ORB_SLAM2
       return mImageWidth;
    }
 
-   stringstream FrameDrawer::StateToString(eTrackingState state)
+   stringstream FrameDrawer::StateToString(TrackingState state)
    {
       stringstream s;
       if (state == NO_IMAGES_YET)
@@ -207,7 +207,7 @@ namespace ORB_SLAM2
       return s;
    }
 
-   void FrameDrawer::DrawTextInfo(cv::Mat &im, eTrackingState state, cv::Mat &imText)
+   void FrameDrawer::DrawTextInfo(cv::Mat &im, TrackingState state, cv::Mat &imText)
    {
       stringstream s = StateToString(state);
       imText = cv::Mat(im.rows + mTextInfoHeight, im.cols, im.type());

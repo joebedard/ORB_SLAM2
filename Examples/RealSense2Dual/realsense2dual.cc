@@ -253,7 +253,7 @@ int main(int paramc, char * paramv[]) try
 
       if (SINGLE_MAPPER_CLIENT)
       {
-         pTracker = new Tracking(trackerSettings, vocab, *pMapperClient, pFrameDrawer, NULL, eSensor::STEREO);
+         pTracker = new Tracking(trackerSettings, vocab, *pMapperClient, pFrameDrawer, NULL, SensorType::STEREO);
       }
       else
       {
@@ -261,7 +261,7 @@ int main(int paramc, char * paramv[]) try
          vMapperClients.push_back(pMapperClient);
          pMapDrawer = new MapDrawer(mapperSettings, *pMapperClient);
          vMapDrawers.push_back(pMapDrawer);
-         pTracker = new Tracking(trackerSettings, vocab, *pMapperClient, pFrameDrawer, pMapDrawer, eSensor::STEREO);
+         pTracker = new Tracking(trackerSettings, vocab, *pMapperClient, pFrameDrawer, pMapDrawer, SensorType::STEREO);
       }
       vTrackers.push_back(pTracker);
 

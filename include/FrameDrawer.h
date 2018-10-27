@@ -62,7 +62,7 @@ namespace ORB_SLAM2
 
    protected:
 
-      void DrawTextInfo(cv::Mat &im, eTrackingState state, cv::Mat &imText);
+      void DrawTextInfo(cv::Mat &im, TrackingState state, cv::Mat &imText);
 
       // Info of the frame to be drawn
       cv::Mat mIm;
@@ -73,7 +73,7 @@ namespace ORB_SLAM2
       int mnTracked, mnTrackedVO;
       vector<cv::KeyPoint> mvIniKeys;
       vector<int> mvIniMatches;
-      eTrackingState mState;
+      TrackingState mState;
 
       std::mutex mMutex;
 
@@ -82,7 +82,7 @@ namespace ORB_SLAM2
       double mT;
       int mImageWidth, mImageHeight, mTextInfoHeight, mnKFs, mnMPs;
 
-      stringstream StateToString(eTrackingState state);
+      stringstream StateToString(TrackingState state);
 
    };
 

@@ -60,7 +60,7 @@ namespace ORB_SLAM2
          Mapper & mapper,
          FrameDrawer* pFrameDrawer,
          MapDrawer* pMapDrawer,
-         eSensor sensor
+         SensorType sensor
       );
 
       ~Tracking();
@@ -81,10 +81,10 @@ namespace ORB_SLAM2
 
    public:
 
-      eTrackingState mLastProcessedState;
+      TrackingState mLastProcessedState;
 
       // Input sensor
-      ORB_SLAM2::eSensor mSensor;
+      SensorType mSensor;
 
       // Current Frame
       Frame mCurrentFrame;
@@ -198,7 +198,7 @@ namespace ORB_SLAM2
 
    private:
 
-      eTrackingState mState;
+      TrackingState mState;
 
       // Change mode flags
       std::mutex mMutexMode;
@@ -225,7 +225,7 @@ namespace ORB_SLAM2
 
       cv::Mat pivotCal;
 
-      void LoadCameraParameters(cv::FileStorage & settings, eSensor sensor);
+      void LoadCameraParameters(cv::FileStorage & settings, SensorType sensor);
 
       void CheckModeChange();
 
@@ -235,7 +235,7 @@ namespace ORB_SLAM2
 
       bool NeedNewKeyFrame();
 
-      KeyFrame * CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor sensorType);
+      KeyFrame * CreateNewKeyFrame(Frame & currentFrame, SensorType sensorType);
 
       unsigned long NewKeyFrameId();
 

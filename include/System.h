@@ -46,7 +46,7 @@ namespace ORB_SLAM2
    public:
 
       // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
-      System(const string &vocabFilename, const string &settingsFilename, const eSensor sensor, const bool bUseViewer = true);
+      System(const string &vocabFilename, const string &settingsFilename, const SensorType sensor, const bool bUseViewer = true);
 
       ~System();
 
@@ -112,7 +112,7 @@ namespace ORB_SLAM2
       std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 
       // Input sensor
-      eSensor mSensor;
+      SensorType mSensor;
 
       // ORB vocabulary used for place recognition and feature matching.
       ORBVocabulary* mpVocabulary;

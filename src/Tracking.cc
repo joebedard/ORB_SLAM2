@@ -47,7 +47,7 @@ namespace ORB_SLAM2
       Mapper & mapper,
       FrameDrawer* pFrameDrawer,
       MapDrawer* pMapDrawer,
-      eSensor sensor
+      SensorType sensor
    ) :
       SyncPrint("Tracking: "),
       mORBVocabulary(vocab),
@@ -88,7 +88,7 @@ namespace ORB_SLAM2
       out << "Id=" << mId << " ";
    }
 
-   void Tracking::LoadCameraParameters(cv::FileStorage & fSettings, eSensor sensor)
+   void Tracking::LoadCameraParameters(cv::FileStorage & fSettings, SensorType sensor)
    {
       // Load camera parameters from settings file
 
@@ -1528,7 +1528,7 @@ namespace ORB_SLAM2
       Print("end CheckReset");
    }
 
-   KeyFrame * Tracking::CreateNewKeyFrame(Frame & currentFrame, ORB_SLAM2::eSensor sensorType)
+   KeyFrame * Tracking::CreateNewKeyFrame(Frame & currentFrame, SensorType sensorType)
    {
       Print("begin CreateNewKeyFrame");
       KeyFrame* pKF = new KeyFrame(NewKeyFrameId(), currentFrame);
@@ -1678,4 +1678,4 @@ namespace ORB_SLAM2
       Print("end MapperObserverMapChanged");
    }
 
-} //namespace ORB_SLAM
+} //namespace ORB_SLAM2

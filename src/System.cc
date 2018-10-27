@@ -34,7 +34,7 @@ namespace ORB_SLAM2
    System::System(
       const string & vocabFilename,
       const string & settingsFilename,
-      const eSensor sensor,
+      const SensorType sensor,
       const bool bUseViewer
    ) :
       mSensor(sensor),

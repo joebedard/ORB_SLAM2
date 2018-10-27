@@ -229,7 +229,7 @@ int main(int paramc, char * paramv[]) try
 
    MapDrawer mapDrawer(mapperSettings, mapperClient);
    FrameDrawer frameDrawer(trackerSettings);
-   Tracking tracker(trackerSettings, vocab, mapperClient, &frameDrawer, NULL, eSensor::STEREO);
+   Tracking tracker(trackerSettings, vocab, mapperClient, &frameDrawer, NULL, SensorType::STEREO);
 
    ThreadParam threadParam;
    threadParam.serial = &serial;

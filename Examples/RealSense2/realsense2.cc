@@ -32,7 +32,7 @@
 #include "Sleep.h"
 #include "Enums.h"
 
-using namespace std;
+using namespace ORB_SLAM2;
 
 char * gVocabFilename = NULL;
 char * gSettingsFilename = NULL;
@@ -117,7 +117,7 @@ int main(int argc, char * argv[]) try
    sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 0);
 
    // Create SLAM system. It initializes all system threads and gets ready to process frames.
-   ORB_SLAM2::System SLAM(gVocabFilename, gSettingsFilename, ORB_SLAM2::eSensor::STEREO, true);
+   System SLAM(gVocabFilename, gSettingsFilename, SensorType::STEREO, true);
 
    using namespace cv;
    while (!SLAM.IsQuitting())

@@ -103,7 +103,7 @@ zmq::message_t HelloService(void * requestData, size_t requestSize)
    if (0 == strcmp((const char *)requestData, "Hello"))
    {
       gOutServ.Print("Replying World");
-      return BuildReplyString(ReplyCode::Succeeded, "World");
+      return BuildReplyString(ReplyCode::SUCCEEDED, "World");
    }
    else
    {
@@ -125,7 +125,7 @@ zmq::message_t LogoutService(void * requestData, size_t requestSize)
 }
 
 // array of function pointer
-zmq::message_t(*gServices[ServiceID::QUANTITY]) (void * requestData, size_t requestSize) = { HelloService, LoginService, LogoutService };
+zmq::message_t(*gServices[ServiceId::quantity]) (void * requestData, size_t requestSize) = { HelloService, LoginService, LogoutService };
 
 void RunServer(void * param) try
 {
@@ -144,21 +144,21 @@ void RunServer(void * param) try
       {
          try 
          {
-            ServiceID * pServiceID = (ServiceID *)request.data();
-            if (*pServiceID < ServiceID::QUANTITY)
+            ServiceId * pServiceID = (ServiceId *)request.data();
+            if (*pServiceID < ServiceId::quantity)
             {
                zmq::message_t reply = gServices[*pServiceID](pServiceID + 1, request.size());
                socket.send(reply);
             }
             else
             {
-               zmq::message_t reply = BuildReplyString(ReplyCode::UnknownService, "Unknown Service");
+               zmq::message_t reply = BuildReplyString(ReplyCode::UNKNOWN_SERVICE, "Unknown Service");
                socket.send(reply);
             }
          } 
          catch (std::exception & e)
          {
-            zmq::message_t reply = BuildReplyString(ReplyCode::Failed, e.what());
+            zmq::message_t reply = BuildReplyString(ReplyCode::FAILED, e.what());
             socket.send(reply);
          }
       }
@@ -187,7 +187,6 @@ catch (...)
    ServerParam * serverParam = (ServerParam *)param;
    serverParam->returnCode = EXIT_FAILURE;
 }
-
 
 int main(int argc, char * argv[]) try
 {
