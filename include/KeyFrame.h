@@ -29,6 +29,7 @@
 #include "ORBVocabulary.h"
 #include "Frame.h"
 #include "KeyFrameDatabase.h"
+#include "SyncPrint.h"
 
 #include <mutex>
 
@@ -41,7 +42,7 @@ namespace ORB_SLAM2
    class Frame;
    class KeyFrameDatabase;
 
-   class KeyFrame
+   class KeyFrame : protected SyncPrint
    {
    public:
       KeyFrame(long unsigned int id, Frame &F);
@@ -107,10 +108,13 @@ namespace ORB_SLAM2
       void SetNotErase();
 
       // called by LoopClosing, allows keyframes to be deleted, performs pending deletes
-      void SetErase(Map* pMap, KeyFrameDatabase* pKeyFrameDB);
+      // returns true if this object is deleted, false otherwise
+      bool SetErase(Map* pMap, KeyFrameDatabase* pKeyFrameDB);
 
       // Set/check bad flag
-      void SetBadFlag(Map* pMap, KeyFrameDatabase* pKeyFrameDB);
+      // returns true if this object is deleted, false otherwise
+      bool SetBadFlag(Map* pMap, KeyFrameDatabase* pKeyFrameDB);
+
       bool isBad();
 
       // Compute Scene Depth (q=2 median). Used in monocular.

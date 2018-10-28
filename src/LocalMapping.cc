@@ -801,9 +801,11 @@ namespace ORB_SLAM2
 
          if (nRedundantObservations > 0.9*nMPs)
          {
-            pKF->SetBadFlag(&mMap, &mKeyFrameDB);
-            // TODO OK - add to deleted keyframes
-            mapChanges.deletedKeyFrames.insert(pKF->GetId());
+            if (pKF->SetBadFlag(&mMap, &mKeyFrameDB))
+            {
+               // TODO OK - add to deleted keyframes
+               mapChanges.deletedKeyFrames.insert(pKF->GetId());
+            }
          }
       }
       Print("end KeyFrameCulling");

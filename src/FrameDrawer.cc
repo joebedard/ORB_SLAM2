@@ -77,6 +77,7 @@ namespace ORB_SLAM2
 
    cv::Mat FrameDrawer::DrawFrame()
    {
+      Print("begin DrawFrame");
       cv::Mat im;
       vector<cv::KeyPoint> vIniKeys; // Initialization: KeyPoints in reference frame
       vector<int> vMatches; // Initialization: correspondeces with reference keypoints
@@ -160,6 +161,7 @@ namespace ORB_SLAM2
       cv::Mat imWithInfo;
       DrawTextInfo(im, state, imWithInfo);
 
+      Print("end DrawFrame");
       return imWithInfo;
    }
 

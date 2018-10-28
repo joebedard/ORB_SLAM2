@@ -41,6 +41,10 @@ namespace ORB_SLAM2
 
       set<unsigned long int> deletedMapPoints;
 
+      bool empty()
+      {
+         return updatedKeyFrames.empty() && deletedKeyFrames.empty() && updatedMapPoints.empty() && deletedMapPoints.empty();
+      }
    };
 
 }

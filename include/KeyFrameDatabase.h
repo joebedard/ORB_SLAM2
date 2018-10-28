@@ -3,6 +3,8 @@
 *
 * Copyright (C) 2014-2016 Raúl Mur-Artal <raulmur at unizar dot es> (University of Zaragoza)
 * For more information see <https://github.com/raulmur/ORB_SLAM2>
+* Copyright (C) 2018 Joe Bedard <mr dot joe dot bedard at gmail dot com>
+* For more information see <https://github.com/joebedard/ORB_SLAM2_NET>
 *
 * ORB-SLAM2-NET is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -28,6 +30,7 @@
 #include "KeyFrame.h"
 #include "Frame.h"
 #include "ORBVocabulary.h"
+#include "SyncPrint.h"
 
 #include<mutex>
 
@@ -39,11 +42,12 @@ namespace ORB_SLAM2
    class Frame;
 
 
-   class KeyFrameDatabase
+   class KeyFrameDatabase : protected SyncPrint
    {
    public:
 
-      KeyFrameDatabase(const ORBVocabulary &voc);
+      // Pre: vocab is loaded
+      KeyFrameDatabase(const ORBVocabulary &vocab);
 
       void add(KeyFrame* pKF);
 

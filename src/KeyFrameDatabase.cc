@@ -31,19 +31,27 @@ using namespace std;
 namespace ORB_SLAM2
 {
 
-   KeyFrameDatabase::KeyFrameDatabase(const ORBVocabulary &voc) :
-      mpVoc(&voc)
+   KeyFrameDatabase::KeyFrameDatabase(const ORBVocabulary & vocab) :
+      SyncPrint("KeyFrameDatabase: "),
+      mpVoc(&vocab)
    {
-      mvInvertedFile.resize(voc.size());
+      if (!vocab.GetIsLoaded())
+         throw std::exception("KeyFrameDatabase construction requires a loaded ORBVocabulary");
+
+      mvInvertedFile.resize(vocab.size());
    }
 
 
    void KeyFrameDatabase::add(KeyFrame *pKF)
    {
+      Print("begin add");
       unique_lock<mutex> lock(mMutex);
 
       for (DBoW2::BowVector::const_iterator vit = pKF->mBowVec.begin(), vend = pKF->mBowVec.end(); vit != vend; vit++)
-         mvInvertedFile[vit->first].push_back(pKF);
+      {
+         mvInvertedFile.at(vit->first).push_back(pKF);
+      }
+      Print("end add");
    }
 
    void KeyFrameDatabase::erase(KeyFrame* pKF)
@@ -77,6 +85,7 @@ namespace ORB_SLAM2
 
    vector<KeyFrame*> KeyFrameDatabase::DetectLoopCandidates(KeyFrame* pKF, float minScore)
    {
+      Print("begin DetectLoopCandidates");
       set<KeyFrame*> spConnectedKeyFrames = pKF->GetConnectedKeyFrames();
       list<KeyFrame*> lKFsSharingWords;
 
@@ -107,7 +116,10 @@ namespace ORB_SLAM2
       }
 
       if (lKFsSharingWords.empty())
+      {
+         Print("end DetectLoopCandidates 1");
          return vector<KeyFrame*>();
+      }
 
       list<pair<float, KeyFrame*> > lScoreAndMatch;
 
@@ -141,7 +153,10 @@ namespace ORB_SLAM2
       }
 
       if (lScoreAndMatch.empty())
+      {
+         Print("end DetectLoopCandidates 2");
          return vector<KeyFrame*>();
+      }
 
       list<pair<float, KeyFrame*> > lAccScoreAndMatch;
       float bestAccScore = minScore;
@@ -194,12 +209,13 @@ namespace ORB_SLAM2
          }
       }
 
-
+      Print("end DetectLoopCandidates 3");
       return vpLoopCandidates;
    }
 
    vector<KeyFrame*> KeyFrameDatabase::DetectRelocalizationCandidates(Frame *F)
    {
+      Print("begin DetectRelocalizationCandidates");
       list<KeyFrame*> lKFsSharingWords;
 
       // Search all keyframes that share a word with current frame
@@ -224,7 +240,10 @@ namespace ORB_SLAM2
          }
       }
       if (lKFsSharingWords.empty())
+      {
+         Print("end DetectRelocalizationCandidates 1");
          return vector<KeyFrame*>();
+      }
 
       // Only compare against those keyframes that share enough words
       int maxCommonWords = 0;
@@ -255,7 +274,10 @@ namespace ORB_SLAM2
       }
 
       if (lScoreAndMatch.empty())
+      {
+         Print("end DetectRelocalizationCandidates 2");
          return vector<KeyFrame*>();
+      }
 
       list<pair<float, KeyFrame*> > lAccScoreAndMatch;
       float bestAccScore = 0;
@@ -307,6 +329,7 @@ namespace ORB_SLAM2
          }
       }
 
+      Print("end DetectRelocalizationCandidates 3");
       return vpRelocCandidates;
    }
 

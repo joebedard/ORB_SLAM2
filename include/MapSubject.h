@@ -69,6 +69,7 @@ namespace ORB_SLAM2
 
       void NotifyMapChanged(MapChangeEvent & mce)
       {
+         if (mce.empty()) return;
          unique_lock<mutex> lock(mMutex);
 
          for (auto it : mObservers)

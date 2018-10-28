@@ -45,24 +45,26 @@ namespace ORB_SLAM2
    }
 
    void Optimizer::GlobalBundleAdjustment(
-      Map & map, 
+      Map & map,
+      MapChangeEvent & mapChanges,
       int nIterations, 
       bool * pbStopFlag, 
-      const unsigned long nLoopKF, 
+      const unsigned long loopKeyFrameId, 
       const bool bRobust)
    {
       vector<KeyFrame*> vpKFs = map.GetAllKeyFrames();
       vector<MapPoint*> vpMP = map.GetAllMapPoints();
-      BundleAdjustment(vpKFs, vpMP, nIterations, pbStopFlag, nLoopKF, bRobust);
+      BundleAdjustment(vpKFs, vpMP, mapChanges, nIterations, pbStopFlag, loopKeyFrameId, bRobust);
    }
 
 
    void Optimizer::BundleAdjustment(
       const vector<KeyFrame *> & vpKFs,
       const vector<MapPoint *> & vpMP,
+      MapChangeEvent & mapChanges,
       int nIterations, 
       bool * pbStopFlag,
-      const unsigned long nLoopKF, 
+      const unsigned long loopKeyFrameId, 
       const bool bRobust)
    {
       vector<bool> vbNotIncludedMP;
@@ -213,15 +215,18 @@ namespace ORB_SLAM2
             continue;
          g2o::VertexSE3Expmap* vSE3 = static_cast<g2o::VertexSE3Expmap*>(optimizer.vertex(pKF->GetId()));
          g2o::SE3Quat SE3quat = vSE3->estimate();
-         if (nLoopKF == 0)
+         if (loopKeyFrameId == 0)
          {
+            // TODO OK - add to map changes
             pKF->SetPose(Converter::toCvMat(SE3quat));
+            mapChanges.updatedKeyFrames.insert(pKF);
          }
          else
          {
+            // this keyframe might be added to the map changes by the outer function
             pKF->mTcwGBA.create(4, 4, CV_32F);
             Converter::toCvMat(SE3quat).copyTo(pKF->mTcwGBA);
-            pKF->mnBAGlobalForKF = nLoopKF;
+            pKF->mnBAGlobalForKF = loopKeyFrameId;
          }
       }
 
@@ -237,16 +242,19 @@ namespace ORB_SLAM2
             continue;
          g2o::VertexSBAPointXYZ* vPoint = static_cast<g2o::VertexSBAPointXYZ*>(optimizer.vertex(pMP->GetId() + maxKFid + 1));
 
-         if (nLoopKF == 0)
+         if (loopKeyFrameId == 0)
          {
             pMP->SetWorldPos(Converter::toCvMat(vPoint->estimate()));
             pMP->UpdateNormalAndDepth();
+            // TODO OK - add to map changes
+            mapChanges.updatedMapPoints.insert(pMP);
          }
          else
          {
+            // this mappoint might be added to map changes by outer function
             pMP->mPosGBA.create(3, 1, CV_32F);
             Converter::toCvMat(vPoint->estimate()).copyTo(pMP->mPosGBA);
-            pMP->mnBAGlobalForKF = nLoopKF;
+            pMP->mnBAGlobalForKF = loopKeyFrameId;
          }
       }
 

@@ -52,7 +52,7 @@ namespace ORB_SLAM2
    }
 
    Viewer::Viewer(vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers, Mapper * pMapper, bool embeddedFrameDrawers) :
-      SyncPrint("Viewer: ", false),
+      SyncPrint("Viewer: "),
       mvFrameDrawers(vFrameDrawers),
       mvMapDrawers(vMapDrawers),
       mvTrackers(vTrackers),

@@ -3,6 +3,8 @@
 *
 * Copyright (C) 2014-2016 Raúl Mur-Artal <raulmur at unizar dot es> (University of Zaragoza)
 * For more information see <https://github.com/raulmur/ORB_SLAM2>
+* Copyright (C) 2018 Joe Bedard <mr dot joe dot bedard at gmail dot com>
+* For more information see <https://github.com/joebedard/ORB_SLAM2_NET>
 *
 * ORB-SLAM2-NET is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -28,8 +30,23 @@
 namespace ORB_SLAM2
 {
 
-   typedef DBoW2::TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB>
-      ORBVocabulary;
+   class ORBVocabulary : public DBoW2::TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB>
+   {
+   public:
+      
+      ORBVocabulary() : isLoaded(false) {}
+
+      bool GetIsLoaded() const { return isLoaded;}
+
+      bool loadFromTextFile(const std::string & filename)
+      {
+         isLoaded = DBoW2::TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB>::loadFromTextFile(filename);
+         return isLoaded;
+      }
+
+   private:
+      bool isLoaded;
+   };
 
 } //namespace ORB_SLAM
 

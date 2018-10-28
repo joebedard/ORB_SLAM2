@@ -761,7 +761,8 @@ namespace ORB_SLAM2
       ss << "New Map created with " << points.size() << " points";
       Print(ss.str().c_str());
 
-      Optimizer::GlobalBundleAdjustment(map, 20);
+      MapChangeEvent mapChanges;
+      Optimizer::GlobalBundleAdjustment(map, mapChanges, 20);
 
       // Set median depth to 1
       float medianDepth = pKFini->ComputeSceneMedianDepth(2);
@@ -1305,24 +1306,24 @@ namespace ORB_SLAM2
          return false;
       }
 
-      const int nKFs = vpCandidateKFs.size();
+      const int nCandidateKFs = vpCandidateKFs.size();
 
       // We perform first an ORB matching with each candidate
       // If enough matches are found we setup a PnP solver
       ORBmatcher matcher(0.75, true);
 
       vector<PnPsolver*> vpPnPsolvers;
-      vpPnPsolvers.resize(nKFs);
+      vpPnPsolvers.resize(nCandidateKFs);
 
       vector<vector<MapPoint*> > vvpMapPointMatches;
-      vvpMapPointMatches.resize(nKFs);
+      vvpMapPointMatches.resize(nCandidateKFs);
 
       vector<bool> vbDiscarded;
-      vbDiscarded.resize(nKFs);
+      vbDiscarded.resize(nCandidateKFs);
 
       int nCandidates = 0;
 
-      for (int i = 0; i < nKFs; i++)
+      for (int i = 0; i < nCandidateKFs; i++)
       {
          KeyFrame* pKF = vpCandidateKFs[i];
          if (pKF->isBad())
@@ -1352,7 +1353,7 @@ namespace ORB_SLAM2
 
       while (nCandidates > 0 && !bMatch)
       {
-         for (int i = 0; i < nKFs; i++)
+         for (int i = 0; i < nCandidateKFs; i++)
          {
             if (vbDiscarded[i])
                continue;

@@ -250,12 +250,8 @@ int main(int argc, char * argv[]) try
    ss1 << "Publisher.Address=" << param.publisherAddress << endl;
    gOutMain.Print(NULL, ss1);
 
-   ORBVocabulary vocab;
-   MapperServer mapperServer(vocab, false);
-   gMapper = &mapperServer;
-   MapDrawer mapDrawer(mapperSettings, mapperServer);
-
    //Load ORB Vocabulary
+   ORBVocabulary vocab;
    SyncPrint::Print(NULL, "Loading ORB Vocabulary. This could take a while...");
    bool bVocLoad = vocab.loadFromTextFile(gVocabFilename);
    if (!bVocLoad)
@@ -265,7 +261,10 @@ int main(int argc, char * argv[]) try
    }
    SyncPrint::Print(NULL, "Vocabulary loaded!");
 
+   MapperServer mapperServer(vocab, false);
+   gMapper = &mapperServer;
    thread serverThread(RunServer, &param);
+   MapDrawer mapDrawer(mapperSettings, mapperServer);
 
    //Initialize and start the Viewer thread
    Viewer viewer(NULL, &mapDrawer, NULL, &mapperServer);

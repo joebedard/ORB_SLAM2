@@ -71,7 +71,7 @@ namespace ORB_SLAM2
       void RequestReset();
 
       // This function will run in a separate thread
-      void RunGlobalBundleAdjustment(unsigned long nLoopKF);
+      void RunGlobalBundleAdjustment(unsigned long loopKeyFrameId);
 
       bool isRunningGBA() {
          unique_lock<std::mutex> lock(mMutexGBA);
@@ -99,7 +99,7 @@ namespace ORB_SLAM2
 
       void SearchAndFuse(const KeyFrameAndPose &CorrectedPosesMap, MapChangeEvent & mapChanges);
 
-      void CorrectLoop(MapChangeEvent & mapChanges);
+      void CorrectLoop();
 
       void ResetIfRequested();
       bool mbResetRequested;

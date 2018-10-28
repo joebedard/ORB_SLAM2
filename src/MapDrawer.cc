@@ -61,7 +61,7 @@ namespace ORB_SLAM2
 
    void MapDrawer::DrawMapPoints()
    {
-      //Print("begin DrawMapPoints");
+      Print("begin DrawMapPoints");
       float currentColor[4];
       glGetFloatv(GL_CURRENT_COLOR, currentColor);
 
@@ -87,7 +87,7 @@ namespace ORB_SLAM2
 
       if (vpMPs.empty())
       {
-         //Print("end DrawMapPoints 1");
+         Print("end DrawMapPoints 1");
          return;
       }
 
@@ -153,13 +153,13 @@ namespace ORB_SLAM2
       //Print("glEnd();");
       glEnd();
       glColor4fv(currentColor);
-      //Print("end DrawMapPoints 2");
+      Print("end DrawMapPoints 2");
    }
 
    void MapDrawer::DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph)
    {
       unique_lock<mutex> lock(mMapper.GetMutexMapUpdate());
-      //Print("begin DrawKeyFrames");
+      Print("begin DrawKeyFrames");
 
       float currentColor[4];
       glGetFloatv(GL_CURRENT_COLOR, currentColor);
@@ -257,12 +257,12 @@ namespace ORB_SLAM2
          glEnd();
       }
       glColor4fv(currentColor);
-      //Print("end DrawKeyFrames");
+      Print("end DrawKeyFrames");
    }
 
    void MapDrawer::DrawCurrentCameras()
    {
-      //Print("begin DrawCurrentCameras");
+      Print("begin DrawCurrentCameras");
       float currentColor[4];
       glGetFloatv(GL_CURRENT_COLOR, currentColor);
 
@@ -345,7 +345,7 @@ namespace ORB_SLAM2
       }
 
       glColor4fv(currentColor);
-      //Print("end DrawCurrentCameras");
+      Print("end DrawCurrentCameras");
    }
 
    void MapDrawer::SetCurrentCameraPose(const cv::Mat &Tcw)
@@ -393,7 +393,7 @@ namespace ORB_SLAM2
 
    void MapDrawer::SetReferenceMapPoints(const std::vector<MapPoint*>& vpMPs)
    {
-      //Print("begin SetReferenceMapPoints");
+      Print("begin SetReferenceMapPoints");
       unique_lock<mutex> lock(mMutexReferenceMapPoints);
       stringstream ss;
       //ss << "mvpReferenceMapPoints = ";
@@ -403,7 +403,7 @@ namespace ORB_SLAM2
       //}
       //Print(ss.str().c_str());
       mvpReferenceMapPoints = vpMPs;
-      //Print("end SetReferenceMapPoints");
+      Print("end SetReferenceMapPoints");
    }
 
    float MapDrawer::GetViewpointX()

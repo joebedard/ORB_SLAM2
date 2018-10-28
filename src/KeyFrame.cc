@@ -27,7 +27,7 @@
 namespace ORB_SLAM2
 {
 
-   KeyFrame::KeyFrame(long unsigned int id, Frame &F) :
+   KeyFrame::KeyFrame(long unsigned int id, Frame &F) : SyncPrint("KeyFrame: "),
       mnFrameId(F.mnId), mTimeStamp(F.mTimeStamp), mnGridCols(FRAME_GRID_COLS), mnGridRows(FRAME_GRID_ROWS),
       mfGridElementWidthInv(F.mFC->gridElementWidthInv), mfGridElementHeightInv(F.mFC->gridElementHeightInv),
       mnTrackReferenceForFrame(0), mnFuseTargetForKF(0), mnBALocalForKF(0), mnBAFixedForKF(0),
@@ -433,8 +433,9 @@ namespace ORB_SLAM2
       mbNotErase = true;
    }
 
-   void KeyFrame::SetErase(Map* pMap, KeyFrameDatabase* pKeyFrameDB)
+   bool KeyFrame::SetErase(Map* pMap, KeyFrameDatabase* pKeyFrameDB)
    {
+      Print("begin SetErase");
       {
          unique_lock<mutex> lock(mMutexConnections);
          if (mspLoopEdges.empty())
@@ -445,20 +446,23 @@ namespace ORB_SLAM2
 
       if (mbToBeErased)
       {
-         SetBadFlag(pMap, pKeyFrameDB);
+         Print("end SetErase 1");
+         return SetBadFlag(pMap, pKeyFrameDB);
       }
+      Print("end SetErase 2");
+      return false;
    }
 
-   void KeyFrame::SetBadFlag(Map* pMap, KeyFrameDatabase* pKeyFrameDB)
+   bool KeyFrame::SetBadFlag(Map* pMap, KeyFrameDatabase* pKeyFrameDB)
    {
       {
          unique_lock<mutex> lock(mMutexConnections);
          if (mnId == 0)
-            return;
+            return false;
          else if (mbNotErase)
          {
             mbToBeErased = true;
-            return;
+            return false;
          }
       }
 
@@ -466,8 +470,11 @@ namespace ORB_SLAM2
          mit->first->EraseConnection(this);
 
       for (size_t i = 0; i < mvpMapPoints.size(); i++)
+      {
          if (mvpMapPoints[i])
             mvpMapPoints[i]->EraseObservation(this, pMap);
+      }
+
       {
          unique_lock<mutex> lock(mMutexConnections);
          unique_lock<mutex> lock1(mMutexFeatures);
@@ -536,6 +543,7 @@ namespace ORB_SLAM2
          mpParent->EraseChild(this);
          mTcp = Tcw * mpParent->GetPoseInverse();
          mbBad = true;
+         return true;
       }
 
 

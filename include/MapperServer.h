@@ -41,6 +41,7 @@ namespace ORB_SLAM2
    {
    public:
 
+      // Pre: vocab is loaded
       MapperServer(ORBVocabulary & vocab, const bool bMonocular);
 
       ~MapperServer();

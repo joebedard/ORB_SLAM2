@@ -69,12 +69,8 @@ namespace ORB_SLAM2
          throw exception(m.c_str());
       }
 
-      mpVocabulary = new ORBVocabulary();
-      //Initialize the Mapper
-      Print("creating Mapper...");
-      mpMapper = new MapperServer(*mpVocabulary, mSensor == MONOCULAR);
-
       //Load ORB Vocabulary
+      mpVocabulary = new ORBVocabulary();
       Print("Loading ORB Vocabulary. This could take a while...");
       bool bVocLoad = mpVocabulary->loadFromTextFile(vocabFilename);
       if (!bVocLoad)
@@ -84,6 +80,9 @@ namespace ORB_SLAM2
          throw exception(m.c_str());
       }
       Print("Vocabulary loaded!");
+
+      //Initialize the Mapper
+      mpMapper = new MapperServer(*mpVocabulary, mSensor == MONOCULAR);
 
       //Create Drawers. These are used by the Viewer
       mpFrameDrawer = new FrameDrawer(settings);
