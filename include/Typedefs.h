@@ -19,43 +19,13 @@
 */
 
 
-#ifndef ENUMS_H
-#define ENUMS_H
+#ifndef TYPEDEFS_H
+#define TYPEDEFS_H
 
 namespace ORB_SLAM2
 {
 
-   // Tracking states
-   enum TrackingState {
-      NO_IMAGES_YET = 0,
-      NOT_INITIALIZED = 1,
-      TRACKING_OK = 2,
-      TRACKING_LOST = 3
-   };
-
-   // Input sensor
-   enum SensorType {
-      MONOCULAR = 0,
-      STEREO = 1,
-      RGBD = 2
-   };
-
-   enum ReplyCode
-   {
-      UNKNOWN_SERVICE = 0,
-      SUCCEEDED = 1,
-      FAILED = 2
-   };
-
-   enum ServiceId
-   {
-      HELLO = 0,
-      LOGIN_TRACKER = 1,
-      LOGOUT_TRACKER = 2,
-      INITIALIZE = 3,
-      quantity = 4
-   };
-
+   typedef unsigned long int id_type;
 }
 
-#endif // ENUMS_H
+#endif // TYPEDEFS_H

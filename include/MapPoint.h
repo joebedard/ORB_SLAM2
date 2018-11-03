@@ -23,16 +23,16 @@
 #ifndef MAPPOINT_H
 #define MAPPOINT_H
 
-#include"KeyFrame.h"
-#include"Frame.h"
-#include"Map.h"
+#include <opencv2/core/core.hpp>
+#include <mutex>
 
-#include<opencv2/core/core.hpp>
-#include<mutex>
+#include "Typedefs.h"
+#include "KeyFrame.h"
+#include "Frame.h"
+#include "Map.h"
 
 namespace ORB_SLAM2
 {
-
    class KeyFrame;
    class Map;
    class Frame;
@@ -41,7 +41,9 @@ namespace ORB_SLAM2
    {
    public:
       // constructor for map points
-      MapPoint(unsigned long int id, const cv::Mat &Pos, KeyFrame* pRefKF);
+      MapPoint(id_type id, const cv::Mat &Pos, KeyFrame* pRefKF);
+
+      id_type MapPoint::GetId();
 
       void SetWorldPos(const cv::Mat &Pos);
       cv::Mat GetWorldPos();
@@ -82,11 +84,12 @@ namespace ORB_SLAM2
       int PredictScale(const float &currentDist, KeyFrame*pKF);
       int PredictScale(const float &currentDist, Frame* pF);
 
-   public:
-      unsigned long int MapPoint::GetId();
+      size_t GetBufferSize();
+      void * ReadBytes(const void * data, Map & map);
+      void * WriteBytes(const void * data);
 
-      long int mnFirstKFid;
-      int nObs;
+   public:
+      id_type mnFirstKFid;
 
       // Variables used by the tracking
       float mTrackProjX;
@@ -109,10 +112,10 @@ namespace ORB_SLAM2
       cv::Mat mPosGBA;
       unsigned long int mnBAGlobalForKF;
 
-
       static std::mutex mGlobalMutex;
 
    private:
+      int nObs;
 
       // Position in absolute coordinates
       cv::Mat mWorldPos;
@@ -145,7 +148,32 @@ namespace ORB_SLAM2
       std::mutex mMutexFeatures;
 
    private:
-      unsigned long int mnId;
+      id_type mnId;
+
+      struct MapPointHeader
+      {
+         id_type mnId;
+         id_type mnFirstKFId;
+         int nObs;
+         id_type mpRefKFId;
+         int mnVisible;
+         int mnFound;
+         bool mbBad;
+         id_type mpReplacedId;
+         float mfMinDistance;
+         float mfMaxDistance;
+      };
+
+      struct ObservationItem
+      {
+         id_type id;
+         size_t index;
+      };
+
+      void * ReadObservations(const void * buffer, Map & map, std::map<KeyFrame *, size_t> & mObservations);
+
+      void * WriteObservations(const void * buffer, std::map<KeyFrame *, size_t> & mObservations);
+
    };
 
 } //namespace ORB_SLAM

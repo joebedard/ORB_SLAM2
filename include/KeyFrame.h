@@ -45,12 +45,10 @@ namespace ORB_SLAM2
    class KeyFrame : protected SyncPrint
    {
    public:
-      KeyFrame(long unsigned int id, Frame &F);
 
-      long unsigned int GetId()
-      {
-         return mnId;
-      }
+      KeyFrame(id_type id, Frame &F);
+
+      id_type GetId();
 
       // Pose functions
       void SetPose(const cv::Mat &Tcw);
@@ -120,6 +118,10 @@ namespace ORB_SLAM2
       // Compute Scene Depth (q=2 median). Used in monocular.
       float ComputeSceneMedianDepth(const int q);
 
+      size_t GetBufferSize();
+      void * ReadBytes(const void * data, Map & map);
+      void * WriteBytes(const void * data);
+
       static bool weightComp(int a, int b) {
          return a > b;
       }
@@ -129,7 +131,7 @@ namespace ORB_SLAM2
       }
 
 
-      // The following variables are accesed from only 1 thread or never change (no mutex needed).
+   // The following variables are accesed from only 1 thread or never change (no mutex needed).
    public:
 
       const long unsigned int mnFrameId;
@@ -211,7 +213,7 @@ namespace ORB_SLAM2
       const cv::Mat mK;
 
 
-      // The following variables need to be accessed trough a mutex to be thread safe.
+   // The following variables need to be accessed trough a mutex to be thread safe.
    protected:
 
       // SE3 Pose and camera center

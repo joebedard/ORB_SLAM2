@@ -28,12 +28,12 @@ namespace ORB_SLAM2
 
    MapperClient::MapperClient(cv::FileStorage & settings, ORBVocabulary & vocab, const bool bMonocular) :
       SyncPrint("MapperClient: "),
-      mServer(vocab, bMonocular),
+      //mServer(vocab, bMonocular),
       mVocab(vocab),
       mbMonocular(bMonocular),
       mInitialized(false),
       mMapperServerObserver(this),
-      mContext(1),
+      mContext(2),
       mSocketReq(mContext, ZMQ_REQ)
    {
       mServerAddress.append(settings["Server.Address"]);
@@ -54,7 +54,7 @@ namespace ORB_SLAM2
 
       mSocketReq.connect(mServerAddress);
 
-      mServer.AddObserver(&mMapperServerObserver);
+      //mServer.AddObserver(&mMapperServerObserver);
 
       GreetServer();
    }
@@ -66,8 +66,9 @@ namespace ORB_SLAM2
 
    void MapperClient::Reset()
    {
+      // TODO - call server reset
       Print("Begin Server Reset");
-      mServer.Reset();
+      //mServer.Reset();
       Print("End Server Reset");
 
       // Reset will be received asynchronously from server
@@ -84,7 +85,9 @@ namespace ORB_SLAM2
 
    std::vector<KeyFrame*> MapperClient::DetectRelocalizationCandidates(Frame* F)
    {
-      return mServer.DetectRelocalizationCandidates(F);
+      // TODO - call server relocalization
+      return std::vector<KeyFrame*>();
+      //return mServer.DetectRelocalizationCandidates(F);
    }
 
    bool MapperClient::GetInitialized()
@@ -94,16 +97,16 @@ namespace ORB_SLAM2
 
    bool MapperClient::GetPauseRequested()
    {
-      return mServer.GetPauseRequested();
+      //return mServer.GetPauseRequested();
       // TODO - temporary until network synchronization
-      //return false;
+      return false;
    }
 
    bool MapperClient::AcceptKeyFrames()
    {
-      return mServer.AcceptKeyFrames();
+      //return mServer.AcceptKeyFrames();
       // TODO - temporary until network synchronization
-      //return true;
+      return true;
    }
 
    void MapperClient::Initialize(unsigned int trackerId, vector<MapPoint*> & mapPoints, vector<KeyFrame*> & keyframes)
@@ -130,7 +133,7 @@ namespace ORB_SLAM2
          mMap.AddKeyFrame(it);
       }
 
-      mServer.Initialize(trackerId, mapPoints, keyframes);
+      InitializeServer(trackerId, mapPoints, keyframes);
 
       mInitialized = true;
       Print("end Initialize");
@@ -140,7 +143,7 @@ namespace ORB_SLAM2
    {
       Print("begin InsertKeyFrame");
       // client: serialize KF and MPs and then send to server
-      if (mServer.InsertKeyFrame(trackerId, mapPoints, pKF))
+      if (InsertKeyFrameServer(trackerId, mapPoints, pKF))
       {
          // add points and keyframes to allow for for map synchronization with the server
          for (MapPoint * pMP : mapPoints)
@@ -221,19 +224,21 @@ namespace ORB_SLAM2
    void MapperClient::UpdatePose(unsigned int trackerId, const cv::Mat & poseTcw)
    {
       // TODO - serialize trackerId, pose and send to server
-      mServer.UpdatePose(trackerId, poseTcw);
+      //mServer.UpdatePose(trackerId, poseTcw);
    }
 
    vector<cv::Mat> MapperClient::GetTrackerPoses()
    {
       // TODO - pose synchronization between client(s) and server
-      return mServer.GetTrackerPoses();
+      //return mServer.GetTrackerPoses();
+      return vector<cv::Mat>();
    }
 
    vector<cv::Mat> MapperClient::GetTrackerPivots()
    {
       // TODO - pivot synchronization between client(s) and server
-      return mServer.GetTrackerPivots();
+      //return mServer.GetTrackerPivots();
+      return vector<cv::Mat>();
    }
 
    Map & MapperClient::GetMap()
@@ -245,7 +250,7 @@ namespace ORB_SLAM2
    std::mutex & MapperClient::GetMutexMapUpdate()
    {
       // TODO - replace with client mutex
-      return mServer.GetMutexMapUpdate();
+      return mMutexMapUpdate;
    }
 
    zmq::message_t MapperClient::RequestReply(zmq::message_t & request)
@@ -277,7 +282,7 @@ namespace ORB_SLAM2
    void MapperClient::GreetServer()
    {
       const char * HELLO = "Hello";
-      size_t sizeMsg = sizeof(GeneralRequest) + sizeof(char) * strlen(HELLO);
+      size_t sizeMsg = sizeof(GeneralRequest) + strlen(HELLO);
       zmq::message_t request(sizeMsg);
       GeneralRequest * pReqData = request.data<GeneralRequest>();
       pReqData->serviceId = ServiceId::HELLO;
@@ -297,6 +302,42 @@ namespace ORB_SLAM2
       }
    }
 
+   void MapperClient::InitializeServer(unsigned int trackerId, vector<MapPoint*>& mapPoints, vector<KeyFrame*>& keyframes)
+   {
+      Print("begin InitializeServer");
+      size_t sizeMsg = sizeof(InitializeRequest);
+      for (MapPoint * pMP : mapPoints)
+      {
+         sizeMsg += pMP->GetBufferSize();
+      }
+      for (KeyFrame * pKF : keyframes)
+      {
+         sizeMsg += pKF->GetBufferSize();
+      }
+
+      zmq::message_t request(sizeMsg);
+      InitializeRequest * pReqHead = (InitializeRequest *)request.data();
+      pReqHead->serviceId = ServiceId::INITIALIZE;
+      pReqHead->trackerId = trackerId;
+      pReqHead->quantityMapPoints = mapPoints.size();
+      pReqHead->quantityKeyFrames = keyframes.size();
+      char * pData = (char *)(pReqHead + 1);
+      for (MapPoint * pMP : mapPoints)
+      {
+         pData = (char *)pMP->WriteBytes(pData);
+      }
+      for (KeyFrame * pKF : keyframes)
+      {
+         pData = (char *)pKF->WriteBytes(pData);
+      }
+
+      Print("Sending Initialize");
+      zmq::message_t reply = RequestReply(request);
+      // map changes are received via the subscriber
+
+      Print("end InitializeServer");
+   }
+
    void MapperClient::MapperServerObserverReset()
    {
       // TODO - reset map
@@ -306,7 +347,7 @@ namespace ORB_SLAM2
    void MapperClient::MapperServerObserverMapChanged(MapChangeEvent & mce)
    {
       Print("begin MapperServerObserverMapChanged");
-      unique_lock<mutex> lock(mServer.GetMutexMapUpdate());
+      unique_lock<mutex> lock(mMutexMapUpdate);
 
       // be careful - process map changes in the best order
 

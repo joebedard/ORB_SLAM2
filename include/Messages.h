@@ -18,9 +18,10 @@
 * along with ORB-SLAM2-TEAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #ifndef MESSAGES_H
 #define MESSAGES_H
+
+#include "Enums.h"
 
 namespace ORB_SLAM2
 {
@@ -43,6 +44,14 @@ namespace ORB_SLAM2
       unsigned int trackerId;
    };
 
+   struct InitializeRequest
+   {
+      ServiceId serviceId;
+      unsigned int trackerId;
+      unsigned int quantityMapPoints;
+      unsigned int quantityKeyFrames;
+   };
+
    struct GeneralReply
    {
       ReplyCode replyCode;
@@ -59,13 +68,6 @@ namespace ORB_SLAM2
       unsigned int mapPointIdSpan;
    };
 
-   class Serializer
-   {
-   public:
-      virtual unsigned long GetSizeInBytes() = 0;
-      virtual void ReadBytes(const void * data) = 0;
-      virtual void WriteBytes(void * data) = 0;
-   };
 }
 
 #endif // MESSAGES_H

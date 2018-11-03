@@ -91,11 +91,13 @@ include/ORBextractor.h
 include/ORBmatcher.h
 include/ORBVocabulary.h
 include/PnPsolver.h
+include/Serializer.h
 include/Sim3Solver.h
 include/Sleep.h
 include/SyncPrint.h
 include/System.h
 include/Tracking.h
+include/Typedefs.h
 include/Viewer.h
 src/Converter.cc
 src/Frame.cc
@@ -116,6 +118,7 @@ src/Optimizer.cc
 src/ORBextractor.cc
 src/ORBmatcher.cc
 src/PnPsolver.cc
+src/Serializer.cc
 src/Sim3Solver.cc
 src/SyncPrint.cc
 src/System.cc

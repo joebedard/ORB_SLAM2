@@ -28,7 +28,7 @@ namespace ORB_SLAM2
 {
 
    Map::Map()
-      : mnMaxKFid(0), mnBigChangeIdx(0), mnNextPointId(0), SyncPrint("Map: ", false)
+      : mnMaxKFid(0), mnBigChangeIdx(0), SyncPrint("Map: ", false)
    {
 
    }
@@ -58,7 +58,7 @@ namespace ORB_SLAM2
       // Delete the MapPoint
    }
 
-   void Map::EraseMapPoint(unsigned long int mapPointId)
+   void Map::EraseMapPoint(id_type mapPointId)
    {
       unique_lock<mutex> lock(mMutexMap);
       mMapPoints.erase(mapPointId);
@@ -76,7 +76,7 @@ namespace ORB_SLAM2
       // Delete the KeyFrame
    }
 
-   void Map::EraseKeyFrame(unsigned long int keyFrameId)
+   void Map::EraseKeyFrame(id_type keyFrameId)
    {
       unique_lock<mutex> lock(mMutexMap);
       mKeyFrames.erase(keyFrameId);
@@ -102,7 +102,7 @@ namespace ORB_SLAM2
       Print("begin GetAllKeyFrames");
       unique_lock<mutex> lock(mMutexMap);
       vector<KeyFrame *> allKeyFrames;
-      for (unordered_map<unsigned long int, KeyFrame *>::iterator it = mKeyFrames.begin(); it != mKeyFrames.end(); ++it)
+      for (unordered_map<id_type, KeyFrame *>::iterator it = mKeyFrames.begin(); it != mKeyFrames.end(); ++it)
       {
          if (it->second == NULL) Print("it->second == NULL");
          allKeyFrames.push_back(it->second);
@@ -111,7 +111,7 @@ namespace ORB_SLAM2
       return allKeyFrames;
    }
 
-   KeyFrame * Map::GetKeyFrame(unsigned long int keyFrameId)
+   KeyFrame * Map::GetKeyFrame(id_type keyFrameId)
    {
       unique_lock<mutex> lock(mMutexMap);
       return mKeyFrames[keyFrameId];
@@ -122,7 +122,7 @@ namespace ORB_SLAM2
       Print("begin GetAllMapPoints");
       unique_lock<mutex> lock(mMutexMap);
       vector<MapPoint *> allMapPoints;
-      for (unordered_map<unsigned long int, MapPoint *>::iterator it = mMapPoints.begin(); it != mMapPoints.end(); ++it)
+      for (unordered_map<id_type, MapPoint *>::iterator it = mMapPoints.begin(); it != mMapPoints.end(); ++it)
       {
          if (it->second == NULL) Print("it->second == NULL");
          allMapPoints.push_back(it->second);
@@ -131,7 +131,7 @@ namespace ORB_SLAM2
       return allMapPoints;
    }
 
-   MapPoint * Map::GetMapPoint(unsigned long int mapPointId)
+   MapPoint * Map::GetMapPoint(id_type mapPointId)
    {
       unique_lock<mutex> lock(mMutexMap);
       return mMapPoints[mapPointId];
@@ -159,10 +159,10 @@ namespace ORB_SLAM2
    {
       unique_lock<mutex> lock(mMutexMap);
 
-      for (pair<unsigned long int, MapPoint *> p : mMapPoints)
+      for (pair<id_type, MapPoint *> p : mMapPoints)
          delete p.second;
 
-      for (pair<unsigned long int, KeyFrame *> p : mKeyFrames)
+      for (pair<id_type, KeyFrame *> p : mKeyFrames)
          delete p.second;
 
       mMapPoints.clear();
@@ -182,7 +182,6 @@ namespace ORB_SLAM2
          this->mKeyFrames = map.mKeyFrames;
          this->mnMaxKFid = map.mnMaxKFid;
          this->mnBigChangeIdx = map.mnBigChangeIdx;
-         this->mnNextPointId = map.mnNextPointId;
       }
       return (*this);
    }

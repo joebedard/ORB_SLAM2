@@ -22,12 +22,14 @@
 
 #include "KeyFrame.h"
 #include "Converter.h"
-#include<mutex>
+#include "Serializer.h"
+
+#include <mutex>
 
 namespace ORB_SLAM2
 {
 
-   KeyFrame::KeyFrame(long unsigned int id, Frame &F) : SyncPrint("KeyFrame: "),
+   KeyFrame::KeyFrame(id_type id, Frame &F) : SyncPrint("KeyFrame: "),
       mnFrameId(F.mnId), mTimeStamp(F.mTimeStamp), mnGridCols(FRAME_GRID_COLS), mnGridRows(FRAME_GRID_ROWS),
       mfGridElementWidthInv(F.mFC->gridElementWidthInv), mfGridElementHeightInv(F.mFC->gridElementHeightInv),
       mnTrackReferenceForFrame(0), mnFuseTargetForKF(0), mnBALocalForKF(0), mnBAFixedForKF(0),
@@ -53,6 +55,11 @@ namespace ORB_SLAM2
       }
 
       SetPose(F.mTcw);
+   }
+
+   id_type KeyFrame::GetId()
+   {
+      return mnId;
    }
 
    void KeyFrame::ComputeBoW()
@@ -667,6 +674,21 @@ namespace ORB_SLAM2
       sort(vDepths.begin(), vDepths.end());
 
       return vDepths[(vDepths.size() - 1) / q];
+   }
+
+   size_t KeyFrame::GetBufferSize()
+   {
+      return 0;
+   }
+
+   void * KeyFrame::ReadBytes(const void * data, Map & map)
+   {
+      return NULL;
+   }
+
+   void * KeyFrame::WriteBytes(const void * data)
+   {
+      return NULL;
    }
 
 } //namespace ORB_SLAM

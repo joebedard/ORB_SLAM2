@@ -22,6 +22,7 @@
 
 #include "MapPoint.h"
 #include "ORBmatcher.h"
+#include "Serializer.h"
 
 #include<mutex>
 
@@ -30,7 +31,7 @@ namespace ORB_SLAM2
 
    mutex MapPoint::mGlobalMutex;
 
-   MapPoint::MapPoint(unsigned long int id, const cv::Mat &Pos, KeyFrame *pRefKF) :
+   MapPoint::MapPoint(id_type id, const cv::Mat &Pos, KeyFrame *pRefKF) :
       mnFirstKFid(pRefKF->GetId()), nObs(0), mnTrackReferenceForFrame(0),
       mnLastFrameSeen(0), mnBALocalForKF(0), mnFuseCandidateForKF(0), mnLoopPointForKF(0), mnCorrectedByKF(0),
       mnCorrectedReference(0), mnBAGlobalForKF(0), mpRefKF(pRefKF), mnVisible(1), mnFound(1), mbBad(false),
@@ -399,9 +400,94 @@ namespace ORB_SLAM2
       return nScale;
    }
 
-   unsigned long int MapPoint::GetId()
+   id_type MapPoint::GetId()
    {
       return mnId;
+   }
+
+   size_t MapPoint::GetBufferSize()
+   {
+      unsigned int size = sizeof(MapPointHeader);
+      size += Serializer::GetMatBufferSize(mWorldPos);
+      size += Serializer::GetMatBufferSize(mNormalVector);
+      size += Serializer::GetMatBufferSize(mDescriptor);
+      size += sizeof(size_t) + mObservations.size() * (sizeof(ObservationItem));
+      return size;
+   }
+
+   void * MapPoint::ReadBytes(const void * buffer, Map & map)
+   {
+      MapPointHeader * pHeader = (MapPointHeader *)buffer;
+      mnId = pHeader->mnId;
+      mnFirstKFid = pHeader->mnFirstKFId;
+      nObs = pHeader->nObs;
+      mpRefKF = map.GetKeyFrame(pHeader->mpRefKFId);
+      mnVisible = pHeader->mnVisible;
+      mnFound = pHeader->mnFound;
+      mbBad = pHeader->mbBad;
+      mpReplaced = map.GetMapPoint(pHeader->mpReplacedId);
+      mfMinDistance = pHeader->mfMinDistance;
+      mfMaxDistance = pHeader->mfMaxDistance;
+
+      // read variable-length data
+      char * pData = (char *)(pHeader + 1);
+      pData = (char *)Serializer::ReadMatrix(pData, mWorldPos);
+      pData = (char *)Serializer::ReadMatrix(pData, mNormalVector);
+      pData = (char *)Serializer::ReadMatrix(pData, mDescriptor);
+      pData = (char *)ReadObservations(pData, map, mObservations);
+      return pData;
+   }
+
+   void * MapPoint::WriteBytes(const void * buffer)
+   {
+      MapPointHeader * pHeader = (MapPointHeader *)buffer;
+      pHeader->mnId = mnId;
+      pHeader->mnFirstKFId = mnFirstKFid;
+      pHeader->nObs = nObs;
+      pHeader->mpRefKFId = mpRefKF->GetId();
+      pHeader->mnVisible = mnVisible;
+      pHeader->mnFound = mnFound;
+      pHeader->mbBad = mbBad;
+      pHeader->mpReplacedId = mpReplaced->GetId();
+      pHeader->mfMinDistance = mfMinDistance;
+      pHeader->mfMaxDistance = mfMaxDistance;
+
+      // write variable-length data
+      char * pData = (char *)(pHeader + 1);
+      pData = (char *)Serializer::WriteMatrix(pData, mWorldPos);
+      pData = (char *)Serializer::WriteMatrix(pData, mNormalVector);
+      pData = (char *)Serializer::WriteMatrix(pData, mDescriptor);
+      pData = (char *)WriteObservations(pData, mObservations);
+      return pData;
+   }
+
+   void * MapPoint::ReadObservations(const void * buffer, Map & map, std::map<KeyFrame *, size_t> & observations)
+   {
+      observations.clear();
+      size_t * pQuantity = (size_t *)buffer;
+      ObservationItem * pData = (ObservationItem *)(pQuantity + 1);
+      ObservationItem * pEnd = pData + *pQuantity;
+      while (pData < pEnd)
+      {
+         KeyFrame * pKF = map.GetKeyFrame(pData->id);
+         observations[pKF] = pData->index;
+         ++pData;
+      }
+      return pData;
+   }
+
+   void * MapPoint::WriteObservations(const void * buffer, std::map<KeyFrame *, size_t> & observations)
+   {
+      size_t * pQuantity = (size_t *)buffer;
+      *pQuantity = observations.size();
+      ObservationItem * pData = (ObservationItem *)(pQuantity + 1);
+      for (std::pair<KeyFrame *, size_t> p : observations)
+      {
+         pData->id = p.first->GetId();
+         pData->index = p.second;
+         ++pData;
+      }
+      return pData;
    }
 
 } //namespace ORB_SLAM

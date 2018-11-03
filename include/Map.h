@@ -48,11 +48,11 @@ namespace ORB_SLAM2
 
       void EraseMapPoint(MapPoint * pMP);
 
-      void EraseMapPoint(unsigned long int mapPointId);
+      void EraseMapPoint(id_type mapPointId);
 
       void EraseKeyFrame(KeyFrame * pKF);
 
-      void EraseKeyFrame(unsigned long int keyFrameId);
+      void EraseKeyFrame(id_type keyFrameId);
 
       void InformNewBigChange();
 
@@ -60,11 +60,11 @@ namespace ORB_SLAM2
 
       std::vector<KeyFrame *> GetAllKeyFrames();
 
-      KeyFrame * GetKeyFrame(unsigned long int keyFrameId);
+      KeyFrame * GetKeyFrame(id_type keyFrameId);
 
       std::vector<MapPoint *> GetAllMapPoints();
 
-      MapPoint * GetMapPoint(unsigned long int mapPointId);
+      MapPoint * GetMapPoint(id_type mapPointId);
 
       long unsigned int MapPointsInMap();
 
@@ -91,11 +91,9 @@ namespace ORB_SLAM2
       // This avoids that two points (with same id) are created simultaneously in separate threads (id conflict)
       std::mutex mMutexPointCreation;
 
-      long unsigned int mnNextPointId;
+      std::unordered_map<id_type, MapPoint *> mMapPoints;
 
-      std::unordered_map<unsigned long int, MapPoint *> mMapPoints;
-
-      std::unordered_map<unsigned long int, KeyFrame *> mKeyFrames;
+      std::unordered_map<id_type, KeyFrame *> mKeyFrames;
    };
 
 } //namespace ORB_SLAM

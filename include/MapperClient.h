@@ -106,6 +106,8 @@ namespace ORB_SLAM2
 
       std::mutex mMutexLogin;
 
+      std::mutex mMutexMapUpdate;
+
       ORBVocabulary & mVocab;
 
       bool mbMonocular;
@@ -114,7 +116,7 @@ namespace ORB_SLAM2
 
       bool mInitialized;
 
-      MapperServer mServer;
+      //MapperServer mServer;
 
       string mServerAddress;
 
@@ -126,7 +128,11 @@ namespace ORB_SLAM2
 
       zmq::message_t RequestReply(zmq::message_t & request);
 
-      void MapperClient::GreetServer();
+      void GreetServer();
+
+      void InitializeServer(unsigned int trackerId, vector<MapPoint*> & mapPoints, vector<KeyFrame*> & keyframes);
+
+      bool InsertKeyFrameServer(unsigned int trackerId, vector<MapPoint*> & mapPoints, KeyFrame *pKF);
 
       void MapperServerObserverReset();
 
