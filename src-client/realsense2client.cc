@@ -1,21 +1,21 @@
 /**
-* This file is part of ORB-SLAM2-NET.
+* This file is part of ORB-SLAM2-TEAM.
 *
 * Copyright (C) 2018 Joe Bedard <mr dot joe dot bedard at gmail dot com>
-* For more information see <https://github.com/joebedard/ORB_SLAM2_NET>
+* For more information see <https://github.com/joebedard/ORB_SLAM2_TEAM>
 *
-* ORB-SLAM2-NET is free software: you can redistribute it and/or modify
+* ORB-SLAM2-TEAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
 *
-* ORB-SLAM2-NET is distributed in the hope that it will be useful,
+* ORB-SLAM2-TEAM is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with ORB-SLAM2-NET. If not, see <http://www.gnu.org/licenses/>.
+* along with ORB-SLAM2-TEAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
 
@@ -200,7 +200,7 @@ int main(int paramc, char * paramv[]) try
    // Output welcome message
    stringstream ss1;
    ss1 << endl;
-   ss1 << "ORB-SLAM2-NET RealSense2 Client" << endl;
+   ss1 << "ORB-SLAM2-TEAM RealSense2 Client" << endl;
    ss1 << "Copyright (C) 2014-2016 Raul Mur-Artal, University of Zaragoza" << endl;
    ss1 << "Copyright (C) 2018 Joe Bedard" << endl;
    ss1 << "This program comes with ABSOLUTELY NO WARRANTY;" << endl;
