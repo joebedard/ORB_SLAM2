@@ -338,6 +338,12 @@ namespace ORB_SLAM2
       Print("end InitializeServer");
    }
 
+   bool MapperClient::InsertKeyFrameServer(unsigned int trackerId, vector<MapPoint*>& mapPoints, KeyFrame * pKF)
+   {
+      // TODO - build request and call server
+      return false;
+   }
+
    void MapperClient::MapperServerObserverReset()
    {
       // TODO - reset map
