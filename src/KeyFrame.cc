@@ -550,12 +550,12 @@ namespace ORB_SLAM2
          mpParent->EraseChild(this);
          mTcp = Tcw * mpParent->GetPoseInverse();
          mbBad = true;
-         return true;
       }
 
 
       pMap->EraseKeyFrame(this);
       pKeyFrameDB->erase(this);
+      return true;
    }
 
    bool KeyFrame::isBad()
