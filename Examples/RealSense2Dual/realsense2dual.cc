@@ -23,7 +23,6 @@
 #include <librealsense2/rs.hpp>
 #include <opencv2/core/core.hpp>
 
-#include <MapperClient.h>
 #include <Enums.h>
 #include <Tracking.h>
 #include <ORBVocabulary.h>
@@ -200,16 +199,12 @@ void printStatistics()
 
 int main(int paramc, char * paramv[]) try
 {
-   const bool SINGLE_MAPPER_CLIENT = true;
-
-   MapDrawer * pMapDrawer = NULL;
    FrameDrawer * pFrameDrawer = NULL;
-   MapperClient * pMapperClient = NULL;
    Tracking * pTracker = NULL;
 
    vector<FrameDrawer *> vFrameDrawers;
    vector<MapDrawer *> vMapDrawers;
-   vector<MapperClient *> vMapperClients;
+   vector<Mapper *> vMapperClients;
    vector<Tracking *> vTrackers;
 
    ParseParams(paramc, paramv);
@@ -225,17 +220,13 @@ int main(int paramc, char * paramv[]) try
    }
    SyncPrint::Print(NULL, "Vocabulary loaded!");
 
-   MapperServer mapperServer(vocab, false);
    cv::FileStorage mapperSettings(gMapperFilename, cv::FileStorage::READ);
    VerifySettings(mapperSettings, gMapperFilename);
 
-   if (SINGLE_MAPPER_CLIENT)
-   {
-      pMapperClient = new MapperClient(mapperSettings, vocab, false);
-      vMapperClients.push_back(pMapperClient);
-      pMapDrawer = new MapDrawer(mapperSettings, *pMapperClient);
-      vMapDrawers.push_back(pMapDrawer);
-   }
+   MapperServer mapperServer(vocab, false);
+   vMapperClients.push_back(&mapperServer);
+   MapDrawer mapDrawer(mapperSettings, mapperServer);
+   vMapDrawers.push_back(&mapDrawer);
 
    for (int i = 0; i < TRACKER_QUANTITY; ++i)
    {
@@ -245,18 +236,7 @@ int main(int paramc, char * paramv[]) try
       pFrameDrawer = new FrameDrawer(trackerSettings);
       vFrameDrawers.push_back(pFrameDrawer);
 
-      if (SINGLE_MAPPER_CLIENT)
-      {
-         pTracker = new Tracking(trackerSettings, vocab, *pMapperClient, pFrameDrawer, NULL, SensorType::STEREO);
-      }
-      else
-      {
-         pMapperClient = new MapperClient(mapperSettings, vocab, false);
-         vMapperClients.push_back(pMapperClient);
-         pMapDrawer = new MapDrawer(mapperSettings, *pMapperClient);
-         vMapDrawers.push_back(pMapDrawer);
-         pTracker = new Tracking(trackerSettings, vocab, *pMapperClient, pFrameDrawer, pMapDrawer, SensorType::STEREO);
-      }
+      pTracker = new Tracking(trackerSettings, vocab, mapperServer, pFrameDrawer, NULL, SensorType::STEREO);
       vTrackers.push_back(pTracker);
 
       gThreadParams[i].serial = pSerial;
@@ -296,21 +276,6 @@ int main(int paramc, char * paramv[]) try
       delete gThreadParams[i].tracker;
       delete gThreadParams[i].serial;
       delete vFrameDrawers[i];
-   }
-
-   for (FrameDrawer * pFD : vFrameDrawers)
-   {
-      delete pFD;
-   }
-
-   for (MapDrawer * pMD : vMapDrawers)
-   {
-      delete pMD;
-   }
-
-   for (MapperClient * pMC : vMapperClients)
-   {
-      delete pMC;
    }
 
    return returnCode;

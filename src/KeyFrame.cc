@@ -29,32 +29,53 @@
 namespace ORB_SLAM2
 {
 
-   KeyFrame::KeyFrame(id_type id, Frame &F) : SyncPrint("KeyFrame: "),
-      mnFrameId(F.mnId), mTimeStamp(F.mTimeStamp), mnGridCols(FRAME_GRID_COLS), mnGridRows(FRAME_GRID_ROWS),
-      mfGridElementWidthInv(F.mFC->gridElementWidthInv), mfGridElementHeightInv(F.mFC->gridElementHeightInv),
-      mnTrackReferenceForFrame(0), mnFuseTargetForKF(0), mnBALocalForKF(0), mnBAFixedForKF(0),
-      mnLoopQuery(0), mnLoopWords(0), mnRelocQuery(0), mnRelocWords(0), mnBAGlobalForKF(0),
-      fx(F.mFC->fx), fy(F.mFC->fy), cx(F.mFC->cx), cy(F.mFC->cy), invfx(F.mFC->invfx), invfy(F.mFC->invfy),
-      mbf(F.mbf), mb(F.mb), mThDepth(F.mThDepth), N(F.N), mvKeys(F.mvKeys), mvKeysUn(F.mvKeysUn),
-      mvuRight(F.mvuRight), mvDepth(F.mvDepth), mDescriptors(F.mDescriptors.clone()),
-      mBowVec(F.mBowVec), mFeatVec(F.mFeatVec), mnScaleLevels(F.mnScaleLevels), mfScaleFactor(F.mfScaleFactor),
-      mfLogScaleFactor(F.mfLogScaleFactor), mvScaleFactors(F.mvScaleFactors), mvLevelSigma2(F.mvLevelSigma2),
-      mvInvLevelSigma2(F.mvInvLevelSigma2), mnMinX(F.mFC->minX), mnMinY(F.mFC->minY), mnMaxX(F.mFC->maxX),
-      mnMaxY(F.mFC->maxY), mK(F.mFC->K), mvpMapPoints(F.mvpMapPoints),
-      mpORBvocabulary(F.mpORBvocabulary), mbFirstConnection(true), mpParent(NULL), mbNotErase(false),
-      mbToBeErased(false), mbBad(false), mHalfBaseline(F.mb / 2)
+   KeyFrame::KeyFrame(id_type id, Frame & frame) 
+      : SyncPrint("KeyFrame: ")
+
+      // non-const variables
+      , mnId(id)
+      , mTimestamp(frame.mTimeStamp)
+      , mFC(*frame.mFC)
+      , N(frame.N)
+      , mvKeys(frame.mvKeys)
+      , mvKeysUn(frame.mvKeysUn)
+      , mvuRight(frame.mvuRight)
+      , mvDepth(frame.mvDepth)
+      , mDescriptors(frame.mDescriptors.clone())
+      , mBowVec(frame.mBowVec)
+      , mFeatVec(frame.mFeatVec)
+      , mnScaleLevels(frame.mnScaleLevels)
+      , mfScaleFactor(frame.mfScaleFactor)
+      , mfLogScaleFactor(frame.mfLogScaleFactor)
+      , mvScaleFactors(frame.mvScaleFactors)
+      , mvLevelSigma2(frame.mvLevelSigma2)
+      , mvInvLevelSigma2(frame.mvInvLevelSigma2)
+      , mvpMapPoints(frame.mvpMapPoints)
+      , mnGridCols(FRAME_GRID_COLS)
+      , mnGridRows(FRAME_GRID_ROWS)
+      , mnTrackReferenceForFrame(0)
+      , mnFuseTargetForKF(0)
+      , mnBALocalForKF(0)
+      , mnBAFixedForKF(0)
+      , mnLoopQuery(0)
+      , mnLoopWords(0)
+      , mnRelocQuery(0)
+      , mnRelocWords(0)
+      , mnBAGlobalForKF(0)
+      , mbFirstConnection(true)
+      , mpParent(NULL)
+      , mbNotErase(false)
+      , mbToBeErased(false)
+      , mbBad(false)
+
+      // const references
+      , timestamp(mTimestamp)
    {
-      mnId = id;
+      for (int i = 0;i < FRAME_GRID_COLS;i++)
+         for (int j = 0; j < FRAME_GRID_ROWS; j++)
+            mGrid[i][j] = frame.mGrid[i][j];
 
-      mGrid.resize(mnGridCols);
-      for (int i = 0; i < mnGridCols;i++)
-      {
-         mGrid[i].resize(mnGridRows);
-         for (int j = 0; j < mnGridRows; j++)
-            mGrid[i][j] = F.mGrid[i][j];
-      }
-
-      SetPose(F.mTcw);
+      SetPose(frame.mTcw);
    }
 
    id_type KeyFrame::GetId()
@@ -62,14 +83,43 @@ namespace ORB_SLAM2
       return mnId;
    }
 
-   void KeyFrame::ComputeBoW()
+   bool KeyFrame::PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY)
+   {
+      posX = round((kp.pt.x - mFC.minX) * mFC.gridElementWidthInv);
+      posY = round((kp.pt.y - mFC.minY) * mFC.gridElementHeightInv);
+
+      //Keypoint's coordinates are undistorted, which could cause to go out of the image
+      if (posX < 0 || posX >= FRAME_GRID_COLS || posY < 0 || posY >= FRAME_GRID_ROWS)
+         return false;
+
+      return true;
+   }
+
+   void KeyFrame::AssignFeaturesToGrid()
+   {
+      int nReserve = 0.5f*N / (FRAME_GRID_COLS*FRAME_GRID_ROWS);
+      for (unsigned int i = 0; i < FRAME_GRID_COLS;i++)
+         for (unsigned int j = 0; j < FRAME_GRID_ROWS;j++)
+            mGrid[i][j].reserve(nReserve);
+
+      for (int i = 0;i < N;i++)
+      {
+         const cv::KeyPoint &kp = mvKeysUn[i];
+
+         int nGridPosX, nGridPosY;
+         if (PosInGrid(kp, nGridPosX, nGridPosY))
+            mGrid[nGridPosX][nGridPosY].push_back(i);
+      }
+   }
+
+   void KeyFrame::ComputeBoW(ORBVocabulary & vocab)
    {
       if (mBowVec.empty() || mFeatVec.empty())
       {
          vector<cv::Mat> vCurrentDesc = Converter::toDescriptorVector(mDescriptors);
          // Feature vector associate features with nodes in the 4th level (from leaves up)
          // We assume the vocabulary tree has 6 levels, change the 4 otherwise
-         mpORBvocabulary->transform(vCurrentDesc, mBowVec, mFeatVec, 4);
+         vocab.transform(vCurrentDesc, mBowVec, mFeatVec, 4);
       }
    }
 
@@ -85,8 +135,6 @@ namespace ORB_SLAM2
       Twc = cv::Mat::eye(4, 4, Tcw.type());
       Rwc.copyTo(Twc.rowRange(0, 3).colRange(0, 3));
       Ow.copyTo(Twc.rowRange(0, 3).col(3));
-      cv::Mat center = (cv::Mat_<float>(4, 1) << mHalfBaseline, 0, 0, 1);
-      Cw = Twc * center;
    }
 
    cv::Mat KeyFrame::GetPose()
@@ -106,13 +154,6 @@ namespace ORB_SLAM2
       unique_lock<mutex> lock(mMutexPose);
       return Ow.clone();
    }
-
-   cv::Mat KeyFrame::GetStereoCenter()
-   {
-      unique_lock<mutex> lock(mMutexPose);
-      return Cw.clone();
-   }
-
 
    cv::Mat KeyFrame::GetRotation()
    {
@@ -294,6 +335,7 @@ namespace ORB_SLAM2
 
    void KeyFrame::UpdateConnections()
    {
+      Print("begin UpdateConnections");
       map<KeyFrame*, int> KFcounter;
 
       vector<MapPoint*> vpMP;
@@ -327,7 +369,10 @@ namespace ORB_SLAM2
 
       // This should not happen
       if (KFcounter.empty())
+      {
+         Print("end UpdateConnections 1");
          return;
+      }
 
       //If the counter is greater than threshold add connection
       //In case no keyframe counter is over threshold add the one with maximum counter
@@ -382,6 +427,7 @@ namespace ORB_SLAM2
          }
 
       }
+      Print("end UpdateConnections 2");
    }
 
    void KeyFrame::AddChild(KeyFrame *pKF)
@@ -585,19 +631,19 @@ namespace ORB_SLAM2
       vector<size_t> vIndices;
       vIndices.reserve(N);
 
-      const int nMinCellX = max(0, (int)floor((x - mnMinX - r)*mfGridElementWidthInv));
+      const int nMinCellX = max(0, (int)floor((x - mFC.minX - r) * mFC.gridElementWidthInv));
       if (nMinCellX >= mnGridCols)
          return vIndices;
 
-      const int nMaxCellX = min((int)mnGridCols - 1, (int)ceil((x - mnMinX + r)*mfGridElementWidthInv));
+      const int nMaxCellX = min((int)mnGridCols - 1, (int)ceil((x - mFC.minX + r) * mFC.gridElementWidthInv));
       if (nMaxCellX < 0)
          return vIndices;
 
-      const int nMinCellY = max(0, (int)floor((y - mnMinY - r)*mfGridElementHeightInv));
+      const int nMinCellY = max(0, (int)floor((y - mFC.minY - r) * mFC.gridElementHeightInv));
       if (nMinCellY >= mnGridRows)
          return vIndices;
 
-      const int nMaxCellY = min((int)mnGridRows - 1, (int)ceil((y - mnMinY + r)*mfGridElementHeightInv));
+      const int nMaxCellY = min((int)mnGridRows - 1, (int)ceil((y - mFC.minY + r) * mFC.gridElementHeightInv));
       if (nMaxCellY < 0)
          return vIndices;
 
@@ -623,7 +669,7 @@ namespace ORB_SLAM2
 
    bool KeyFrame::IsInImage(const float &x, const float &y) const
    {
-      return (x >= mnMinX && x < mnMaxX && y >= mnMinY && y < mnMaxY);
+      return (x >= mFC.minX && x < mFC.maxX && y >= mFC.minY && y < mFC.maxY);
    }
 
    cv::Mat KeyFrame::UnprojectStereo(int i)
@@ -633,8 +679,8 @@ namespace ORB_SLAM2
       {
          const float u = mvKeys[i].pt.x;
          const float v = mvKeys[i].pt.y;
-         const float x = (u - cx)*z*invfx;
-         const float y = (v - cy)*z*invfy;
+         const float x = (u - mFC.cx) * z * mFC.invfx;
+         const float y = (v - mFC.cy) * z * mFC.invfy;
          cv::Mat x3Dc = (cv::Mat_<float>(3, 1) << x, y, z);
 
          unique_lock<mutex> lock(mMutexPose);
@@ -678,11 +724,31 @@ namespace ORB_SLAM2
 
    size_t KeyFrame::GetBufferSize()
    {
-      return 0;
+      unsigned int size = sizeof(KeyFrame::Header);
+      //mvKeys
+      //mvKeysUn
+      //mvuRight
+      //mvDepth
+      size += Serializer::GetMatBufferSize(mDescriptors);
+      //mBowVec // will be re-created by LocalMapping::ProcessNewKeyFrame->KeyFrame::ComputeBow
+      //mFeatVec // will be re-created by LocalMapping::ProcessNewKeyFrame->KeyFrame::ComputeBow
+      size += Serializer::GetMatBufferSize(mTcp);
+      //mvScaleFactors
+      size += Serializer::GetMatBufferSize(Tcw);
+      size += Serializer::GetMatBufferSize(Twc);
+      size += Serializer::GetMatBufferSize(Ow);
+      //mvpMapPoints
+      //mConnectedKeyFrameWeights
+      //mvpOrderedConnectedKeyFrames
+      //mvOrderedWeights
+      //mspChildrens
+      //mspLoopEdges
+      return size;
    }
 
    void * KeyFrame::ReadBytes(const void * data, Map & map)
    {
+      AssignFeaturesToGrid();
       return NULL;
    }
 

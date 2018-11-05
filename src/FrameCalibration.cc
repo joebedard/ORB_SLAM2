@@ -20,6 +20,7 @@
 
 
 #include "FrameCalibration.h"
+#include "Serializer.h"
 #include <algorithm>
 
 namespace ORB_SLAM2
@@ -27,26 +28,50 @@ namespace ORB_SLAM2
 
    using namespace std;
 
-   FrameCalibration::FrameCalibration(cv::Mat &K, cv::Mat &distCoef, ImageBounds &imageBounds)
-      : K(K)
-      , distCoef(distCoef)
-      , fx(K.at<float>(0, 0))
-      , fy(K.at<float>(1, 1))
-      , cx(K.at<float>(0, 2))
-      , cy(K.at<float>(1, 2))
-      , invfx(1.0f / fx)
-      , invfy(1.0f / fy)
-      , minX(imageBounds.minX)
-      , maxX(imageBounds.maxX)
-      , minY(imageBounds.minY)
-      , maxY(imageBounds.maxY)
-      , gridElementWidthInv(static_cast<float>(FRAME_GRID_COLS) / (imageBounds.maxX - imageBounds.minX))
-      , gridElementHeightInv(static_cast<float>(FRAME_GRID_ROWS) / (imageBounds.maxY - imageBounds.minY))
+   FrameCalibration::FrameCalibration()
+      : K(mK)
+      , distCoef(mDistCoef)
+      , fx(mFx)
+      , fy(mFy)
+      , cx(mCx)
+      , cy(mCy)
+      , invfx(mInvfx)
+      , invfy(mInvfy)
+      , minX(mMinX)
+      , maxX(mMaxX)
+      , minY(mMinY)
+      , maxY(mMaxY)
+      , gridElementWidthInv(mGridElementWidthInv)
+      , gridElementHeightInv(mGridElementHeightInv)
+      , blfx(mBlfx)
+      , bl(mBl)
+      , thDepth(mThDepth)
    {
-
    }
 
-   FrameCalibration::ImageBounds::ImageBounds(cv::Mat &K, cv::Mat &distCoef, int width, int height)
+   FrameCalibration::FrameCalibration(const FrameCalibration & FC) : FrameCalibration()
+   {
+      Initialize(FC.mK, FC.mDistCoef, FC.mWidth, FC.mHeight, FC.mBlfx, FC.mThDepth);
+   }
+
+   FrameCalibration::FrameCalibration(
+      const cv::Mat & K,
+      const cv::Mat & distCoef,
+      const int & width,
+      const int & height,
+      const float & blfx,
+      const float & thDepth) : FrameCalibration()
+   {
+      Initialize(K, distCoef, width, height, blfx, thDepth);
+   }
+
+   void FrameCalibration::Initialize(
+      const cv::Mat & K, 
+      const cv::Mat & distCoef, 
+      const int & width, 
+      const int & height, 
+      const float & blfx,
+      const float & thDepth)
    {
       if (distCoef.at<float>(0) != 0.0)
       {
@@ -61,19 +86,76 @@ namespace ORB_SLAM2
          cv::undistortPoints(mat, mat, K, distCoef, cv::Mat(), K);
          mat = mat.reshape(1);
 
-         minX = min(mat.at<float>(0, 0), mat.at<float>(2, 0));
-         maxX = max(mat.at<float>(1, 0), mat.at<float>(3, 0));
-         minY = min(mat.at<float>(0, 1), mat.at<float>(1, 1));
-         maxY = max(mat.at<float>(2, 1), mat.at<float>(3, 1));
-
+         mMinX = min(mat.at<float>(0, 0), mat.at<float>(2, 0));
+         mMaxX = max(mat.at<float>(1, 0), mat.at<float>(3, 0));
+         mMinY = min(mat.at<float>(0, 1), mat.at<float>(1, 1));
+         mMaxY = max(mat.at<float>(2, 1), mat.at<float>(3, 1));
       }
       else
       {
-         minX = 0.0f;
-         maxX = width;
-         minY = 0.0f;
-         maxY = height;
+         mMinX = 0.0f;
+         mMaxX = width;
+         mMinY = 0.0f;
+         mMaxY = height;
       }
+
+      mWidth = width;
+      mHeight = height;
+      mK = K;
+      mDistCoef = distCoef;
+      mFx = K.at<float>(0, 0);
+      mFy = K.at<float>(1, 1);
+      mCx = K.at<float>(0, 2);
+      mCy = K.at<float>(1, 2);
+      mInvfx = 1.0f / mFx;
+      mInvfy = 1.0f / mFy;
+      mGridElementWidthInv = static_cast<float>(FRAME_GRID_COLS) / (mMaxX - mMinX);
+      mGridElementHeightInv = static_cast<float>(FRAME_GRID_ROWS) / (mMaxY - mMinY);
+      mBlfx = blfx;
+      mBl = blfx / mFx;
+      mThDepth = thDepth;
+   }
+
+   size_t FrameCalibration::GetBufferSize() const
+   {
+      size_t size = sizeof(FrameCalibration::Header);
+      size += Serializer::GetMatBufferSize(mK);
+      size += Serializer::GetMatBufferSize(mDistCoef);
+      return size;
+   }
+
+   void * FrameCalibration::ReadBytes(const void * buffer)
+   {
+      FrameCalibration::Header * pHeader = (FrameCalibration::Header *)buffer;
+      int width = pHeader->mWidth;
+      int height = pHeader->mHeight;
+      float bl = pHeader->mBl;
+      float thDepth = pHeader->mThDepth;
+
+      // read variable-length data
+      cv::Mat K, distCoef;
+      char * pData = (char *)(pHeader + 1);
+      pData = (char *)Serializer::ReadMatrix(pData, K);
+      pData = (char *)Serializer::ReadMatrix(pData, distCoef);
+
+      Initialize(K, distCoef, width, height, bl, thDepth);
+
+      return pData;
+   }
+
+   void * FrameCalibration::WriteBytes(const void * buffer) const
+   {
+      FrameCalibration::Header * pHeader = (FrameCalibration::Header *)buffer;
+      pHeader->mWidth = mWidth;
+      pHeader->mHeight = mHeight;
+      pHeader->mBl = mBl;
+      pHeader->mThDepth = mThDepth;
+
+      // write variable-length data
+      char * pData = (char *)(pHeader + 1);
+      pData = (char *)Serializer::WriteMatrix(pData, mK);
+      pData = (char *)Serializer::WriteMatrix(pData, mDistCoef);
+      return pData;
    }
 
 }

@@ -23,9 +23,12 @@
 namespace ORB_SLAM2
 {
 
-   size_t Serializer::GetMatBufferSize(cv::Mat & mat)
+   size_t Serializer::GetMatBufferSize(const cv::Mat & mat)
    {
-      assert(mat.dims == 2);
+      //assert(mat.dims == 2);
+      if (mat.dims != 2)
+         throw std::exception("only 2-dimensional matrices are supported");
+
       return sizeof(MatrixHeader) + mat.rows * mat.cols * mat.elemSize();
    }
 
@@ -53,7 +56,7 @@ namespace ORB_SLAM2
       return pData;
    }
 
-   void * Serializer::WriteMatrix(const void * buffer, cv::Mat & mat)
+   void * Serializer::WriteMatrix(const void * buffer, const cv::Mat & mat)
    {
       assert(mat.dims == 2);
       MatrixHeader * pMH = (MatrixHeader *)buffer;

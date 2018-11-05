@@ -31,7 +31,7 @@ namespace ORB_SLAM2
       mVocab(vocab),
       mKeyFrameDB(vocab),
       mInitialized(false),
-      mLocalMapper(mMap, mMutexMapUpdate, mKeyFrameDB, bMonocular, FIRST_MAPPOINT_ID_LOCALMAPPER, MAPPOINT_ID_SPAN),
+      mLocalMapper(mMap, mMutexMapUpdate, mKeyFrameDB, mVocab, bMonocular, FIRST_MAPPOINT_ID_LOCALMAPPER, MAPPOINT_ID_SPAN),
       mLoopCloser(mMap, mMutexMapUpdate, mKeyFrameDB, mVocab, !bMonocular),
       mLocalMappingObserver(this),
       mLoopClosingObserver(this)

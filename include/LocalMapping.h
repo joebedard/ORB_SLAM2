@@ -48,6 +48,7 @@ namespace ORB_SLAM2
          Map & map,
          std::mutex & mutexMapUpdate, 
          KeyFrameDatabase & keyFrameDB,
+         ORBVocabulary & vocab,
          const float bMonocular,
          unsigned long firstMapPointId,
          unsigned int mapPointIdSpan
@@ -115,6 +116,8 @@ namespace ORB_SLAM2
       Map & mMap;
 
       KeyFrameDatabase & mKeyFrameDB;
+
+      ORBVocabulary & mVocab;
 
       LoopClosing* mpLoopCloser;
 

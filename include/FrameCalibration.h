@@ -33,45 +33,96 @@ namespace ORB_SLAM2
    {
    public:
 
-      class ImageBounds
-      {
-      public:
-         float minX;
-         float maxX;
-         float minY;
-         float maxY;
-
-         ImageBounds(cv::Mat &K, cv::Mat &distCoef, int width, int height);
-      };
-
-
       // camera calibration
 
-      const cv::Mat K;
-      const cv::Mat distCoef;
-      const float fx;
-      const float fy;
-      const float cx;
-      const float cy;
-      const float invfx;
-      const float invfy;
+      const cv::Mat & K;
+      const cv::Mat & distCoef;
+      const float & fx;
+      const float & fy;
+      const float & cx;
+      const float & cy;
+      const float & invfx;
+      const float & invfy;
 
 
       // Keypoints are assigned to cells in a grid to reduce matching complexity when projecting MapPoints
 
-      const float gridElementWidthInv;
-      const float gridElementHeightInv;
+      const float & gridElementWidthInv;
+      const float & gridElementHeightInv;
 
 
       // Undistorted Image Bounds
 
-      const float minX;
-      const float maxX;
-      const float minY;
-      const float maxY;
+      const float & minX;
+      const float & maxX;
+      const float & minY;
+      const float & maxY;
 
 
-      FrameCalibration(cv::Mat &K, cv::Mat &distCoef, ImageBounds &imageBounds);
+      // Stereo baseline multiplied by fx.
+      const float & blfx;
+
+      // Stereo baseline in meters.
+      const float & bl;
+
+      // Threshold close/far points
+      // Points seen as close by the stereo/RGBD sensor are considered reliable
+      // and inserted from just one frame. Far points requiere a match in two keyframes.
+      const float & thDepth;
+
+      FrameCalibration();
+
+      FrameCalibration(const FrameCalibration & FC);
+
+      FrameCalibration(
+         const cv::Mat & K,
+         const cv::Mat & distCoef,
+         const int & width,
+         const int & height,
+         const float & bl,
+         const float & thDepth);
+
+      void Initialize(
+         const cv::Mat & K,
+         const cv::Mat & distCoef,
+         const int & width,
+         const int & height,
+         const float & bl,
+         const float & thDepth);
+
+      size_t GetBufferSize() const;
+      void * ReadBytes(const void * buffer);
+      void * WriteBytes(const void * buffer) const;
+
+
+   private:
+      int mWidth;
+      int mHeight;
+      cv::Mat mK;
+      cv::Mat mDistCoef;
+      float mFx;
+      float mFy;
+      float mCx;
+      float mCy;
+      float mInvfx;
+      float mInvfy;
+      float mGridElementWidthInv;
+      float mGridElementHeightInv;
+      float mMinX;
+      float mMaxX;
+      float mMinY;
+      float mMaxY;
+      float mBlfx;
+      float mBl;
+      float mThDepth;
+
+      struct Header
+      {
+         int mWidth;
+         int mHeight;
+         float mBl;
+         float mThDepth;
+      };
 
    };
 

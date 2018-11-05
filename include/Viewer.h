@@ -60,7 +60,7 @@ namespace ORB_SLAM2
 
       bool isStopped();
 
-      void Release();
+      void Resume();
 
    private:
 

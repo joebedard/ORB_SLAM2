@@ -44,25 +44,26 @@ namespace ORB_SLAM2
    class Frame
    {
    public:
-      Frame();
+
+      Frame::Frame();
 
       // Copy constructor.
       Frame(const Frame &frame);
 
       // Constructor for stereo cameras.
-      Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, FrameCalibration * FC, const float &bf, const float &thDepth);
+      Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, FrameCalibration * FC);
 
       // Constructor for RGB-D cameras.
-      Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, ORBVocabulary* voc, FrameCalibration * FC, const float &bf, const float &thDepth);
+      Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, FrameCalibration * FC);
 
       // Constructor for Monocular cameras.
-      Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor, ORBVocabulary* voc, FrameCalibration * FC, const float &bf, const float &thDepth);
+      Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor, FrameCalibration * FC);
 
       // Extract ORB on the image. 0 for left image and 1 for right image.
       void ExtractORB(int flag, const cv::Mat &im);
 
       // Compute Bag of Words representation.
-      void ComputeBoW();
+      void ComputeBoW(ORBVocabulary & vocab);
 
       // Set the camera pose.
       void SetPose(cv::Mat Tcw);
@@ -100,8 +101,6 @@ namespace ORB_SLAM2
       cv::Mat UnprojectStereo(const int &i);
 
    public:
-      // Vocabulary used for relocalization.
-      ORBVocabulary * mpORBvocabulary;
 
       // Feature extractor. The right is used only in the stereo case.
       ORBextractor* mpORBextractorLeft, *mpORBextractorRight;
@@ -111,16 +110,6 @@ namespace ORB_SLAM2
 
       // Calibration matrix and OpenCV distortion parameters.
       FrameCalibration * mFC;
-
-      // Stereo baseline multiplied by fx.
-      float mbf;
-
-      // Stereo baseline in meters.
-      float mb;
-
-      // Threshold close/far points. Close points are inserted from 1 view.
-      // Far points are inserted as in the monocular case from 2 views.
-      float mThDepth;
 
       // Number of KeyPoints (features).
       int N;
@@ -184,9 +173,6 @@ namespace ORB_SLAM2
       // Only for the RGB-D case. Stereo must be already rectified!
       // (called in the constructor).
       void UndistortKeyPoints();
-
-      // Computes image bounds for the undistorted image (called in the constructor).
-      void ComputeImageBounds(const cv::Mat &imLeft);
 
       // Assign keypoints to the grid for speed up feature matching (called in the constructor).
       void AssignFeaturesToGrid();

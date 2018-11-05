@@ -147,7 +147,7 @@ namespace ORB_SLAM2
       ORBextractor* mpIniORBextractor;
 
       //BoW
-      ORBVocabulary & mORBVocabulary;
+      ORBVocabulary & mVocab;
 
       // Initalization (only for monocular)
       Initializer* mpInitializer;
@@ -162,19 +162,9 @@ namespace ORB_SLAM2
       FrameDrawer* mpFrameDrawer;
       MapDrawer* mpMapDrawer;
 
-      //Calibration matrix
-      cv::Mat mK;
-      cv::Mat mDistCoef;
-      float mbf;
-
       //New KeyFrame rules (according to fps)
       int mMinFrames;
       int mMaxFrames;
-
-      // Threshold close/far points
-      // Points seen as close by the stereo/RGBD sensor are considered reliable
-      // and inserted from just one frame. Far points requiere a match in two keyframes.
-      float mThDepth;
 
       // For RGB-D inputs only. For some datasets (e.g. TUM) the depthmap values are scaled.
       float mDepthMapFactor;
@@ -221,7 +211,8 @@ namespace ORB_SLAM2
 
       unsigned int mMapPointIdSpan;
 
-      FrameCalibration * mFC;
+      // includes camera calibration and lens distortion, and other variables shared across frames
+      FrameCalibration mFC;
 
       cv::Mat pivotCal;
 

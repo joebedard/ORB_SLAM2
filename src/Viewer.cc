@@ -31,7 +31,7 @@ namespace ORB_SLAM2
 {
 
    Viewer::Viewer(FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, Mapper * pMapper, bool embeddedFrameDrawer) :
-      SyncPrint("Viewer: ", false),
+      SyncPrint("Viewer: "),
       mpMapper(pMapper),
       mEmbeddedFrameDrawers(embeddedFrameDrawer),
       mbFinishRequested(false),
@@ -299,6 +299,7 @@ namespace ORB_SLAM2
 
          if (Stop())
          {
+            Print("while (isStopped())");
             while (isStopped())
             {
                sleep(3000);
@@ -392,7 +393,7 @@ namespace ORB_SLAM2
 
    }
 
-   void Viewer::Release()
+   void Viewer::Resume()
    {
       unique_lock<mutex> lock(mMutexStop);
       mbStopped = false;

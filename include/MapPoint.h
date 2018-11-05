@@ -150,7 +150,7 @@ namespace ORB_SLAM2
    private:
       id_type mnId;
 
-      struct MapPointHeader
+      struct Header
       {
          id_type mnId;
          id_type mnFirstKFId;

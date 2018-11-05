@@ -50,7 +50,7 @@ namespace ORB_SLAM2
       SensorType sensor
    ) :
       SyncPrint("Tracking: "),
-      mORBVocabulary(vocab),
+      mVocab(vocab),
       mMapper(mapper),
       mpFrameDrawer(pFrameDrawer),
       mpMapDrawer(pMapDrawer),
@@ -79,7 +79,6 @@ namespace ORB_SLAM2
    Tracking::~Tracking()
    {
       mMapper.LogoutTracker(mId);
-      delete mFC;
    }
 
    void Tracking::PrintPrefix(ostream & out)
@@ -97,25 +96,24 @@ namespace ORB_SLAM2
       float cx = fSettings["Camera.cx"];
       float cy = fSettings["Camera.cy"];
 
+      //Calibration matrix
       cv::Mat K = cv::Mat::eye(3, 3, CV_32F);
       K.at<float>(0, 0) = fx;
       K.at<float>(1, 1) = fy;
       K.at<float>(0, 2) = cx;
       K.at<float>(1, 2) = cy;
-      K.copyTo(mK);
 
-      cv::Mat DistCoef(4, 1, CV_32F);
-      DistCoef.at<float>(0) = fSettings["Camera.k1"];
-      DistCoef.at<float>(1) = fSettings["Camera.k2"];
-      DistCoef.at<float>(2) = fSettings["Camera.p1"];
-      DistCoef.at<float>(3) = fSettings["Camera.p2"];
+      cv::Mat distCoef(4, 1, CV_32F);
+      distCoef.at<float>(0) = fSettings["Camera.k1"];
+      distCoef.at<float>(1) = fSettings["Camera.k2"];
+      distCoef.at<float>(2) = fSettings["Camera.p1"];
+      distCoef.at<float>(3) = fSettings["Camera.p2"];
       const float k3 = fSettings["Camera.k3"];
       if (k3 != 0)
       {
-         DistCoef.resize(5);
-         DistCoef.at<float>(4) = k3;
+         distCoef.resize(5);
+         distCoef.at<float>(4) = k3;
       }
-      DistCoef.copyTo(mDistCoef);
 
       int width = (int)fSettings["Camera.width"];
       if (0 == width)
@@ -125,9 +123,10 @@ namespace ORB_SLAM2
       if (0 == height)
          throw new exception("Camera.height is not set.");
 
-      mFC = new FrameCalibration(K, DistCoef, FrameCalibration::ImageBounds(K, DistCoef, width, height));
+      float bf = fSettings["Camera.bf"];
+      float thDepth = bf * (float)fSettings["ThDepth"] / fx;
 
-      mbf = fSettings["Camera.bf"];
+      mFC.Initialize(K, distCoef, width, height, bf, thDepth);
 
       float fps = fSettings["Camera.fps"];
       if (fps == 0)
@@ -138,27 +137,29 @@ namespace ORB_SLAM2
       mMaxFrames = fps;
 
       stringstream ss;
-      ss << "\n" << "Camera Parameters: " << "\n";
-      ss << "- fx: " << fx << "\n";
-      ss << "- fy: " << fy << "\n";
-      ss << "- cx: " << cx << "\n";
-      ss << "- cy: " << cy << "\n";
-      ss << "- k1: " << DistCoef.at<float>(0) << "\n";
-      ss << "- k2: " << DistCoef.at<float>(1) << "\n";
-      if (DistCoef.rows == 5)
-         ss << "- k3: " << DistCoef.at<float>(4) << "\n";
-      ss << "- p1: " << DistCoef.at<float>(2) << "\n";
-      ss << "- p2: " << DistCoef.at<float>(3) << "\n";
-      ss << "- fps: " << fps << "\n";
-
+      ss << endl << "Camera Parameters: " << endl;
+      ss << "- fx: " << fx << endl;
+      ss << "- fy: " << fy << endl;
+      ss << "- cx: " << cx << endl;
+      ss << "- cy: " << cy << endl;
+      ss << "- k1: " << distCoef.at<float>(0) << endl;
+      ss << "- k2: " << distCoef.at<float>(1) << endl;
+      if (distCoef.rows == 5)
+         ss << "- k3: " << distCoef.at<float>(4) << endl;
+      ss << "- p1: " << distCoef.at<float>(2) << endl;
+      ss << "- p2: " << distCoef.at<float>(3) << endl;
+      ss << "- bf: " << bf << endl;
+      ss << "- fps: " << fps << endl;
+      if (sensor == STEREO || sensor == RGBD)
+         ss << " - Depth Threshold (Close/Far Points): " << thDepth << endl;
 
       int nRGB = fSettings["Camera.RGB"];
       mbRGB = nRGB;
-
       if (mbRGB)
-         ss << "- color order: RGB (ignored if grayscale)" << "\n";
+         ss << "- color order: RGB (ignored if grayscale)" << endl;
       else
-         ss << "- color order: BGR (ignored if grayscale)" << "\n";
+         ss << "- color order: BGR (ignored if grayscale)" << endl;
+
 
       // Load ORB parameters
 
@@ -176,18 +177,12 @@ namespace ORB_SLAM2
       if (sensor == MONOCULAR)
          mpIniORBextractor = new ORBextractor(2 * nFeatures, fScaleFactor, nLevels, fIniThFAST, fMinThFAST);
 
-      ss << "\n" << "ORB Extractor Parameters: " << "\n";
-      ss << "- Number of Features: " << nFeatures << "\n";
-      ss << "- Scale Levels: " << nLevels << "\n";
-      ss << "- Scale Factor: " << fScaleFactor << "\n";
-      ss << "- Initial Fast Threshold: " << fIniThFAST << "\n";
-      ss << "- Minimum Fast Threshold: " << fMinThFAST << "\n";
-
-      if (sensor == STEREO || sensor == RGBD)
-      {
-         mThDepth = mbf * (float)fSettings["ThDepth"] / fx;
-         ss << "\n" << "Depth Threshold (Close/Far Points): " << mThDepth << "\n";
-      }
+      ss << endl << "ORB Extractor Parameters: " << endl;
+      ss << "- Number of Features: " << nFeatures << endl;
+      ss << "- Scale Levels: " << nLevels << endl;
+      ss << "- Scale Factor: " << fScaleFactor << endl;
+      ss << "- Initial Fast Threshold: " << fIniThFAST << endl;
+      ss << "- Minimum Fast Threshold: " << fMinThFAST << endl;
 
       if (sensor == RGBD)
       {
@@ -207,13 +202,13 @@ namespace ORB_SLAM2
       float pivotTY = (float)fSettings["Pivot.ty"];
       float pivotTZ = (float)fSettings["Pivot.tz"];
 
-      ss << "\n" << "Pivot Calibration: " << "\n";
-      ss << "- X rotation: " << pivotRX << "\n";
-      ss << "- Y rotation: " << pivotRY << "\n";
-      ss << "- Z rotation: " << pivotRZ << "\n";
-      ss << "- X translation: " << pivotTX << "\n";
-      ss << "- Y translation: " << pivotTY << "\n";
-      ss << "- Z translation: " << pivotTZ << "\n";
+      ss << endl << "Pivot Calibration: " << endl;
+      ss << "- X rotation: " << pivotRX << endl;
+      ss << "- Y rotation: " << pivotRY << endl;
+      ss << "- Z rotation: " << pivotRZ << endl;
+      ss << "- X translation: " << pivotTX << endl;
+      ss << "- Y translation: " << pivotTY << endl;
+      ss << "- Z translation: " << pivotTZ << endl;
 
       pivotCal = cv::Mat::eye(4, 4, CV_32F);
       RotationsYXZtoMat(pivotRY, pivotRX, pivotRZ, pivotCal);
@@ -225,7 +220,7 @@ namespace ORB_SLAM2
       pivotCal.at<float>(3, 1) = 0.0f;
       pivotCal.at<float>(3, 0) = 0.0f;
 
-      ss << "Mat: " << pivotCal << "\n";
+      ss << "Mat: " << pivotCal << endl;
       Print(ss);
    }
 
@@ -325,7 +320,7 @@ namespace ORB_SLAM2
          }
       }
 
-      mCurrentFrame = Frame(mImGray, imGrayRight, timestamp, mpORBextractorLeft, mpORBextractorRight, &mORBVocabulary, mFC, mbf, mThDepth);
+      mCurrentFrame = Frame(mImGray, imGrayRight, timestamp, mpORBextractorLeft, mpORBextractorRight, &mFC);
 
       Track();
 
@@ -359,7 +354,7 @@ namespace ORB_SLAM2
       if ((fabs(mDepthMapFactor - 1.0f) > 1e-5) || imDepth.type() != CV_32F)
          imDepth.convertTo(imDepth, CV_32F, mDepthMapFactor);
 
-      mCurrentFrame = Frame(mImGray, imDepth, timestamp, mpORBextractorLeft, &mORBVocabulary, mFC, mbf, mThDepth);
+      mCurrentFrame = Frame(mImGray, imDepth, timestamp, mpORBextractorLeft, &mFC);
 
       Track();
 
@@ -390,9 +385,9 @@ namespace ORB_SLAM2
       }
 
       if (!mMapper.GetInitialized())
-         mCurrentFrame = Frame(mImGray, timestamp, mpIniORBextractor, &mORBVocabulary, mFC, mbf, mThDepth);
+         mCurrentFrame = Frame(mImGray, timestamp, mpIniORBextractor, &mFC);
       else
-         mCurrentFrame = Frame(mImGray, timestamp, mpORBextractorLeft, &mORBVocabulary, mFC, mbf, mThDepth);
+         mCurrentFrame = Frame(mImGray, timestamp, mpORBextractorLeft, &mFC);
 
       Track();
 
@@ -712,8 +707,8 @@ namespace ORB_SLAM2
       KeyFrame* pKFini = new KeyFrame(NewKeyFrameId(), mInitialFrame);
       KeyFrame* pKFcur = new KeyFrame(NewKeyFrameId(), mCurrentFrame);
 
-      pKFini->ComputeBoW();
-      pKFcur->ComputeBoW();
+      pKFini->ComputeBoW(mVocab);
+      pKFcur->ComputeBoW(mVocab);
 
       // Insert KFs in the map
       map.AddKeyFrame(pKFini);
@@ -845,7 +840,7 @@ namespace ORB_SLAM2
    {
       Print("begin TrackReferenceKeyFrame");
       // Compute Bag of Words vector
-      mCurrentFrame.ComputeBoW();
+      mCurrentFrame.ComputeBoW(mVocab);
 
       // We perform first an ORB matching with the reference keyframe
       // If enough matches are found we setup a PnP solver
@@ -1051,7 +1046,7 @@ namespace ORB_SLAM2
       {
          for (int i = 0; i < mCurrentFrame.N; i++)
          {
-            if (mCurrentFrame.mvDepth[i] > 0 && mCurrentFrame.mvDepth[i] < mThDepth)
+            if (mCurrentFrame.mvDepth[i] > 0 && mCurrentFrame.mvDepth[i] < mFC.thDepth)
             {
                if (mCurrentFrame.mvpMapPoints[i] && !mCurrentFrame.mvbOutlier[i])
                   nTrackedClose++;
@@ -1089,6 +1084,8 @@ namespace ORB_SLAM2
 
    void Tracking::SearchLocalPoints()
    {
+      Print("begin SearchLocalPoints");
+
       // Do not search map points already matched
       for (vector<MapPoint*>::iterator vit = mCurrentFrame.mvpMapPoints.begin(), vend = mCurrentFrame.mvpMapPoints.end(); vit != vend; vit++)
       {
@@ -1137,10 +1134,13 @@ namespace ORB_SLAM2
             th = 5;
          matcher.SearchByProjection(mCurrentFrame, mvpLocalMapPoints, th);
       }
+      Print("end SearchLocalPoints");
    }
 
    void Tracking::UpdateLocalMap()
    {
+      Print("begin UpdateLocalMap");
+
       // This is for visualization
       if (mpMapDrawer)
          mpMapDrawer->SetReferenceMapPoints(mvpLocalMapPoints);
@@ -1150,6 +1150,7 @@ namespace ORB_SLAM2
 
       // post: potential map points are in mvpLocalMapPoints
       UpdateLocalMapPoints();
+      Print("end UpdateLocalMap");
    }
 
    void Tracking::UpdateLocalMapPoints()
@@ -1294,7 +1295,7 @@ namespace ORB_SLAM2
    {
       Print("begin Relocalization");
       // Compute Bag of Words Vector
-      mCurrentFrame.ComputeBoW();
+      mCurrentFrame.ComputeBoW(mVocab);
 
       // Relocalization is performed when tracking is lost
       // Track Lost: Query KeyFrame Database for keyframe candidates for relocalisation
@@ -1485,7 +1486,7 @@ namespace ORB_SLAM2
       Frame::nNextId = 0;
 
       if (mpViewer)
-         mpViewer->Release();
+         mpViewer->Resume();
    }
 
    void Tracking::ActivateLocalizationMode()
@@ -1574,7 +1575,7 @@ namespace ORB_SLAM2
                   points.push_back(pNewMP);
                }
 
-               if (vDepthIdx[j].first > currentFrame.mThDepth && j > 99)
+               if (vDepthIdx[j].first > currentFrame.mFC->thDepth && j > 99)
                   break;
             }
          }
@@ -1591,7 +1592,7 @@ namespace ORB_SLAM2
                MapPoint * pMP = pKF->GetMapPoint(i);
                if (!pMP || pMP->Observations() < 1)
                   currentFrame.mvpMapPoints[i] = pMP;
-               if (vDepthIdx[j].first > currentFrame.mThDepth && j > 99)
+               if (vDepthIdx[j].first > currentFrame.mFC->thDepth && j > 99)
                   break;
             }
          }
@@ -1629,11 +1630,11 @@ namespace ORB_SLAM2
 
       stringstream ss;
       ss << "Tracking: Login Complete \n";
-      ss << "   Tracker Id =         " << mId << "\n";
-      ss << "   First Keyframe Id =  " << mNextKeyFrameId << "\n";
-      ss << "   Keyframe Id Span =   " << mKeyFrameIdSpan << "\n";
-      ss << "   First Map Point Id = " << mNextMapPointId << "\n";
-      ss << "   Map Point Id Span =  " << mMapPointIdSpan << "\n";
+      ss << "   Tracker Id =         " << mId << endl;
+      ss << "   First Keyframe Id =  " << mNextKeyFrameId << endl;
+      ss << "   Keyframe Id Span =   " << mKeyFrameIdSpan << endl;
+      ss << "   First Map Point Id = " << mNextMapPointId << endl;
+      ss << "   Map Point Id Span =  " << mMapPointIdSpan << endl;
       Print(ss);
    }
 
@@ -1644,7 +1645,7 @@ namespace ORB_SLAM2
 
       stringstream ss;
       ss << "Tracking: Logout Complete \n";
-      ss << "   Tracker Id = " << mId << "\n";
+      ss << "   Tracker Id = " << mId << endl;
       Print(ss);
    }
 

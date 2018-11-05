@@ -30,6 +30,7 @@
 #include "Frame.h"
 #include "KeyFrameDatabase.h"
 #include "SyncPrint.h"
+#include "FrameCalibration.h"
 
 #include <mutex>
 
@@ -55,12 +56,11 @@ namespace ORB_SLAM2
       cv::Mat GetPose();
       cv::Mat GetPoseInverse();
       cv::Mat GetCameraCenter();
-      cv::Mat GetStereoCenter();
       cv::Mat GetRotation();
       cv::Mat GetTranslation();
 
       // Bag of Words Representation
-      void ComputeBoW();
+      void ComputeBoW(ORBVocabulary & vocab);
 
       // Covisibility graph functions
       void AddConnection(KeyFrame* pKF, const int &weight);
@@ -134,15 +134,7 @@ namespace ORB_SLAM2
    // The following variables are accesed from only 1 thread or never change (no mutex needed).
    public:
 
-      const long unsigned int mnFrameId;
-
-      const double mTimeStamp;
-
-      // Grid (to speed up feature matching)
-      const int mnGridCols;
-      const int mnGridRows;
-      const float mfGridElementWidthInv;
-      const float mfGridElementHeightInv;
+      double & timestamp;
 
       // Variables used by the tracking
       long unsigned int mnTrackReferenceForFrame;
@@ -163,10 +155,10 @@ namespace ORB_SLAM2
       // Variables used by loop closing
       cv::Mat mTcwGBA;
       cv::Mat mTcwBefGBA;
-      long unsigned int mnBAGlobalForKF;
+      id_type mnBAGlobalForKF;
 
       // Calibration parameters
-      const float fx, fy, cx, cy, invfx, invfy, mbf, mb, mThDepth;
+      FrameCalibration mFC;
 
       // Number of KeyPoints (features).
       const int N;
@@ -205,13 +197,6 @@ namespace ORB_SLAM2
       const std::vector<float> mvLevelSigma2;
       const std::vector<float> mvInvLevelSigma2;
 
-      // Image bounds and calibration
-      const int mnMinX;
-      const int mnMinY;
-      const int mnMaxX;
-      const int mnMaxY;
-      const cv::Mat mK;
-
 
    // The following variables need to be accessed trough a mutex to be thread safe.
    protected:
@@ -221,17 +206,13 @@ namespace ORB_SLAM2
       cv::Mat Twc;
       cv::Mat Ow;
 
-      // Stereo middle point. Only for visualization
-      cv::Mat Cw;
-
       // MapPoints associated to KeyPoints (via the index), NULL pointer if no association.
       // Each non-null element corresponds to an element in mvKeysUn.
       std::vector<MapPoint*> mvpMapPoints;
 
-      ORBVocabulary* mpORBvocabulary;
-
       // Grid over the image to speed up feature matching
-      std::vector< std::vector <std::vector<size_t> > > mGrid;
+      // not serialized, rebuilt with AssignFeaturesToGrid()
+      std::vector<std::size_t> mGrid[FRAME_GRID_COLS][FRAME_GRID_ROWS];
 
       std::map<KeyFrame*, int> mConnectedKeyFrameWeights;
       std::vector<KeyFrame*> mvpOrderedConnectedKeyFrames;
@@ -244,19 +225,50 @@ namespace ORB_SLAM2
       std::set<KeyFrame*> mspLoopEdges;
 
       // Bad flags
-      bool mbNotErase;
-      bool mbToBeErased;
+      bool mbNotErase; //server-only
+      bool mbToBeErased; //server-only
       bool mbBad;
-
-      float mHalfBaseline; // Only for visualization
 
       std::mutex mMutexPose;
       std::mutex mMutexConnections;
       std::mutex mMutexFeatures;
 
    private:
-      long unsigned int mnId;
-   };
+      struct Header
+      {
+         id_type mnId;
+         double mTimestamp;
+         int N;
+         unsigned int quantityKeys;
+         unsigned int quantityKeysUn;
+         unsigned int quantityKeysRight;
+         unsigned int quantityKeysDepth;
+         int mnScaleLevels;
+         float mfScaleFactor;
+         float mfLogScaleFactor;
+         unsigned int quantityScaleFactor;
+         unsigned int quantityMapPoints;
+         unsigned int quantityConnectedKeyFrameWeights;
+         unsigned int quantityOrderedConnectedKeyFrames;
+         unsigned int quantityOrderedWeights;
+         bool mbFirstConnection;
+         id_type parentKeyFrameId;
+         unsigned int quantityChildren;
+         unsigned int quantityLoopEdges;
+         bool mbBad;
+      };
+
+      id_type mnId;
+
+      double mTimestamp;
+
+      // Grid (to speed up feature matching)
+      const int mnGridCols;
+      const int mnGridRows;
+
+      bool PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY);
+      void AssignFeaturesToGrid();
+};
 
 } //namespace ORB_SLAM
 

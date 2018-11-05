@@ -31,13 +31,13 @@ namespace ORB_SLAM2
    public:
 
       // utility function to calculate the serialized size of a cv::Mat
-      static size_t GetMatBufferSize(cv::Mat & mat);
+      static size_t GetMatBufferSize(const cv::Mat & mat);
 
       // utility function to read a 2-D cv::Mat from a pre-allocated memory buffer
       static void * ReadMatrix(const void * buffer, cv::Mat & mat);
 
       // utility function to write a 2-D cv::Mat to a pre-allocated memory buffer
-      static void * WriteMatrix(const void * buffer, cv::Mat & mat);
+      static void * WriteMatrix(const void * buffer, const cv::Mat & mat);
 
    private:
 

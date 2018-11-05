@@ -142,8 +142,12 @@ zmq::message_t LoginService(zmq::message_t & request)
 
    zmq::message_t reply(sizeof(LoginTrackerReply));
    LoginTrackerReply * pRepData = reply.data<LoginTrackerReply>();
-   gMapper->LoginTracker(pivotCalib, pRepData->trackerId, pRepData->firstKeyFrameId, pRepData->keyFrameIdSpan,
-      pRepData->firstMapPointId, pRepData->mapPointIdSpan);
+   gMapper->LoginTracker(pivotCalib, 
+      pRepData->trackerId, 
+      pRepData->firstKeyFrameId, 
+      pRepData->keyFrameIdSpan,
+      pRepData->firstMapPointId, 
+      pRepData->mapPointIdSpan);
    pRepData->replyCode = ReplyCode::SUCCEEDED;
 
    gOutServ.Print("end LoginService");

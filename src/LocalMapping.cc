@@ -34,14 +34,16 @@ namespace ORB_SLAM2
       Map & map,
       std::mutex & mutexMapUpdate, 
       KeyFrameDatabase & keyFrameDB,
+      ORBVocabulary & vocab,
       const float bMonocular,
       unsigned long firstMapPointId,
       unsigned int mapPointIdSpan
    ) :
-      SyncPrint("LocalMapping: ", false),
+      SyncPrint("LocalMapping: "),
       mMap(map),
       mMutexMapUpdate(mutexMapUpdate),
       mKeyFrameDB(keyFrameDB),
+      mVocab(vocab),
       mbMonocular(bMonocular),
       mNextMapPointId(firstMapPointId),
       mMapPointIdSpan(mapPointIdSpan),
@@ -199,7 +201,7 @@ namespace ORB_SLAM2
 
       // TODO OK - move this to MapperServer::InsertKeyFrame ?
       // Compute Bags of Words structures
-      mpCurrentKeyFrame->ComputeBoW();
+      mpCurrentKeyFrame->ComputeBoW(mVocab);
 
       // Associate MapPoints to the new keyframe and update normal and descriptor
       const vector<MapPoint*> vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
@@ -213,7 +215,7 @@ namespace ORB_SLAM2
             {
                if (!pMP->IsInKeyFrame(mpCurrentKeyFrame))
                {
-                  Print("MapPoint is not in KeyFrame");
+                  //Print("MapPoint is not in KeyFrame");
                   pMP->AddObservation(mpCurrentKeyFrame, i);
                   pMP->UpdateNormalAndDepth();
                   pMP->ComputeDistinctiveDescriptors();
@@ -313,12 +315,12 @@ namespace ORB_SLAM2
       tcw1.copyTo(Tcw1.col(3));
       cv::Mat Ow1 = mpCurrentKeyFrame->GetCameraCenter();
 
-      const float &fx1 = mpCurrentKeyFrame->fx;
-      const float &fy1 = mpCurrentKeyFrame->fy;
-      const float &cx1 = mpCurrentKeyFrame->cx;
-      const float &cy1 = mpCurrentKeyFrame->cy;
-      const float &invfx1 = mpCurrentKeyFrame->invfx;
-      const float &invfy1 = mpCurrentKeyFrame->invfy;
+      const float &fx1 = mpCurrentKeyFrame->mFC.fx;
+      const float &fy1 = mpCurrentKeyFrame->mFC.fy;
+      const float &cx1 = mpCurrentKeyFrame->mFC.cx;
+      const float &cy1 = mpCurrentKeyFrame->mFC.cy;
+      const float &invfx1 = mpCurrentKeyFrame->mFC.invfx;
+      const float &invfy1 = mpCurrentKeyFrame->mFC.invfy;
 
       const float ratioFactor = 1.5f*mpCurrentKeyFrame->mfScaleFactor;
 
@@ -342,7 +344,7 @@ namespace ORB_SLAM2
 
          if (!mbMonocular)
          {
-            if (baseline < pKF2->mb)
+            if (baseline < pKF2->mFC.bl)
                continue;
          }
          else
@@ -368,12 +370,12 @@ namespace ORB_SLAM2
          Rcw2.copyTo(Tcw2.colRange(0, 3));
          tcw2.copyTo(Tcw2.col(3));
 
-         const float &fx2 = pKF2->fx;
-         const float &fy2 = pKF2->fy;
-         const float &cx2 = pKF2->cx;
-         const float &cy2 = pKF2->cy;
-         const float &invfx2 = pKF2->invfx;
-         const float &invfy2 = pKF2->invfy;
+         const float &fx2 = pKF2->mFC.fx;
+         const float &fy2 = pKF2->mFC.fy;
+         const float &cx2 = pKF2->mFC.cx;
+         const float &cy2 = pKF2->mFC.cy;
+         const float &invfx2 = pKF2->mFC.invfx;
+         const float &invfy2 = pKF2->mFC.invfy;
 
          // Triangulate each match
          const int nmatches = vMatchedIndices.size();
@@ -403,9 +405,9 @@ namespace ORB_SLAM2
             float cosParallaxStereo2 = cosParallaxStereo;
 
             if (bStereo1)
-               cosParallaxStereo1 = cos(2 * atan2(mpCurrentKeyFrame->mb / 2, mpCurrentKeyFrame->mvDepth[idx1]));
+               cosParallaxStereo1 = cos(2 * atan2(mpCurrentKeyFrame->mFC.bl / 2, mpCurrentKeyFrame->mvDepth[idx1]));
             else if (bStereo2)
-               cosParallaxStereo2 = cos(2 * atan2(pKF2->mb / 2, pKF2->mvDepth[idx2]));
+               cosParallaxStereo2 = cos(2 * atan2(pKF2->mFC.bl / 2, pKF2->mvDepth[idx2]));
 
             cosParallaxStereo = min(cosParallaxStereo1, cosParallaxStereo2);
 
@@ -471,7 +473,7 @@ namespace ORB_SLAM2
             else
             {
                float u1 = fx1 * x1*invz1 + cx1;
-               float u1_r = u1 - mpCurrentKeyFrame->mbf*invz1;
+               float u1_r = u1 - mpCurrentKeyFrame->mFC.blfx * invz1;
                float v1 = fy1 * y1*invz1 + cy1;
                float errX1 = u1 - kp1.pt.x;
                float errY1 = v1 - kp1.pt.y;
@@ -497,7 +499,7 @@ namespace ORB_SLAM2
             else
             {
                float u2 = fx2 * x2*invz2 + cx2;
-               float u2_r = u2 - mpCurrentKeyFrame->mbf*invz2;
+               float u2_r = u2 - mpCurrentKeyFrame->mFC.blfx * invz2;
                float v2 = fy2 * y2*invz2 + cy2;
                float errX2 = u2 - kp2.pt.x;
                float errY2 = v2 - kp2.pt.y;
@@ -653,8 +655,8 @@ namespace ORB_SLAM2
 
       cv::Mat t12x = SkewSymmetricMatrix(t12);
 
-      const cv::Mat &K1 = pKF1->mK;
-      const cv::Mat &K2 = pKF2->mK;
+      const cv::Mat &K1 = pKF1->mFC.K;
+      const cv::Mat &K2 = pKF2->mFC.K;
 
 
       return K1.t().inv()*t12x*R12*K2.inv();
@@ -662,10 +664,12 @@ namespace ORB_SLAM2
 
    void LocalMapping::RequestPause()
    {
+      Print("begin RequestPause");
       unique_lock<mutex> lock(mMutexPause);
       mbPauseRequested = true;
       unique_lock<mutex> lock2(mMutexNewKFs);
       mbAbortBA = true;
+      Print("end RequestPause");
    }
 
    bool LocalMapping::Pause()
@@ -766,7 +770,7 @@ namespace ORB_SLAM2
                {
                   if (!mbMonocular)
                   {
-                     if (pKF->mvDepth[i] > pKF->mThDepth || pKF->mvDepth[i] < 0)
+                     if (pKF->mvDepth[i] > pKF->mFC.thDepth || pKF->mvDepth[i] < 0)
                         continue;
                   }
 

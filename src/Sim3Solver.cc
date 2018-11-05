@@ -100,8 +100,8 @@ namespace ORB_SLAM2
          }
       }
 
-      mK1 = pKF1->mK;
-      mK2 = pKF2->mK;
+      mK1 = pKF1->mFC.K;
+      mK2 = pKF2->mFC.K;
 
       FromCameraToImage(mvX3Dc1, mvP1im1, mK1);
       FromCameraToImage(mvX3Dc2, mvP2im2, mK2);

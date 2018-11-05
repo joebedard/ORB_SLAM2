@@ -115,7 +115,7 @@ namespace ORB_SLAM2
 
       KeyFrameDatabase & mKeyFrameDB;
 
-      ORBVocabulary & mORBVocabulary;
+      ORBVocabulary & mVocab;
 
       LocalMapping * mpLocalMapper;
 

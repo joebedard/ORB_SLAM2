@@ -297,10 +297,10 @@ namespace ORB_SLAM2
    int ORBmatcher::SearchByProjection(KeyFrame* pKF, cv::Mat Scw, const vector<MapPoint*> &vpPoints, vector<MapPoint*> &vpMatched, int th)
    {
       // Get Calibration Parameters for later projection
-      const float &fx = pKF->fx;
-      const float &fy = pKF->fy;
-      const float &cx = pKF->cx;
-      const float &cy = pKF->cy;
+      const float &fx = pKF->mFC.fx;
+      const float &fy = pKF->mFC.fy;
+      const float &cx = pKF->mFC.cx;
+      const float &cy = pKF->mFC.cy;
 
       // Decompose Scw
       cv::Mat sRcw = Scw.rowRange(0, 3).colRange(0, 3);
@@ -673,8 +673,8 @@ namespace ORB_SLAM2
       cv::Mat t2w = pKF2->GetTranslation();
       cv::Mat C2 = R2w * Cw + t2w;
       const float invz = 1.0f / C2.at<float>(2);
-      const float ex = pKF2->fx*C2.at<float>(0)*invz + pKF2->cx;
-      const float ey = pKF2->fy*C2.at<float>(1)*invz + pKF2->cy;
+      const float ex = pKF2->mFC.fx * C2.at<float>(0) * invz + pKF2->mFC.cx;
+      const float ey = pKF2->mFC.fy * C2.at<float>(1) * invz + pKF2->mFC.cy;
 
       // Find matches between not tracked keypoints
       // Matching speed-up by ORB Vocabulary
@@ -834,11 +834,11 @@ namespace ORB_SLAM2
       cv::Mat Rcw = pKF->GetRotation();
       cv::Mat tcw = pKF->GetTranslation();
 
-      const float &fx = pKF->fx;
-      const float &fy = pKF->fy;
-      const float &cx = pKF->cx;
-      const float &cy = pKF->cy;
-      const float &bf = pKF->mbf;
+      const float &fx = pKF->mFC.fx;
+      const float &fy = pKF->mFC.fy;
+      const float &cx = pKF->mFC.cx;
+      const float &cy = pKF->mFC.cy;
+      const float &bf = pKF->mFC.blfx;
 
       cv::Mat Ow = pKF->GetCameraCenter();
 
@@ -1004,10 +1004,10 @@ namespace ORB_SLAM2
    int ORBmatcher::Fuse(MapChangeEvent & mapChanges, KeyFrame *pKF, cv::Mat Scw, const vector<MapPoint *> &vpPoints, float th, vector<MapPoint *> &vpReplacePoint)
    {
       // Get Calibration Parameters for later projection
-      const float &fx = pKF->fx;
-      const float &fy = pKF->fy;
-      const float &cx = pKF->cx;
-      const float &cy = pKF->cy;
+      const float &fx = pKF->mFC.fx;
+      const float &fy = pKF->mFC.fy;
+      const float &cx = pKF->mFC.cx;
+      const float &cy = pKF->mFC.cy;
 
       // Decompose Scw
       cv::Mat sRcw = Scw.rowRange(0, 3).colRange(0, 3);
@@ -1134,10 +1134,10 @@ namespace ORB_SLAM2
    int ORBmatcher::SearchBySim3(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint*> &vpMatches12,
       const float &s12, const cv::Mat &R12, const cv::Mat &t12, const float th)
    {
-      const float &fx = pKF1->fx;
-      const float &fy = pKF1->fy;
-      const float &cx = pKF1->cx;
-      const float &cy = pKF1->cy;
+      const float &fx = pKF1->mFC.fx;
+      const float &fy = pKF1->mFC.fy;
+      const float &cx = pKF1->mFC.cx;
+      const float &cy = pKF1->mFC.cy;
 
       // Camera 1 from world
       cv::Mat R1w = pKF1->GetRotation();
@@ -1377,8 +1377,8 @@ namespace ORB_SLAM2
 
       const cv::Mat tlc = Rlw * twc + tlw;
 
-      const bool bForward = tlc.at<float>(2) > CurrentFrame.mb && !bMono;
-      const bool bBackward = -tlc.at<float>(2) > CurrentFrame.mb && !bMono;
+      const bool bForward = tlc.at<float>(2) > CurrentFrame.mFC->bl && !bMono;
+      const bool bBackward = -tlc.at<float>(2) > CurrentFrame.mFC->bl && !bMono;
 
       for (int i = 0; i < LastFrame.N; i++)
       {
@@ -1438,7 +1438,7 @@ namespace ORB_SLAM2
 
                   if (CurrentFrame.mvuRight[i2] > 0)
                   {
-                     const float ur = u - CurrentFrame.mbf*invzc;
+                     const float ur = u - CurrentFrame.mFC->blfx * invzc;
                      const float er = fabs(ur - CurrentFrame.mvuRight[i2]);
                      if (er > radius)
                         continue;

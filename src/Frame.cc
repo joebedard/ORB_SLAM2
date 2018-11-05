@@ -30,22 +30,35 @@ namespace ORB_SLAM2
 
    long unsigned int Frame::nNextId = 0;
 
-   Frame::Frame()
-   {}
+   Frame::Frame() {}
 
    //Copy Constructor
-   Frame::Frame(const Frame &frame)
-      :mpORBvocabulary(frame.mpORBvocabulary), mpORBextractorLeft(frame.mpORBextractorLeft), mpORBextractorRight(frame.mpORBextractorRight),
-      mTimeStamp(frame.mTimeStamp), mFC(frame.mFC),
-      mbf(frame.mbf), mb(frame.mb), mThDepth(frame.mThDepth), N(frame.N), mvKeys(frame.mvKeys),
-      mvKeysRight(frame.mvKeysRight), mvKeysUn(frame.mvKeysUn), mvuRight(frame.mvuRight),
-      mvDepth(frame.mvDepth), mBowVec(frame.mBowVec), mFeatVec(frame.mFeatVec),
-      mDescriptors(frame.mDescriptors.clone()), mDescriptorsRight(frame.mDescriptorsRight.clone()),
-      mvpMapPoints(frame.mvpMapPoints), mvbOutlier(frame.mvbOutlier), mnId(frame.mnId),
-      mpReferenceKF(frame.mpReferenceKF), mnScaleLevels(frame.mnScaleLevels),
-      mfScaleFactor(frame.mfScaleFactor), mfLogScaleFactor(frame.mfLogScaleFactor),
-      mvScaleFactors(frame.mvScaleFactors), mvInvScaleFactors(frame.mvInvScaleFactors),
-      mvLevelSigma2(frame.mvLevelSigma2), mvInvLevelSigma2(frame.mvInvLevelSigma2)
+   Frame::Frame(const Frame & frame)
+      : mpORBextractorLeft(frame.mpORBextractorLeft)
+      , mpORBextractorRight(frame.mpORBextractorRight)
+      , mTimeStamp(frame.mTimeStamp)
+      , mFC(frame.mFC)
+      , N(frame.N)
+      , mvKeys(frame.mvKeys)
+      , mvKeysRight(frame.mvKeysRight)
+      , mvKeysUn(frame.mvKeysUn)
+      , mvuRight(frame.mvuRight)
+      , mvDepth(frame.mvDepth)
+      , mBowVec(frame.mBowVec)
+      , mFeatVec(frame.mFeatVec)
+      , mDescriptors(frame.mDescriptors.clone())
+      , mDescriptorsRight(frame.mDescriptorsRight.clone())
+      , mvpMapPoints(frame.mvpMapPoints)
+      , mvbOutlier(frame.mvbOutlier)
+      , mnId(frame.mnId)
+      , mpReferenceKF(frame.mpReferenceKF)
+      , mnScaleLevels(frame.mnScaleLevels)
+      , mfScaleFactor(frame.mfScaleFactor)
+      , mfLogScaleFactor(frame.mfLogScaleFactor)
+      , mvScaleFactors(frame.mvScaleFactors)
+      , mvInvScaleFactors(frame.mvInvScaleFactors)
+      , mvLevelSigma2(frame.mvLevelSigma2)
+      , mvInvLevelSigma2(frame.mvInvLevelSigma2)
    {
       for (int i = 0;i < FRAME_GRID_COLS;i++)
          for (int j = 0; j < FRAME_GRID_ROWS; j++)
@@ -56,9 +69,12 @@ namespace ORB_SLAM2
    }
 
 
-   Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, FrameCalibration * FC, const float &bf, const float &thDepth)
-      :mpORBvocabulary(voc), mpORBextractorLeft(extractorLeft), mpORBextractorRight(extractorRight), mTimeStamp(timeStamp), mFC(FC), mbf(bf), mThDepth(thDepth),
-      mpReferenceKF(static_cast<KeyFrame*>(NULL))
+   Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, FrameCalibration * FC) 
+      : mpORBextractorLeft(extractorLeft)
+      , mpORBextractorRight(extractorRight)
+      , mTimeStamp(timeStamp)
+      , mFC(FC)
+      , mpReferenceKF(static_cast<KeyFrame*>(NULL))
    {
       // Frame ID
       mnId = nNextId++;
@@ -90,14 +106,14 @@ namespace ORB_SLAM2
       mvpMapPoints = vector<MapPoint*>(N, static_cast<MapPoint*>(NULL));
       mvbOutlier = vector<bool>(N, false);
 
-      mb = mbf / mFC->fx;
-
       AssignFeaturesToGrid();
    }
 
-   Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, ORBVocabulary* voc, FrameCalibration * FC, const float &bf, const float &thDepth)
-      :mpORBvocabulary(voc), mpORBextractorLeft(extractor), mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
-      mTimeStamp(timeStamp), mFC(FC), mbf(bf), mThDepth(thDepth)
+   Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, FrameCalibration * FC)
+      : mpORBextractorLeft(extractor)
+      , mpORBextractorRight(static_cast<ORBextractor*>(NULL))
+      , mTimeStamp(timeStamp)
+      , mFC(FC)
    {
       // Frame ID
       mnId = nNextId++;
@@ -126,15 +142,15 @@ namespace ORB_SLAM2
       mvpMapPoints = vector<MapPoint*>(N, static_cast<MapPoint*>(NULL));
       mvbOutlier = vector<bool>(N, false);
 
-      mb = mbf / mFC->fx;
-
       AssignFeaturesToGrid();
    }
 
 
-   Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor, ORBVocabulary* voc, FrameCalibration * FC, const float &bf, const float &thDepth)
-      :mpORBvocabulary(voc), mpORBextractorLeft(extractor), mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
-      mTimeStamp(timeStamp), mFC(FC), mbf(bf), mThDepth(thDepth)
+   Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor, FrameCalibration * FC)
+      : mpORBextractorLeft(extractor)
+      , mpORBextractorRight(static_cast<ORBextractor*>(NULL))
+      , mTimeStamp(timeStamp)
+      , mFC(FC)
    {
       // Frame ID
       mnId = nNextId++;
@@ -164,8 +180,6 @@ namespace ORB_SLAM2
 
       mvpMapPoints = vector<MapPoint*>(N, static_cast<MapPoint*>(NULL));
       mvbOutlier = vector<bool>(N, false);
-
-      mb = mbf / mFC->fx;
 
       AssignFeaturesToGrid();
    }
@@ -259,7 +273,7 @@ namespace ORB_SLAM2
       // Data used by the tracking
       pMP->mbTrackInView = true;
       pMP->mTrackProjX = u;
-      pMP->mTrackProjXR = u - mbf * invz;
+      pMP->mTrackProjXR = u - mFC->blfx * invz;
       pMP->mTrackProjY = v;
       pMP->mnTrackScaleLevel = nPredictedLevel;
       pMP->mTrackViewCos = viewCos;
@@ -335,12 +349,12 @@ namespace ORB_SLAM2
    }
 
 
-   void Frame::ComputeBoW()
+   void Frame::ComputeBoW(ORBVocabulary & vocab)
    {
       if (mBowVec.empty())
       {
          vector<cv::Mat> vCurrentDesc = Converter::toDescriptorVector(mDescriptors);
-         mpORBvocabulary->transform(vCurrentDesc, mBowVec, mFeatVec, 4);
+         vocab.transform(vCurrentDesc, mBowVec, mFeatVec, 4);
       }
    }
 
@@ -406,9 +420,9 @@ namespace ORB_SLAM2
       }
 
       // Set limits for search
-      const float minZ = mb;
+      const float minZ = mFC->bl;
       const float minD = 0;
-      const float maxD = mbf / minZ;
+      const float maxD = mFC->blfx / minZ;
 
       // For each left keypoint search a match in the right image
       vector<pair<int, int> > vDistIdx;
@@ -529,7 +543,7 @@ namespace ORB_SLAM2
                   disparity = 0.01;
                   bestuR = uL - 0.01;
                }
-               mvDepth[iL] = mbf / disparity;
+               mvDepth[iL] = mFC->blfx / disparity;
                mvuRight[iL] = bestuR;
                vDistIdx.push_back(pair<int, int>(bestDist, iL));
             }
@@ -574,7 +588,7 @@ namespace ORB_SLAM2
          if (d > 0)
          {
             mvDepth[i] = d;
-            mvuRight[i] = kpU.pt.x - mbf / d;
+            mvuRight[i] = kpU.pt.x - mFC->blfx / d;
          }
       }
    }

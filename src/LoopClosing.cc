@@ -42,7 +42,7 @@ namespace ORB_SLAM2
       SyncPrint("LoopClosing: "),
       mMap(map),
       mKeyFrameDB(keyFrameDB),
-      mORBVocabulary(vocab),
+      mVocab(vocab),
       mbFixScale(bFixScale),
       mMutexMapUpdate(mutexMapUpdate),
       mbResetRequested(false),
@@ -161,7 +161,7 @@ namespace ORB_SLAM2
             continue;
          const DBoW2::BowVector &BowVec = pKF->mBowVec;
 
-         float score = mORBVocabulary.score(CurrentBowVec, BowVec);
+         float score = mVocab.score(CurrentBowVec, BowVec);
 
          if (score < minScore)
             minScore = score;
@@ -470,6 +470,7 @@ namespace ORB_SLAM2
       mpLocalMapper->RequestPause();
 
       // If a Global Bundle Adjustment is running, abort it
+      Print("if (isRunningGBA())");
       if (isRunningGBA())
       {
          unique_lock<mutex> lock(mMutexGBA);
@@ -486,6 +487,7 @@ namespace ORB_SLAM2
       }
 
       // Wait until Local Mapping has effectively stopped
+      Print("while (!mpLocalMapper->IsPaused())");
       while (!mpLocalMapper->IsPaused())
       {
          sleep(1000);
@@ -504,11 +506,11 @@ namespace ORB_SLAM2
       CorrectedSim3[mpCurrentKF] = mg2oScw;
       cv::Mat Twc = mpCurrentKF->GetPoseInverse();
 
-
       {
          // Get Map Mutex
          unique_lock<mutex> lock(mMutexMapUpdate);
 
+         Print("for (vector<KeyFrame*>::iterator vit = mvpCurrentConnectedKFs.begin(), vend = mvpCurrentConnectedKFs.end(); vit != vend; vit++)");
          for (vector<KeyFrame*>::iterator vit = mvpCurrentConnectedKFs.begin(), vend = mvpCurrentConnectedKFs.end(); vit != vend; vit++)
          {
             KeyFrame* pKFi = *vit;
@@ -534,6 +536,7 @@ namespace ORB_SLAM2
          }
 
          // Correct all MapPoints obsrved by current keyframe and neighbors, so that they align with the other side of the loop
+         Print("for (KeyFrameAndPose::iterator mit = CorrectedSim3.begin(), mend = CorrectedSim3.end(); mit != mend; mit++)");
          for (KeyFrameAndPose::iterator mit = CorrectedSim3.begin(), mend = CorrectedSim3.end(); mit != mend; mit++)
          {
             KeyFrame* pKFi = mit->first;
@@ -587,6 +590,7 @@ namespace ORB_SLAM2
 
          // Start Loop Fusion
          // Update matched map points and replace if duplicated
+         Print("for (size_t i = 0; i < mvpCurrentMatchedPoints.size(); i++)");
          for (size_t i = 0; i < mvpCurrentMatchedPoints.size(); i++)
          {
             if (mvpCurrentMatchedPoints[i])
@@ -623,6 +627,7 @@ namespace ORB_SLAM2
       // After the MapPoint fusion, new links in the covisibility graph will appear attaching both sides of the loop
       map<KeyFrame*, set<KeyFrame*> > LoopConnections;
 
+      Print("for (vector<KeyFrame*>::iterator vit = mvpCurrentConnectedKFs.begin(), vend = mvpCurrentConnectedKFs.end(); vit != vend; vit++)");
       for (vector<KeyFrame*>::iterator vit = mvpCurrentConnectedKFs.begin(), vend = mvpCurrentConnectedKFs.end(); vit != vend; vit++)
       {
          KeyFrame* pKFi = *vit;
@@ -646,6 +651,7 @@ namespace ORB_SLAM2
 
       // Optimize graph
       Optimizer::OptimizeEssentialGraph(mMap, mMutexMapUpdate, mpMatchedKF, mpCurrentKF, NonCorrectedSim3, CorrectedSim3, LoopConnections, mbFixScale);
+      // TODO - detect map changes in Optimizer
 
       mMap.InformNewBigChange();
 
@@ -657,6 +663,7 @@ namespace ORB_SLAM2
       mpCurrentKF->AddLoopEdge(mpMatchedKF);
 
       // notify observers about map changes before starting bundle adjustment, which may have further map changes
+      Print("NotifyMapChanged");
       NotifyMapChanged(mapChanges);
 
       // Launch a new thread to perform Global Bundle Adjustment
@@ -673,6 +680,7 @@ namespace ORB_SLAM2
 
    void LoopClosing::SearchAndFuse(const KeyFrameAndPose &CorrectedPosesMap, MapChangeEvent & mapChanges)
    {
+      Print("begin SearchAndFuse");
       ORBmatcher matcher(0.8);
 
       for (KeyFrameAndPose::const_iterator mit = CorrectedPosesMap.begin(), mend = CorrectedPosesMap.end(); mit != mend;mit++)
@@ -701,6 +709,7 @@ namespace ORB_SLAM2
             }
          }
       }
+      Print("end SearchAndFuse");
    }
 
 

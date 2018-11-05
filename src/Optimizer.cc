@@ -151,10 +151,10 @@ namespace ORB_SLAM2
                   rk->setDelta(thHuber2D);
                }
 
-               e->fx = pKF->fx;
-               e->fy = pKF->fy;
-               e->cx = pKF->cx;
-               e->cy = pKF->cy;
+               e->fx = pKF->mFC.fx;
+               e->fy = pKF->mFC.fy;
+               e->cx = pKF->mFC.cx;
+               e->cy = pKF->mFC.cy;
 
                optimizer.addEdge(e);
             }
@@ -180,11 +180,11 @@ namespace ORB_SLAM2
                   rk->setDelta(thHuber3D);
                }
 
-               e->fx = pKF->fx;
-               e->fy = pKF->fy;
-               e->cx = pKF->cx;
-               e->cy = pKF->cy;
-               e->bf = pKF->mbf;
+               e->fx = pKF->mFC.fx;
+               e->fy = pKF->mFC.fy;
+               e->cx = pKF->mFC.cx;
+               e->cy = pKF->mFC.cy;
+               e->bf = pKF->mFC.blfx;
 
                optimizer.addEdge(e);
             }
@@ -262,6 +262,8 @@ namespace ORB_SLAM2
 
    int Optimizer::PoseOptimization(Frame *pFrame)
    {
+      Print("begin PoseOptimization");
+
       g2o::SparseOptimizer optimizer;
       g2o::BlockSolver_6_3::LinearSolverType * linearSolver;
 
@@ -368,7 +370,7 @@ namespace ORB_SLAM2
                   e->fy = pFrame->mFC->fy;
                   e->cx = pFrame->mFC->cx;
                   e->cy = pFrame->mFC->cy;
-                  e->bf = pFrame->mbf;
+                  e->bf = pFrame->mFC->blfx;
                   cv::Mat Xw = pMP->GetWorldPos();
                   e->Xw[0] = Xw.at<float>(0);
                   e->Xw[1] = Xw.at<float>(1);
@@ -386,7 +388,10 @@ namespace ORB_SLAM2
 
 
       if (nInitialCorrespondences < 3)
+      {
+         Print("end PoseOptimization 1");
          return 0;
+      }
 
       // We perform 4 optimizations, after each optimization we classify observation as inlier/outlier
       // At the next optimization, outliers are not included, but at the end they can be classified as inliers again.
@@ -471,6 +476,7 @@ namespace ORB_SLAM2
       cv::Mat pose = Converter::toCvMat(SE3quat_recov);
       pFrame->SetPose(pose);
 
+      Print("end PoseOptimization 2");
       return nInitialCorrespondences - nBad;
    }
 
@@ -645,10 +651,10 @@ namespace ORB_SLAM2
                   e->setRobustKernel(rk);
                   rk->setDelta(thHuberMono);
 
-                  e->fx = pKFi->fx;
-                  e->fy = pKFi->fy;
-                  e->cx = pKFi->cx;
-                  e->cy = pKFi->cy;
+                  e->fx = pKFi->mFC.fx;
+                  e->fy = pKFi->mFC.fy;
+                  e->cx = pKFi->mFC.cx;
+                  e->cy = pKFi->mFC.cy;
 
                   optimizer.addEdge(e);
                   vpEdgesMono.push_back(e);
@@ -674,11 +680,11 @@ namespace ORB_SLAM2
                   e->setRobustKernel(rk);
                   rk->setDelta(thHuberStereo);
 
-                  e->fx = pKFi->fx;
-                  e->fy = pKFi->fy;
-                  e->cx = pKFi->cx;
-                  e->cy = pKFi->cy;
-                  e->bf = pKFi->mbf;
+                  e->fx = pKFi->mFC.fx;
+                  e->fy = pKFi->mFC.fy;
+                  e->cx = pKFi->mFC.cx;
+                  e->cy = pKFi->mFC.cy;
+                  e->bf = pKFi->mFC.blfx;
 
                   optimizer.addEdge(e);
                   vpEdgesStereo.push_back(e);
@@ -844,6 +850,7 @@ namespace ORB_SLAM2
       const std::map<KeyFrame *, set<KeyFrame *> > & LoopConnections, 
       const bool & bFixScale)
    {
+      Print("begin OptimizeEssentialGraph");
       // Setup optimizer
       g2o::SparseOptimizer optimizer;
       optimizer.setVerbose(false);
@@ -866,6 +873,7 @@ namespace ORB_SLAM2
 
       const int minFeat = 100;
 
+      Print("Set KeyFrame vertices");
       // Set KeyFrame vertices
       for (size_t i = 0, iend = vpKFs.size(); i < iend;i++)
       {
@@ -909,6 +917,7 @@ namespace ORB_SLAM2
 
       const Eigen::Matrix<double, 7, 7> matLambda = Eigen::Matrix<double, 7, 7>::Identity();
 
+      Print("Set Loop edges");
       // Set Loop edges
       for (std::map<KeyFrame *, set<KeyFrame *> >::const_iterator mit = LoopConnections.begin(), mend = LoopConnections.end(); mit != mend; mit++)
       {
@@ -940,11 +949,10 @@ namespace ORB_SLAM2
          }
       }
 
+      Print("Set normal edges");
       // Set normal edges
-      for (size_t i = 0, iend = vpKFs.size(); i < iend; i++)
+      for (KeyFrame * pKF : vpKFs)
       {
-         KeyFrame* pKF = vpKFs[i];
-
          const int nIDi = pKF->GetId();
 
          g2o::Sim3 Swi;
@@ -958,6 +966,7 @@ namespace ORB_SLAM2
 
          KeyFrame* pParentKF = pKF->GetParent();
 
+         Print("Spanning tree edge");
          // Spanning tree edge
          if (pParentKF)
          {
@@ -983,6 +992,7 @@ namespace ORB_SLAM2
             optimizer.addEdge(e);
          }
 
+         Print("Loop edges");
          // Loop edges
          const set<KeyFrame*> sLoopEdges = pKF->GetLoopEdges();
          for (set<KeyFrame*>::const_iterator sit = sLoopEdges.begin(), send = sLoopEdges.end(); sit != send; sit++)
@@ -1009,6 +1019,7 @@ namespace ORB_SLAM2
             }
          }
 
+         Print("Covisibility graph edges");
          // Covisibility graph edges
          const vector<KeyFrame*> vpConnectedKFs = pKF->GetCovisiblesByWeight(minFeat);
          for (vector<KeyFrame*>::const_iterator vit = vpConnectedKFs.begin(); vit != vpConnectedKFs.end(); vit++)
@@ -1043,12 +1054,14 @@ namespace ORB_SLAM2
          }
       }
 
+      Print("Optimize!");
       // Optimize!
       optimizer.initializeOptimization();
       optimizer.optimize(20);
 
       unique_lock<mutex> lock(mutexMapUpdate);
 
+      Print("SE3 Pose Recovering.");
       // SE3 Pose Recovering. Sim3:[sR t;0 1] -> SE3:[R t/s;0 1]
       for (size_t i = 0;i < vpKFs.size();i++)
       {
@@ -1070,6 +1083,7 @@ namespace ORB_SLAM2
          pKFi->SetPose(Tiw);
       }
 
+      Print("Correct points.");
       // Correct points. Transform to "non-optimized" reference keyframe pose and transform back with optimized pose
       for (size_t i = 0, iend = vpMPs.size(); i < iend; i++)
       {
@@ -1102,6 +1116,7 @@ namespace ORB_SLAM2
 
          pMP->UpdateNormalAndDepth();
       }
+      Print("end OptimizeEssentialGraph");
    }
 
    int Optimizer::OptimizeSim3(
@@ -1123,8 +1138,8 @@ namespace ORB_SLAM2
       optimizer.setAlgorithm(solver);
 
       // Calibration
-      const cv::Mat &K1 = pKF1->mK;
-      const cv::Mat &K2 = pKF2->mK;
+      const cv::Mat &K1 = pKF1->mFC.K;
+      const cv::Mat &K2 = pKF2->mFC.K;
 
       // Camera poses
       const cv::Mat R1w = pKF1->GetRotation();

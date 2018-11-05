@@ -407,7 +407,7 @@ namespace ORB_SLAM2
 
    size_t MapPoint::GetBufferSize()
    {
-      unsigned int size = sizeof(MapPointHeader);
+      size_t size = sizeof(MapPoint::Header);
       size += Serializer::GetMatBufferSize(mWorldPos);
       size += Serializer::GetMatBufferSize(mNormalVector);
       size += Serializer::GetMatBufferSize(mDescriptor);
@@ -417,7 +417,7 @@ namespace ORB_SLAM2
 
    void * MapPoint::ReadBytes(const void * buffer, Map & map)
    {
-      MapPointHeader * pHeader = (MapPointHeader *)buffer;
+      MapPoint::Header * pHeader = (MapPoint::Header *)buffer;
       mnId = pHeader->mnId;
       mnFirstKFid = pHeader->mnFirstKFId;
       nObs = pHeader->nObs;
@@ -440,7 +440,7 @@ namespace ORB_SLAM2
 
    void * MapPoint::WriteBytes(const void * buffer)
    {
-      MapPointHeader * pHeader = (MapPointHeader *)buffer;
+      MapPoint::Header * pHeader = (MapPoint::Header *)buffer;
       pHeader->mnId = mnId;
       pHeader->mnFirstKFId = mnFirstKFid;
       pHeader->nObs = nObs;

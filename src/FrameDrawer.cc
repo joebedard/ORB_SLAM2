@@ -31,9 +31,13 @@
 namespace ORB_SLAM2
 {
 
-   FrameDrawer::FrameDrawer(cv::FileStorage & fSettings) :
-      SyncPrint("FrameDrawer: "), mnKFs(0), mnMPs(0),
-      N(0), mState(NO_IMAGES_YET), mbOnlyTracking(false)
+   FrameDrawer::FrameDrawer(cv::FileStorage & fSettings)
+      : SyncPrint("FrameDrawer: ")
+      , mnKFs(0)
+      , mnMPs(0)
+      , N(0)
+      , mState(NO_IMAGES_YET)
+      , mbOnlyTracking(false)
    {
       float fps = fSettings["Camera.fps"];
       if (fps < 1.0f)
