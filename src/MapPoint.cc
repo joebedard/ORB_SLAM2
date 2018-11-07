@@ -411,7 +411,7 @@ namespace ORB_SLAM2
       size += Serializer::GetMatBufferSize(mWorldPos);
       size += Serializer::GetMatBufferSize(mNormalVector);
       size += Serializer::GetMatBufferSize(mDescriptor);
-      size += sizeof(size_t) + mObservations.size() * (sizeof(ObservationItem));
+      size += sizeof(size_t) + mObservations.size() * (sizeof(Observation));
       return size;
    }
 
@@ -465,11 +465,11 @@ namespace ORB_SLAM2
    {
       observations.clear();
       size_t * pQuantity = (size_t *)buffer;
-      ObservationItem * pData = (ObservationItem *)(pQuantity + 1);
-      ObservationItem * pEnd = pData + *pQuantity;
+      Observation * pData = (Observation *)(pQuantity + 1);
+      Observation * pEnd = pData + *pQuantity;
       while (pData < pEnd)
       {
-         KeyFrame * pKF = map.GetKeyFrame(pData->id);
+         KeyFrame * pKF = map.GetKeyFrame(pData->keyFrameId);
          observations[pKF] = pData->index;
          ++pData;
       }
@@ -480,10 +480,10 @@ namespace ORB_SLAM2
    {
       size_t * pQuantity = (size_t *)buffer;
       *pQuantity = observations.size();
-      ObservationItem * pData = (ObservationItem *)(pQuantity + 1);
+      Observation * pData = (Observation *)(pQuantity + 1);
       for (std::pair<KeyFrame *, size_t> p : observations)
       {
-         pData->id = p.first->GetId();
+         pData->keyFrameId = p.first->GetId();
          pData->index = p.second;
          ++pData;
       }

@@ -725,24 +725,26 @@ namespace ORB_SLAM2
    size_t KeyFrame::GetBufferSize()
    {
       unsigned int size = sizeof(KeyFrame::Header);
-      //mvKeys
-      //mvKeysUn
-      //mvuRight
-      //mvDepth
+      size += Serializer::GetKeyPointVectorBufferSize(mvKeys);
+      size += Serializer::GetKeyPointVectorBufferSize(mvKeysUn);
+      size += Serializer::GetVectorBufferSize<float>(mvuRight);
+      size += Serializer::GetVectorBufferSize<float>(mvDepth);
       size += Serializer::GetMatBufferSize(mDescriptors);
       //mBowVec // will be re-created by LocalMapping::ProcessNewKeyFrame->KeyFrame::ComputeBow
       //mFeatVec // will be re-created by LocalMapping::ProcessNewKeyFrame->KeyFrame::ComputeBow
       size += Serializer::GetMatBufferSize(mTcp);
-      //mvScaleFactors
+      size += Serializer::GetVectorBufferSize<float>(mvScaleFactors);
+      size += Serializer::GetVectorBufferSize<float>(mvLevelSigma2);
+      size += Serializer::GetVectorBufferSize<float>(mvInvLevelSigma2);
       size += Serializer::GetMatBufferSize(Tcw);
       size += Serializer::GetMatBufferSize(Twc);
       size += Serializer::GetMatBufferSize(Ow);
-      //mvpMapPoints
-      //mConnectedKeyFrameWeights
-      //mvpOrderedConnectedKeyFrames
-      //mvOrderedWeights
-      //mspChildrens
-      //mspLoopEdges
+      size += sizeof(size_t) + mvpMapPoints.size() * sizeof(id_type);
+      size += sizeof(size_t) + mConnectedKeyFrameWeights.size() * sizeof(KeyFrameWeight);
+      size += sizeof(size_t) + mvpOrderedConnectedKeyFrames.size() * sizeof(id_type);
+      size += Serializer::GetVectorBufferSize<int>(mvOrderedWeights);
+      size += sizeof(size_t) + mspChildrens.size() * sizeof(id_type);
+      size += sizeof(size_t) + mspLoopEdges.size() * sizeof(id_type);
       return size;
    }
 

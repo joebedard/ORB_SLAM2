@@ -82,4 +82,48 @@ namespace ORB_SLAM2
       return pData;
    }
 
+   size_t Serializer::GetKeyPointVectorBufferSize(const std::vector<cv::KeyPoint> & kpv)
+   {
+      return sizeof(size_t) + kpv.size() * sizeof(KeyPointItem);
+   }
+
+   void * Serializer::ReadKeyPointVector(const void * buffer, std::vector<cv::KeyPoint> & kpv)
+   {
+      size_t * pQuantity = (size_t *)buffer;
+      kpv.resize(*pQuantity);
+      KeyPointItem * pData = (KeyPointItem *)(pQuantity + 1);
+      for (int i = 0; i < *pQuantity; ++i)
+      {
+         kpv.at(i) = cv::KeyPoint(
+            pData->x, 
+            pData->y, 
+            pData->size, 
+            pData->angle, 
+            pData->response, 
+            pData->octave, 
+            pData->class_id);
+         ++pData;
+      }
+      return pData;
+   }
+
+   void * Serializer::WriteKeyPointVector(const void * buffer, const std::vector<cv::KeyPoint> & kpv)
+   {
+      size_t * pQuantity = (size_t *)buffer;
+      *pQuantity = kpv.size();
+      KeyPointItem * pData = (KeyPointItem *)(pQuantity + 1);
+      for (cv::KeyPoint kp : kpv)
+      {
+         pData->x = kp.pt.x;
+         pData->y = kp.pt.y;
+         pData->size = kp.size;
+         pData->angle = kp.angle;
+         pData->response = kp.response;
+         pData->octave = kp.octave;
+         pData->class_id = kp.octave;
+         ++pData;
+      }
+      return pData;
+   }
+
 }

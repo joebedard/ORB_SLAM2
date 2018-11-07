@@ -39,6 +39,27 @@ namespace ORB_SLAM2
       // utility function to write a 2-D cv::Mat to a pre-allocated memory buffer
       static void * WriteMatrix(const void * buffer, const cv::Mat & mat);
 
+      // utility function to calculate the serialized size of a std::vector<cv::KeyPoint>
+      static size_t GetKeyPointVectorBufferSize(const std::vector<cv::KeyPoint> & kpv);
+
+      // utility function to read a std::vector<cv::KeyPoint> from a pre-allocated memory buffer
+      static void * ReadKeyPointVector(const void * buffer, std::vector<cv::KeyPoint> & kpv);
+
+      // utility function to write a std::vector<cv::KeyPoint> to a pre-allocated memory buffer
+      static void * WriteKeyPointVector(const void * buffer, const std::vector<cv::KeyPoint> & kpv);
+
+      // utility template function to calculate the serialized size of a std::vector<T>
+      template<typename T>
+      static size_t GetVectorBufferSize(const std::vector<T> & v);
+
+      // utility template function to read a std::vector<T> from a pre-allocated memory buffer
+      template<typename T>
+      static void * ReadVector(const void * buffer, std::vector<T> & v);
+
+      // utility template function to write a std::vector<T> to a pre-allocated memory buffer
+      template<typename T>
+      static void * WriteVector(const void * buffer, const std::vector<T> & v);
+
    private:
 
       // total size of the object in bytes when serialized
@@ -56,7 +77,53 @@ namespace ORB_SLAM2
          int cols;
          int type;
       };
+
+      struct KeyPointItem
+      {
+         float x;
+         float y;
+         float size;
+         float angle;
+         float response;
+         int octave;
+         int class_id;
+      };
+
    };
+
+   template<typename T>
+   inline size_t Serializer::GetVectorBufferSize(const std::vector<T> & v)
+   {
+      return sizeof(size_t) + v.size() * sizeof(T);
+   }
+
+   template<typename T>
+   void * Serializer::ReadVector(const void * buffer, std::vector<T> & v)
+   {
+      size_t * pQuantity = (size_t *)buffer;
+      v.resize(*pQuantity);
+      T * pData = (T *)(pQuantity + 1);
+      for (int i = 0; i < *pQuantity; ++i)
+      {
+         v.at(i) = *pData;
+         ++pData;
+      }
+      return pData;
+   }
+
+   template<typename T>
+   void * Serializer::WriteVector(const void * buffer, const std::vector<T> & v)
+   {
+      size_t * pQuantity = (size_t *)buffer;
+      *pQuantity = v.size();
+      T * pData = (T *)(pQuantity + 1);
+      for (T t : v)
+      {
+         *pData = t;
+         ++pData;
+      }
+      return pData;
+   }
 }
 
 #endif // SERIALIZER_H

@@ -258,6 +258,12 @@ namespace ORB_SLAM2
          bool mbBad;
       };
 
+      struct KeyFrameWeight
+      {
+         id_type keyFrameId;
+         int weight;
+      };
+
       id_type mnId;
 
       double mTimestamp;
@@ -265,6 +271,15 @@ namespace ORB_SLAM2
       // Grid (to speed up feature matching)
       const int mnGridCols;
       const int mnGridRows;
+
+      static void * ReadMapPoints(const void * buffer, Map & map, std::vector<MapPoint *> & kfv);
+      static void * WriteMapPoints(const void * buffer, const std::vector<MapPoint *> & kfv);
+      static void * ReadKeyFrameWeights(const void * buffer, Map & map, std::map<KeyFrame *, int> & kfWeights);
+      static void * WriteKeyFrameWeights(const void * buffer, const std::map<KeyFrame *, int> & kfWeights);
+      static void * ReadKeyFrames(const void * buffer, Map & map, std::vector<KeyFrame *> & kfv);
+      static void * WriteKeyFrames(const void * buffer, const std::vector<KeyFrame *> & kfv);
+      static void * ReadKeyFrames(const void * buffer, Map & map, std::set<KeyFrame *> & kfv);
+      static void * WriteKeyFrames(const void * buffer, const std::set<KeyFrame *> & kfv);
 
       bool PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY);
       void AssignFeaturesToGrid();

@@ -164,15 +164,15 @@ namespace ORB_SLAM2
          float mfMaxDistance;
       };
 
-      struct ObservationItem
+      struct Observation
       {
-         id_type id;
+         id_type keyFrameId;
          size_t index;
       };
 
-      void * ReadObservations(const void * buffer, Map & map, std::map<KeyFrame *, size_t> & mObservations);
+      static void * ReadObservations(const void * buffer, Map & map, std::map<KeyFrame *, size_t> & observations);
 
-      void * WriteObservations(const void * buffer, std::map<KeyFrame *, size_t> & mObservations);
+      static void * WriteObservations(const void * buffer, std::map<KeyFrame *, size_t> & observations);
 
    };
 
