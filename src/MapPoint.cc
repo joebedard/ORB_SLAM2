@@ -77,7 +77,7 @@ namespace ORB_SLAM2
          return;
       mObservations[pKF] = idx;
 
-      if (pKF->mvuRight[idx] >= 0)
+      if (pKF->right[idx] >= 0)
          nObs += 2;
       else
          nObs++;
@@ -91,7 +91,7 @@ namespace ORB_SLAM2
          if (mObservations.count(pKF))
          {
             int idx = mObservations[pKF];
-            if (pKF->mvuRight[idx] >= 0)
+            if (pKF->right[idx] >= 0)
                nObs -= 2;
             else
                nObs--;
@@ -240,7 +240,7 @@ namespace ORB_SLAM2
          KeyFrame* pKF = mit->first;
 
          if (!pKF->isBad())
-            vDescriptors.push_back(pKF->mDescriptors.row(mit->second));
+            vDescriptors.push_back(pKF->descriptors.row(mit->second));
       }
 
       if (vDescriptors.empty())
@@ -342,14 +342,14 @@ namespace ORB_SLAM2
 
       cv::Mat PC = Pos - pRefKF->GetCameraCenter();
       const float dist = cv::norm(PC);
-      const int level = pRefKF->mvKeysUn[observations[pRefKF]].octave;
-      const float levelScaleFactor = pRefKF->mvScaleFactors[level];
-      const int nLevels = pRefKF->mnScaleLevels;
+      const int level = pRefKF->keysUn[observations[pRefKF]].octave;
+      const float levelScaleFactor = pRefKF->scaleFactors[level];
+      const int nLevels = pRefKF->scaleLevels;
 
       {
          unique_lock<mutex> lock3(mMutexPos);
          mfMaxDistance = dist * levelScaleFactor;
-         mfMinDistance = mfMaxDistance / pRefKF->mvScaleFactors[nLevels - 1];
+         mfMinDistance = mfMaxDistance / pRefKF->scaleFactors[nLevels - 1];
          mNormalVector = normal / n;
       }
    }
@@ -374,11 +374,11 @@ namespace ORB_SLAM2
          ratio = mfMaxDistance / currentDist;
       }
 
-      int nScale = ceil(log(ratio) / pKF->mfLogScaleFactor);
+      int nScale = ceil(log(ratio) / pKF->logScaleFactor);
       if (nScale < 0)
          nScale = 0;
-      else if (nScale >= pKF->mnScaleLevels)
-         nScale = pKF->mnScaleLevels - 1;
+      else if (nScale >= pKF->scaleLevels)
+         nScale = pKF->scaleLevels - 1;
 
       return nScale;
    }

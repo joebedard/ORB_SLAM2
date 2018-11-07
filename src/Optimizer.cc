@@ -129,9 +129,9 @@ namespace ORB_SLAM2
 
             nEdges++;
 
-            const cv::KeyPoint &kpUn = pKF->mvKeysUn[mit->second];
+            const cv::KeyPoint &kpUn = pKF->keysUn[mit->second];
 
-            if (pKF->mvuRight[mit->second] < 0)
+            if (pKF->right[mit->second] < 0)
             {
                Eigen::Matrix<double, 2, 1> obs;
                obs << kpUn.pt.x, kpUn.pt.y;
@@ -141,7 +141,7 @@ namespace ORB_SLAM2
                e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(id)));
                e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKF->GetId())));
                e->setMeasurement(obs);
-               const float &invSigma2 = pKF->mvInvLevelSigma2[kpUn.octave];
+               const float &invSigma2 = pKF->invLevelSigma2[kpUn.octave];
                e->setInformation(Eigen::Matrix2d::Identity()*invSigma2);
 
                if (bRobust)
@@ -161,7 +161,7 @@ namespace ORB_SLAM2
             else
             {
                Eigen::Matrix<double, 3, 1> obs;
-               const float kp_ur = pKF->mvuRight[mit->second];
+               const float kp_ur = pKF->right[mit->second];
                obs << kpUn.pt.x, kpUn.pt.y, kp_ur;
 
                g2o::EdgeStereoSE3ProjectXYZ* e = new g2o::EdgeStereoSE3ProjectXYZ();
@@ -169,7 +169,7 @@ namespace ORB_SLAM2
                e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(id)));
                e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKF->GetId())));
                e->setMeasurement(obs);
-               const float &invSigma2 = pKF->mvInvLevelSigma2[kpUn.octave];
+               const float &invSigma2 = pKF->invLevelSigma2[kpUn.octave];
                Eigen::Matrix3d Info = Eigen::Matrix3d::Identity()*invSigma2;
                e->setInformation(Info);
 
@@ -631,10 +631,10 @@ namespace ORB_SLAM2
 
             if (!pKFi->isBad())
             {
-               const cv::KeyPoint &kpUn = pKFi->mvKeysUn[mit->second];
+               const cv::KeyPoint &kpUn = pKFi->keysUn[mit->second];
 
                // Monocular observation
-               if (pKFi->mvuRight[mit->second] < 0)
+               if (pKFi->right[mit->second] < 0)
                {
                   Eigen::Matrix<double, 2, 1> obs;
                   obs << kpUn.pt.x, kpUn.pt.y;
@@ -644,7 +644,7 @@ namespace ORB_SLAM2
                   e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(id)));
                   e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKFi->GetId())));
                   e->setMeasurement(obs);
-                  const float &invSigma2 = pKFi->mvInvLevelSigma2[kpUn.octave];
+                  const float &invSigma2 = pKFi->invLevelSigma2[kpUn.octave];
                   e->setInformation(Eigen::Matrix2d::Identity()*invSigma2);
 
                   g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
@@ -664,7 +664,7 @@ namespace ORB_SLAM2
                else // Stereo observation
                {
                   Eigen::Matrix<double, 3, 1> obs;
-                  const float kp_ur = pKFi->mvuRight[mit->second];
+                  const float kp_ur = pKFi->right[mit->second];
                   obs << kpUn.pt.x, kpUn.pt.y, kp_ur;
 
                   g2o::EdgeStereoSE3ProjectXYZ* e = new g2o::EdgeStereoSE3ProjectXYZ();
@@ -672,7 +672,7 @@ namespace ORB_SLAM2
                   e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(id)));
                   e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKFi->GetId())));
                   e->setMeasurement(obs);
-                  const float &invSigma2 = pKFi->mvInvLevelSigma2[kpUn.octave];
+                  const float &invSigma2 = pKFi->invLevelSigma2[kpUn.octave];
                   Eigen::Matrix3d Info = Eigen::Matrix3d::Identity()*invSigma2;
                   e->setInformation(Info);
 
@@ -1221,14 +1221,14 @@ namespace ORB_SLAM2
 
          // Set edge x1 = S12*X2
          Eigen::Matrix<double, 2, 1> obs1;
-         const cv::KeyPoint &kpUn1 = pKF1->mvKeysUn[i];
+         const cv::KeyPoint &kpUn1 = pKF1->keysUn[i];
          obs1 << kpUn1.pt.x, kpUn1.pt.y;
 
          g2o::EdgeSim3ProjectXYZ* e12 = new g2o::EdgeSim3ProjectXYZ();
          e12->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(id2)));
          e12->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(0)));
          e12->setMeasurement(obs1);
-         const float &invSigmaSquare1 = pKF1->mvInvLevelSigma2[kpUn1.octave];
+         const float &invSigmaSquare1 = pKF1->invLevelSigma2[kpUn1.octave];
          e12->setInformation(Eigen::Matrix2d::Identity()*invSigmaSquare1);
 
          g2o::RobustKernelHuber* rk1 = new g2o::RobustKernelHuber;
@@ -1238,7 +1238,7 @@ namespace ORB_SLAM2
 
          // Set edge x2 = S21*X1
          Eigen::Matrix<double, 2, 1> obs2;
-         const cv::KeyPoint &kpUn2 = pKF2->mvKeysUn[i2];
+         const cv::KeyPoint &kpUn2 = pKF2->keysUn[i2];
          obs2 << kpUn2.pt.x, kpUn2.pt.y;
 
          g2o::EdgeInverseSim3ProjectXYZ* e21 = new g2o::EdgeInverseSim3ProjectXYZ();
@@ -1246,7 +1246,7 @@ namespace ORB_SLAM2
          e21->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(id1)));
          e21->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(0)));
          e21->setMeasurement(obs2);
-         float invSigmaSquare2 = pKF2->mvInvLevelSigma2[kpUn2.octave];
+         float invSigmaSquare2 = pKF2->invLevelSigma2[kpUn2.octave];
          e21->setInformation(Eigen::Matrix2d::Identity()*invSigmaSquare2);
 
          g2o::RobustKernelHuber* rk2 = new g2o::RobustKernelHuber;

@@ -158,7 +158,6 @@ zmq::message_t LogoutService(zmq::message_t & request)
 {
    gOutServ.Print("begin LogoutService");
    LogoutTrackerRequest * pReqData = request.data<LogoutTrackerRequest>();
-   pReqData->trackerId;
 
    zmq::message_t reply(sizeof(GeneralReply));
    GeneralReply * pRepData = reply.data<GeneralReply>();
@@ -169,8 +168,26 @@ zmq::message_t LogoutService(zmq::message_t & request)
    return reply;
 }
 
+zmq::message_t InitializeService(zmq::message_t & request)
+{
+   gOutServ.Print("begin InitializeService");
+   InitializeRequest * pReqData = request.data<InitializeRequest>();
+   std::vector<MapPoint*> mapPoints;
+   std::vector<KeyFrame*> keyFrames;
+
+   // TODO - read MapPoints and KeyFrames
+
+   zmq::message_t reply(sizeof(GeneralReply));
+   GeneralReply * pRepData = reply.data<GeneralReply>();
+   gMapper->Initialize(pReqData->trackerId, mapPoints, keyFrames);
+   pRepData->replyCode = ReplyCode::SUCCEEDED;
+
+   gOutServ.Print("end InitializeService");
+   return reply;
+}
+
 // array of function pointer
-zmq::message_t (*gServices[ServiceId::quantity])(zmq::message_t & request) = { HelloService, LoginService, LogoutService };
+zmq::message_t (*gServices[ServiceId::quantity])(zmq::message_t & request) = { HelloService, LoginService, LogoutService, InitializeService };
 
 void RunServer(void * param) try
 {

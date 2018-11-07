@@ -117,7 +117,7 @@ namespace ORB_SLAM2
       return mLocalMapper.AcceptKeyFrames();
    }
 
-   void MapperServer::Initialize(unsigned int trackerId, vector<MapPoint*> & mapPoints, vector<KeyFrame*> & keyframes)
+   void MapperServer::Initialize(unsigned int trackerId, vector<MapPoint *> & mapPoints, vector<KeyFrame*> & keyframes)
    {
       Print("begin Initialize");
 
@@ -163,7 +163,7 @@ namespace ORB_SLAM2
       Print("end Initialize");
    }
 
-   bool MapperServer::InsertKeyFrame(unsigned int trackerId, vector<MapPoint*> & mapPoints, KeyFrame *pKF)
+   bool MapperServer::InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame *pKF)
    {
       ValidateTracker(trackerId);
 

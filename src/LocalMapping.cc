@@ -322,7 +322,7 @@ namespace ORB_SLAM2
       const float &invfx1 = mpCurrentKeyFrame->mFC.invfx;
       const float &invfy1 = mpCurrentKeyFrame->mFC.invfy;
 
-      const float ratioFactor = 1.5f*mpCurrentKeyFrame->mfScaleFactor;
+      const float ratioFactor = 1.5f*mpCurrentKeyFrame->scaleFactor;
 
       int nnew = 0;
 
@@ -384,12 +384,12 @@ namespace ORB_SLAM2
             const int &idx1 = vMatchedIndices[ikp].first;
             const int &idx2 = vMatchedIndices[ikp].second;
 
-            const cv::KeyPoint &kp1 = mpCurrentKeyFrame->mvKeysUn[idx1];
-            const float kp1_ur = mpCurrentKeyFrame->mvuRight[idx1];
+            const cv::KeyPoint &kp1 = mpCurrentKeyFrame->keysUn[idx1];
+            const float kp1_ur = mpCurrentKeyFrame->right[idx1];
             bool bStereo1 = kp1_ur >= 0;
 
-            const cv::KeyPoint &kp2 = pKF2->mvKeysUn[idx2];
-            const float kp2_ur = pKF2->mvuRight[idx2];
+            const cv::KeyPoint &kp2 = pKF2->keysUn[idx2];
+            const float kp2_ur = pKF2->right[idx2];
             bool bStereo2 = kp2_ur >= 0;
 
             // Check parallax between rays
@@ -405,9 +405,9 @@ namespace ORB_SLAM2
             float cosParallaxStereo2 = cosParallaxStereo;
 
             if (bStereo1)
-               cosParallaxStereo1 = cos(2 * atan2(mpCurrentKeyFrame->mFC.bl / 2, mpCurrentKeyFrame->mvDepth[idx1]));
+               cosParallaxStereo1 = cos(2 * atan2(mpCurrentKeyFrame->mFC.bl / 2, mpCurrentKeyFrame->depth[idx1]));
             else if (bStereo2)
-               cosParallaxStereo2 = cos(2 * atan2(pKF2->mFC.bl / 2, pKF2->mvDepth[idx2]));
+               cosParallaxStereo2 = cos(2 * atan2(pKF2->mFC.bl / 2, pKF2->depth[idx2]));
 
             cosParallaxStereo = min(cosParallaxStereo1, cosParallaxStereo2);
 
@@ -456,7 +456,7 @@ namespace ORB_SLAM2
                continue;
 
             //Check reprojection error in first keyframe
-            const float &sigmaSquare1 = mpCurrentKeyFrame->mvLevelSigma2[kp1.octave];
+            const float &sigmaSquare1 = mpCurrentKeyFrame->levelSigma2[kp1.octave];
             const float x1 = Rcw1.row(0).dot(x3Dt) + tcw1.at<float>(0);
             const float y1 = Rcw1.row(1).dot(x3Dt) + tcw1.at<float>(1);
             const float invz1 = 1.0 / z1;
@@ -483,7 +483,7 @@ namespace ORB_SLAM2
             }
 
             //Check reprojection error in second keyframe
-            const float sigmaSquare2 = pKF2->mvLevelSigma2[kp2.octave];
+            const float sigmaSquare2 = pKF2->levelSigma2[kp2.octave];
             const float x2 = Rcw2.row(0).dot(x3Dt) + tcw2.at<float>(0);
             const float y2 = Rcw2.row(1).dot(x3Dt) + tcw2.at<float>(1);
             const float invz2 = 1.0 / z2;
@@ -519,7 +519,7 @@ namespace ORB_SLAM2
                continue;
 
             const float ratioDist = dist2 / dist1;
-            const float ratioOctave = mpCurrentKeyFrame->mvScaleFactors[kp1.octave] / pKF2->mvScaleFactors[kp2.octave];
+            const float ratioOctave = mpCurrentKeyFrame->scaleFactors[kp1.octave] / pKF2->scaleFactors[kp2.octave];
 
             /*if(fabs(ratioDist-ratioOctave)>ratioFactor)
                 continue;*/
@@ -770,14 +770,14 @@ namespace ORB_SLAM2
                {
                   if (!mbMonocular)
                   {
-                     if (pKF->mvDepth[i] > pKF->mFC.thDepth || pKF->mvDepth[i] < 0)
+                     if (pKF->depth[i] > pKF->mFC.thDepth || pKF->depth[i] < 0)
                         continue;
                   }
 
                   nMPs++;
                   if (pMP->Observations() > thObs)
                   {
-                     const int &scaleLevel = pKF->mvKeysUn[i].octave;
+                     const int &scaleLevel = pKF->keysUn[i].octave;
                      const map<KeyFrame*, size_t> observations = pMP->GetObservations();
                      int nObs = 0;
                      for (map<KeyFrame*, size_t>::const_iterator mit = observations.begin(), mend = observations.end(); mit != mend; mit++)
@@ -785,7 +785,7 @@ namespace ORB_SLAM2
                         KeyFrame* pKFi = mit->first;
                         if (pKFi == pKF)
                            continue;
-                        const int &scaleLeveli = pKFi->mvKeysUn[mit->second].octave;
+                        const int &scaleLeveli = pKFi->keysUn[mit->second].octave;
 
                         if (scaleLeveli <= scaleLevel + 1)
                         {

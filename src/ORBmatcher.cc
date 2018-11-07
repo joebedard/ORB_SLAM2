@@ -160,7 +160,7 @@ namespace ORB_SLAM2
 
       const float dsqr = num * num / den;
 
-      return dsqr < 3.84*pKF2->mvLevelSigma2[kp2.octave];
+      return dsqr < 3.84*pKF2->levelSigma2[kp2.octave];
    }
 
    int ORBmatcher::SearchByBoW(KeyFrame* pKF, Frame &F, vector<MapPoint*> &vpMapPointMatches)
@@ -203,7 +203,7 @@ namespace ORB_SLAM2
                if (pMP->isBad())
                   continue;
 
-               const cv::Mat &dKF = pKF->mDescriptors.row(realIdxKF);
+               const cv::Mat &dKF = pKF->descriptors.row(realIdxKF);
 
                int bestDist1 = 256;
                int bestIdxF = -1;
@@ -238,7 +238,7 @@ namespace ORB_SLAM2
                   {
                      vpMapPointMatches[bestIdxF] = pMP;
 
-                     const cv::KeyPoint &kp = pKF->mvKeysUn[realIdxKF];
+                     const cv::KeyPoint &kp = pKF->keysUn[realIdxKF];
 
                      if (mbCheckOrientation)
                      {
@@ -364,7 +364,7 @@ namespace ORB_SLAM2
          int nPredictedLevel = pMP->PredictScale(dist, pKF);
 
          // Search in a radius
-         const float radius = th * pKF->mvScaleFactors[nPredictedLevel];
+         const float radius = th * pKF->scaleFactors[nPredictedLevel];
 
          const vector<size_t> vIndices = pKF->GetFeaturesInArea(u, v, radius);
 
@@ -382,12 +382,12 @@ namespace ORB_SLAM2
             if (vpMatched[idx])
                continue;
 
-            const int &kpLevel = pKF->mvKeysUn[idx].octave;
+            const int &kpLevel = pKF->keysUn[idx].octave;
 
             if (kpLevel<nPredictedLevel - 1 || kpLevel>nPredictedLevel)
                continue;
 
-            const cv::Mat &dKF = pKF->mDescriptors.row(idx);
+            const cv::Mat &dKF = pKF->descriptors.row(idx);
 
             const int dist = DescriptorDistance(dMP, dKF);
 
@@ -528,15 +528,15 @@ namespace ORB_SLAM2
 
    int ORBmatcher::SearchByBoW(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint *> &vpMatches12)
    {
-      const vector<cv::KeyPoint> &vKeysUn1 = pKF1->mvKeysUn;
+      const vector<cv::KeyPoint> &vKeysUn1 = pKF1->keysUn;
       const DBoW2::FeatureVector &vFeatVec1 = pKF1->mFeatVec;
       const vector<MapPoint*> vpMapPoints1 = pKF1->GetMapPointMatches();
-      const cv::Mat &Descriptors1 = pKF1->mDescriptors;
+      const cv::Mat &Descriptors1 = pKF1->descriptors;
 
-      const vector<cv::KeyPoint> &vKeysUn2 = pKF2->mvKeysUn;
+      const vector<cv::KeyPoint> &vKeysUn2 = pKF2->keysUn;
       const DBoW2::FeatureVector &vFeatVec2 = pKF2->mFeatVec;
       const vector<MapPoint*> vpMapPoints2 = pKF2->GetMapPointMatches();
-      const cv::Mat &Descriptors2 = pKF2->mDescriptors;
+      const cv::Mat &Descriptors2 = pKF2->descriptors;
 
       vpMatches12 = vector<MapPoint*>(vpMapPoints1.size(), static_cast<MapPoint*>(NULL));
       vector<bool> vbMatched2(vpMapPoints2.size(), false);
@@ -709,15 +709,15 @@ namespace ORB_SLAM2
                if (pMP1)
                   continue;
 
-               const bool bStereo1 = pKF1->mvuRight[idx1] >= 0;
+               const bool bStereo1 = pKF1->right[idx1] >= 0;
 
                if (bOnlyStereo)
                   if (!bStereo1)
                      continue;
 
-               const cv::KeyPoint &kp1 = pKF1->mvKeysUn[idx1];
+               const cv::KeyPoint &kp1 = pKF1->keysUn[idx1];
 
-               const cv::Mat &d1 = pKF1->mDescriptors.row(idx1);
+               const cv::Mat &d1 = pKF1->descriptors.row(idx1);
 
                int bestDist = TH_LOW;
                int bestIdx2 = -1;
@@ -732,26 +732,26 @@ namespace ORB_SLAM2
                   if (vbMatched2[idx2] || pMP2)
                      continue;
 
-                  const bool bStereo2 = pKF2->mvuRight[idx2] >= 0;
+                  const bool bStereo2 = pKF2->right[idx2] >= 0;
 
                   if (bOnlyStereo)
                      if (!bStereo2)
                         continue;
 
-                  const cv::Mat &d2 = pKF2->mDescriptors.row(idx2);
+                  const cv::Mat &d2 = pKF2->descriptors.row(idx2);
 
                   const int dist = DescriptorDistance(d1, d2);
 
                   if (dist > TH_LOW || dist > bestDist)
                      continue;
 
-                  const cv::KeyPoint &kp2 = pKF2->mvKeysUn[idx2];
+                  const cv::KeyPoint &kp2 = pKF2->keysUn[idx2];
 
                   if (!bStereo1 && !bStereo2)
                   {
                      const float distex = ex - kp2.pt.x;
                      const float distey = ey - kp2.pt.y;
-                     if (distex*distex + distey * distey < 100 * pKF2->mvScaleFactors[kp2.octave])
+                     if (distex*distex + distey * distey < 100 * pKF2->scaleFactors[kp2.octave])
                         continue;
                   }
 
@@ -764,7 +764,7 @@ namespace ORB_SLAM2
 
                if (bestIdx2 >= 0)
                {
-                  const cv::KeyPoint &kp2 = pKF2->mvKeysUn[bestIdx2];
+                  const cv::KeyPoint &kp2 = pKF2->keysUn[bestIdx2];
                   vMatches12[idx1] = bestIdx2;
                   nmatches++;
 
@@ -894,7 +894,7 @@ namespace ORB_SLAM2
          int nPredictedLevel = pMP->PredictScale(dist3D, pKF);
 
          // Search in a radius
-         const float radius = th * pKF->mvScaleFactors[nPredictedLevel];
+         const float radius = th * pKF->scaleFactors[nPredictedLevel];
 
          const vector<size_t> vIndices = pKF->GetFeaturesInArea(u, v, radius);
 
@@ -911,25 +911,25 @@ namespace ORB_SLAM2
          {
             const size_t idx = *vit;
 
-            const cv::KeyPoint &kp = pKF->mvKeysUn[idx];
+            const cv::KeyPoint &kp = pKF->keysUn[idx];
 
             const int &kpLevel = kp.octave;
 
             if (kpLevel<nPredictedLevel - 1 || kpLevel>nPredictedLevel)
                continue;
 
-            if (pKF->mvuRight[idx] >= 0)
+            if (pKF->right[idx] >= 0)
             {
                // Check reprojection error in stereo
                const float &kpx = kp.pt.x;
                const float &kpy = kp.pt.y;
-               const float &kpr = pKF->mvuRight[idx];
+               const float &kpr = pKF->right[idx];
                const float ex = u - kpx;
                const float ey = v - kpy;
                const float er = ur - kpr;
                const float e2 = ex * ex + ey * ey + er * er;
 
-               if (e2*pKF->mvInvLevelSigma2[kpLevel] > 7.8)
+               if (e2*pKF->invLevelSigma2[kpLevel] > 7.8)
                   continue;
             }
             else
@@ -940,11 +940,11 @@ namespace ORB_SLAM2
                const float ey = v - kpy;
                const float e2 = ex * ex + ey * ey;
 
-               if (e2*pKF->mvInvLevelSigma2[kpLevel] > 5.99)
+               if (e2*pKF->invLevelSigma2[kpLevel] > 5.99)
                   continue;
             }
 
-            const cv::Mat &dKF = pKF->mDescriptors.row(idx);
+            const cv::Mat &dKF = pKF->descriptors.row(idx);
 
             const int dist = DescriptorDistance(dMP, dKF);
 
@@ -1073,7 +1073,7 @@ namespace ORB_SLAM2
          const int nPredictedLevel = pMP->PredictScale(dist3D, pKF);
 
          // Search in a radius
-         const float radius = th * pKF->mvScaleFactors[nPredictedLevel];
+         const float radius = th * pKF->scaleFactors[nPredictedLevel];
 
          const vector<size_t> vIndices = pKF->GetFeaturesInArea(u, v, radius);
 
@@ -1089,12 +1089,12 @@ namespace ORB_SLAM2
          for (vector<size_t>::const_iterator vit = vIndices.begin(); vit != vIndices.end(); vit++)
          {
             const size_t idx = *vit;
-            const int &kpLevel = pKF->mvKeysUn[idx].octave;
+            const int &kpLevel = pKF->keysUn[idx].octave;
 
             if (kpLevel<nPredictedLevel - 1 || kpLevel>nPredictedLevel)
                continue;
 
-            const cv::Mat &dKF = pKF->mDescriptors.row(idx);
+            const cv::Mat &dKF = pKF->descriptors.row(idx);
 
             int dist = DescriptorDistance(dMP, dKF);
 
@@ -1218,7 +1218,7 @@ namespace ORB_SLAM2
          const int nPredictedLevel = pMP->PredictScale(dist3D, pKF2);
 
          // Search in a radius
-         const float radius = th * pKF2->mvScaleFactors[nPredictedLevel];
+         const float radius = th * pKF2->scaleFactors[nPredictedLevel];
 
          const vector<size_t> vIndices = pKF2->GetFeaturesInArea(u, v, radius);
 
@@ -1234,12 +1234,12 @@ namespace ORB_SLAM2
          {
             const size_t idx = *vit;
 
-            const cv::KeyPoint &kp = pKF2->mvKeysUn[idx];
+            const cv::KeyPoint &kp = pKF2->keysUn[idx];
 
             if (kp.octave<nPredictedLevel - 1 || kp.octave>nPredictedLevel)
                continue;
 
-            const cv::Mat &dKF = pKF2->mDescriptors.row(idx);
+            const cv::Mat &dKF = pKF2->descriptors.row(idx);
 
             const int dist = DescriptorDistance(dMP, dKF);
 
@@ -1298,7 +1298,7 @@ namespace ORB_SLAM2
          const int nPredictedLevel = pMP->PredictScale(dist3D, pKF1);
 
          // Search in a radius of 2.5*sigma(ScaleLevel)
-         const float radius = th * pKF1->mvScaleFactors[nPredictedLevel];
+         const float radius = th * pKF1->scaleFactors[nPredictedLevel];
 
          const vector<size_t> vIndices = pKF1->GetFeaturesInArea(u, v, radius);
 
@@ -1314,12 +1314,12 @@ namespace ORB_SLAM2
          {
             const size_t idx = *vit;
 
-            const cv::KeyPoint &kp = pKF1->mvKeysUn[idx];
+            const cv::KeyPoint &kp = pKF1->keysUn[idx];
 
             if (kp.octave<nPredictedLevel - 1 || kp.octave>nPredictedLevel)
                continue;
 
-            const cv::Mat &dKF = pKF1->mDescriptors.row(idx);
+            const cv::Mat &dKF = pKF1->descriptors.row(idx);
 
             const int dist = DescriptorDistance(dMP, dKF);
 
@@ -1591,7 +1591,7 @@ namespace ORB_SLAM2
 
                   if (mbCheckOrientation)
                   {
-                     float rot = pKF->mvKeysUn[i].angle - CurrentFrame.mvKeysUn[bestIdx2].angle;
+                     float rot = pKF->keysUn[i].angle - CurrentFrame.mvKeysUn[bestIdx2].angle;
                      if (rot < 0.0)
                         rot += 360.0f;
                      int bin = round(rot*factor);

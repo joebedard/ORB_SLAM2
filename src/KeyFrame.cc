@@ -36,7 +36,7 @@ namespace ORB_SLAM2
       , mnId(id)
       , mTimestamp(frame.mTimeStamp)
       , mFC(*frame.mFC)
-      , N(frame.N)
+      , mN(frame.N)
       , mvKeys(frame.mvKeys)
       , mvKeysUn(frame.mvKeysUn)
       , mvuRight(frame.mvuRight)
@@ -68,8 +68,20 @@ namespace ORB_SLAM2
       , mbToBeErased(false)
       , mbBad(false)
 
-      // const references
+      // public const references
       , timestamp(mTimestamp)
+      , N(mN)
+      , keysUn(mvKeysUn)
+      , right(mvuRight)
+      , depth(mvDepth)
+      , descriptors(mDescriptors)
+      , Tcp(mTcp)
+      , scaleLevels(mnScaleLevels)
+      , scaleFactor(mfScaleFactor)
+      , logScaleFactor(mfLogScaleFactor)
+      , scaleFactors(mvScaleFactors)
+      , levelSigma2(mvLevelSigma2)
+      , invLevelSigma2(mvInvLevelSigma2)
    {
       for (int i = 0;i < FRAME_GRID_COLS;i++)
          for (int j = 0; j < FRAME_GRID_ROWS; j++)
@@ -81,6 +93,113 @@ namespace ORB_SLAM2
    id_type KeyFrame::GetId()
    {
       return mnId;
+   }
+
+   void * KeyFrame::ReadMapPoints(const void * buffer, Map & map, std::vector<MapPoint *> & mpv)
+   {
+      size_t * pQuantity = (size_t *)buffer;
+      mpv.resize(*pQuantity);
+      id_type * pData = (id_type *)(pQuantity + 1);
+      for (int i = 0; i < *pQuantity; ++i)
+      {
+         mpv.at(i) = map.GetMapPoint(*pData);
+         ++pData;
+      }
+      return pData;
+   }
+
+   void * KeyFrame::WriteMapPoints(const void * buffer, const std::vector<MapPoint *> & mpv)
+   {
+      size_t * pQuantity = (size_t *)buffer;
+      *pQuantity = mpv.size();
+      id_type * pData = (id_type *)(pQuantity + 1);
+      for (MapPoint * pMP : mpv)
+      {
+         *pData = pMP->GetId();
+         ++pData;
+      }
+      return pData;
+   }
+
+   void * KeyFrame::ReadKeyFrameWeights(const void * buffer, Map & map, std::map<KeyFrame *, int> & kfWeights)
+   {
+      kfWeights.clear();
+      size_t * pQuantity = (size_t *)buffer;
+      KeyFrameWeight * pData = (KeyFrameWeight *)(pQuantity + 1);
+      KeyFrameWeight * pEnd = pData + *pQuantity;
+      while (pData < pEnd)
+      {
+         KeyFrame * pKF = map.GetKeyFrame(pData->keyFrameId);
+         kfWeights[pKF] = pData->weight;
+         ++pData;
+      }
+      return pData;
+   }
+
+   void * KeyFrame::WriteKeyFrameWeights(const void * buffer, const std::map<KeyFrame *, int> & kfWeights)
+   {
+      size_t * pQuantity = (size_t *)buffer;
+      *pQuantity = kfWeights.size();
+      KeyFrameWeight * pData = (KeyFrameWeight *)(pQuantity + 1);
+      for (std::pair<KeyFrame *, size_t> p : kfWeights)
+      {
+         pData->keyFrameId = p.first->GetId();
+         pData->weight = p.second;
+         ++pData;
+      }
+      return pData;
+   }
+
+   void * KeyFrame::ReadKeyFrames(const void * buffer, Map & map, std::vector<KeyFrame *> & kfv)
+   {
+      size_t * pQuantity = (size_t *)buffer;
+      kfv.resize(*pQuantity);
+      id_type * pData = (id_type *)(pQuantity + 1);
+      for (int i = 0; i < *pQuantity; ++i)
+      {
+         kfv.at(i) = map.GetKeyFrame(*pData);
+         ++pData;
+      }
+      return pData;
+   }
+
+   void * KeyFrame::WriteKeyFrames(const void * buffer, const std::vector<KeyFrame *> & kfv)
+   {
+      size_t * pQuantity = (size_t *)buffer;
+      *pQuantity = kfv.size();
+      id_type * pData = (id_type *)(pQuantity + 1);
+      for (KeyFrame * pKF : kfv)
+      {
+         *pData = pKF->GetId();
+         ++pData;
+      }
+      return pData;
+   }
+
+   void * KeyFrame::ReadKeyFrames(const void * buffer, Map & map, std::set<KeyFrame *> & kfs)
+   {
+      size_t * pQuantity = (size_t *)buffer;
+      kfs.clear();
+      id_type * pData = (id_type *)(pQuantity + 1);
+      for (int i = 0; i < *pQuantity; ++i)
+      {
+         kfs.insert(map.GetKeyFrame(*pData));
+         ++pData;
+      }
+      return pData;
+   }
+
+   void * KeyFrame::WriteKeyFrames(const void * buffer, const std::set<KeyFrame *> & kfs)
+   {
+      size_t * pQuantity = (size_t *)buffer;
+      *pQuantity = kfs.size();
+      id_type * pData = (id_type *)(pQuantity + 1);
+      for (KeyFrame * pKF : kfs)
+      {
+         *pData = pKF->GetId();
+         ++pData;
+      }
+      return pData;
    }
 
    bool KeyFrame::PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY)
@@ -185,13 +304,13 @@ namespace ORB_SLAM2
    void KeyFrame::UpdateBestCovisibles()
    {
       unique_lock<mutex> lock(mMutexConnections);
-      vector<pair<int, KeyFrame*> > vPairs;
+      vector<pair<int, KeyFrame *> > vPairs;
       vPairs.reserve(mConnectedKeyFrameWeights.size());
-      for (map<KeyFrame*, int>::iterator mit = mConnectedKeyFrameWeights.begin(), mend = mConnectedKeyFrameWeights.end(); mit != mend; mit++)
+      for (map<KeyFrame *, int>::iterator mit = mConnectedKeyFrameWeights.begin(), mend = mConnectedKeyFrameWeights.end(); mit != mend; mit++)
          vPairs.push_back(make_pair(mit->second, mit->first));
 
       sort(vPairs.begin(), vPairs.end());
-      list<KeyFrame*> lKFs;
+      list<KeyFrame *> lKFs;
       list<int> lWs;
       for (size_t i = 0, iend = vPairs.size(); i < iend;i++)
       {
@@ -199,49 +318,49 @@ namespace ORB_SLAM2
          lWs.push_front(vPairs[i].first);
       }
 
-      mvpOrderedConnectedKeyFrames = vector<KeyFrame*>(lKFs.begin(), lKFs.end());
+      mvpOrderedConnectedKeyFrames = vector<KeyFrame *>(lKFs.begin(), lKFs.end());
       mvOrderedWeights = vector<int>(lWs.begin(), lWs.end());
    }
 
-   set<KeyFrame*> KeyFrame::GetConnectedKeyFrames()
+   set<KeyFrame *> KeyFrame::GetConnectedKeyFrames()
    {
       unique_lock<mutex> lock(mMutexConnections);
-      set<KeyFrame*> s;
-      for (map<KeyFrame*, int>::iterator mit = mConnectedKeyFrameWeights.begin();mit != mConnectedKeyFrameWeights.end();mit++)
+      set<KeyFrame *> s;
+      for (map<KeyFrame *, int>::iterator mit = mConnectedKeyFrameWeights.begin();mit != mConnectedKeyFrameWeights.end();mit++)
          s.insert(mit->first);
       return s;
    }
 
-   vector<KeyFrame*> KeyFrame::GetVectorCovisibleKeyFrames()
+   vector<KeyFrame *> KeyFrame::GetVectorCovisibleKeyFrames()
    {
       unique_lock<mutex> lock(mMutexConnections);
       return mvpOrderedConnectedKeyFrames;
    }
 
-   vector<KeyFrame*> KeyFrame::GetBestCovisibilityKeyFrames(const int &N)
+   vector<KeyFrame *> KeyFrame::GetBestCovisibilityKeyFrames(const int & n)
    {
       unique_lock<mutex> lock(mMutexConnections);
-      if ((int)mvpOrderedConnectedKeyFrames.size() < N)
+      if ((int)mvpOrderedConnectedKeyFrames.size() < n)
          return mvpOrderedConnectedKeyFrames;
       else
-         return vector<KeyFrame*>(mvpOrderedConnectedKeyFrames.begin(), mvpOrderedConnectedKeyFrames.begin() + N);
+         return vector<KeyFrame *>(mvpOrderedConnectedKeyFrames.begin(), mvpOrderedConnectedKeyFrames.begin() + n);
 
    }
 
-   vector<KeyFrame*> KeyFrame::GetCovisiblesByWeight(const int &w)
+   vector<KeyFrame *> KeyFrame::GetCovisiblesByWeight(const int & w)
    {
       unique_lock<mutex> lock(mMutexConnections);
 
       if (mvpOrderedConnectedKeyFrames.empty())
-         return vector<KeyFrame*>();
+         return vector<KeyFrame *>();
 
       vector<int>::iterator it = upper_bound(mvOrderedWeights.begin(), mvOrderedWeights.end(), w, KeyFrame::weightComp);
       if (it == mvOrderedWeights.end())
-         return vector<KeyFrame*>();
+         return vector<KeyFrame *>();
       else
       {
          int n = it - mvOrderedWeights.begin();
-         return vector<KeyFrame*>(mvpOrderedConnectedKeyFrames.begin(), mvpOrderedConnectedKeyFrames.begin() + n);
+         return vector<KeyFrame *>(mvpOrderedConnectedKeyFrames.begin(), mvpOrderedConnectedKeyFrames.begin() + n);
       }
    }
 
@@ -263,31 +382,31 @@ namespace ORB_SLAM2
    void KeyFrame::EraseMapPointMatch(const size_t &idx)
    {
       unique_lock<mutex> lock(mMutexFeatures);
-      mvpMapPoints[idx] = static_cast<MapPoint*>(NULL);
+      mvpMapPoints[idx] = static_cast<MapPoint *>(NULL);
    }
 
-   void KeyFrame::EraseMapPointMatch(MapPoint* pMP)
+   void KeyFrame::EraseMapPointMatch(MapPoint * pMP)
    {
       int idx = pMP->GetIndexInKeyFrame(this);
       if (idx >= 0)
-         mvpMapPoints[idx] = static_cast<MapPoint*>(NULL);
+         mvpMapPoints[idx] = static_cast<MapPoint *>(NULL);
    }
 
 
-   void KeyFrame::ReplaceMapPointMatch(const size_t &idx, MapPoint* pMP)
+   void KeyFrame::ReplaceMapPointMatch(const size_t &idx, MapPoint * pMP)
    {
       mvpMapPoints[idx] = pMP;
    }
 
-   set<MapPoint*> KeyFrame::GetMapPoints()
+   set<MapPoint *> KeyFrame::GetMapPoints()
    {
       unique_lock<mutex> lock(mMutexFeatures);
-      set<MapPoint*> s;
+      set<MapPoint *> s;
       for (size_t i = 0, iend = mvpMapPoints.size(); i < iend; i++)
       {
          if (!mvpMapPoints[i])
             continue;
-         MapPoint* pMP = mvpMapPoints[i];
+         MapPoint * pMP = mvpMapPoints[i];
          if (!pMP->isBad())
             s.insert(pMP);
       }
@@ -302,7 +421,7 @@ namespace ORB_SLAM2
       const bool bCheckObs = minObs > 0;
       for (int i = 0; i < N; i++)
       {
-         MapPoint* pMP = mvpMapPoints[i];
+         MapPoint * pMP = mvpMapPoints[i];
          if (pMP)
          {
             if (!pMP->isBad())
@@ -321,13 +440,13 @@ namespace ORB_SLAM2
       return nPoints;
    }
 
-   vector<MapPoint*> KeyFrame::GetMapPointMatches()
+   vector<MapPoint *> KeyFrame::GetMapPointMatches()
    {
       unique_lock<mutex> lock(mMutexFeatures);
       return mvpMapPoints;
    }
 
-   MapPoint* KeyFrame::GetMapPoint(const size_t &idx)
+   MapPoint * KeyFrame::GetMapPoint(const size_t &idx)
    {
       unique_lock<mutex> lock(mMutexFeatures);
       return mvpMapPoints[idx];
@@ -336,9 +455,9 @@ namespace ORB_SLAM2
    void KeyFrame::UpdateConnections()
    {
       Print("begin UpdateConnections");
-      map<KeyFrame*, int> KFcounter;
+      map<KeyFrame *, int> KFcounter;
 
-      vector<MapPoint*> vpMP;
+      vector<MapPoint *> vpMP;
 
       {
          unique_lock<mutex> lockMPs(mMutexFeatures);
@@ -347,9 +466,9 @@ namespace ORB_SLAM2
 
       //For all map points in keyframe check in which other keyframes are they seen
       //Increase counter for those keyframes
-      for (vector<MapPoint*>::iterator vit = vpMP.begin(), vend = vpMP.end(); vit != vend; vit++)
+      for (vector<MapPoint *>::iterator vit = vpMP.begin(), vend = vpMP.end(); vit != vend; vit++)
       {
-         MapPoint* pMP = *vit;
+         MapPoint * pMP = *vit;
 
          if (!pMP)
             continue;
@@ -357,9 +476,9 @@ namespace ORB_SLAM2
          if (pMP->isBad())
             continue;
 
-         map<KeyFrame*, size_t> observations = pMP->GetObservations();
+         map<KeyFrame *, size_t> observations = pMP->GetObservations();
 
-         for (map<KeyFrame*, size_t>::iterator mit = observations.begin(), mend = observations.end(); mit != mend; mit++)
+         for (map<KeyFrame *, size_t>::iterator mit = observations.begin(), mend = observations.end(); mit != mend; mit++)
          {
             if (mit->first->mnId == mnId)
                continue;
@@ -377,12 +496,12 @@ namespace ORB_SLAM2
       //If the counter is greater than threshold add connection
       //In case no keyframe counter is over threshold add the one with maximum counter
       int nmax = 0;
-      KeyFrame* pKFmax = NULL;
+      KeyFrame * pKFmax = NULL;
       int th = 15;
 
-      vector<pair<int, KeyFrame*> > vPairs;
+      vector<pair<int, KeyFrame *> > vPairs;
       vPairs.reserve(KFcounter.size());
-      for (map<KeyFrame*, int>::iterator mit = KFcounter.begin(), mend = KFcounter.end(); mit != mend; mit++)
+      for (map<KeyFrame *, int>::iterator mit = KFcounter.begin(), mend = KFcounter.end(); mit != mend; mit++)
       {
          if (mit->second > nmax)
          {
@@ -403,7 +522,7 @@ namespace ORB_SLAM2
       }
 
       sort(vPairs.begin(), vPairs.end());
-      list<KeyFrame*> lKFs;
+      list<KeyFrame *> lKFs;
       list<int> lWs;
       for (size_t i = 0; i < vPairs.size();i++)
       {
@@ -416,7 +535,7 @@ namespace ORB_SLAM2
 
          // mspConnectedKeyFrames = spConnectedKeyFrames;
          mConnectedKeyFrameWeights = KFcounter;
-         mvpOrderedConnectedKeyFrames = vector<KeyFrame*>(lKFs.begin(), lKFs.end());
+         mvpOrderedConnectedKeyFrames = vector<KeyFrame *>(lKFs.begin(), lKFs.end());
          mvOrderedWeights = vector<int>(lWs.begin(), lWs.end());
 
          if (mbFirstConnection && mnId != 0)
@@ -449,13 +568,13 @@ namespace ORB_SLAM2
       pKF->AddChild(this);
    }
 
-   set<KeyFrame*> KeyFrame::GetChilds()
+   set<KeyFrame *> KeyFrame::GetChilds()
    {
       unique_lock<mutex> lockCon(mMutexConnections);
       return mspChildrens;
    }
 
-   KeyFrame* KeyFrame::GetParent()
+   KeyFrame * KeyFrame::GetParent()
    {
       unique_lock<mutex> lockCon(mMutexConnections);
       return mpParent;
@@ -474,7 +593,7 @@ namespace ORB_SLAM2
       mspLoopEdges.insert(pKF);
    }
 
-   set<KeyFrame*> KeyFrame::GetLoopEdges()
+   set<KeyFrame *> KeyFrame::GetLoopEdges()
    {
       unique_lock<mutex> lockCon(mMutexConnections);
       return mspLoopEdges;
@@ -519,7 +638,7 @@ namespace ORB_SLAM2
          }
       }
 
-      for (map<KeyFrame*, int>::iterator mit = mConnectedKeyFrameWeights.begin(), mend = mConnectedKeyFrameWeights.end(); mit != mend; mit++)
+      for (map<KeyFrame *, int>::iterator mit = mConnectedKeyFrameWeights.begin(), mend = mConnectedKeyFrameWeights.end(); mit != mend; mit++)
          mit->first->EraseConnection(this);
 
       for (size_t i = 0; i < mvpMapPoints.size(); i++)
@@ -536,7 +655,7 @@ namespace ORB_SLAM2
          mvpOrderedConnectedKeyFrames.clear();
 
          // Update Spanning Tree
-         set<KeyFrame*> sParentCandidates;
+         set<KeyFrame *> sParentCandidates;
          sParentCandidates.insert(mpParent);
 
          // Assign at each iteration one children with a parent (the pair with highest covisibility weight)
@@ -546,20 +665,20 @@ namespace ORB_SLAM2
             bool bContinue = false;
 
             int max = -1;
-            KeyFrame* pC;
-            KeyFrame* pP;
+            KeyFrame * pC;
+            KeyFrame * pP;
 
-            for (set<KeyFrame*>::iterator sit = mspChildrens.begin(), send = mspChildrens.end(); sit != send; sit++)
+            for (set<KeyFrame *>::iterator sit = mspChildrens.begin(), send = mspChildrens.end(); sit != send; sit++)
             {
-               KeyFrame* pKF = *sit;
+               KeyFrame * pKF = *sit;
                if (pKF->isBad())
                   continue;
 
                // Check if a parent candidate is connected to the keyframe
-               vector<KeyFrame*> vpConnected = pKF->GetVectorCovisibleKeyFrames();
+               vector<KeyFrame *> vpConnected = pKF->GetVectorCovisibleKeyFrames();
                for (size_t i = 0, iend = vpConnected.size(); i < iend; i++)
                {
-                  for (set<KeyFrame*>::iterator spcit = sParentCandidates.begin(), spcend = sParentCandidates.end(); spcit != spcend; spcit++)
+                  for (set<KeyFrame *>::iterator spcit = sParentCandidates.begin(), spcend = sParentCandidates.end(); spcit != spcend; spcit++)
                   {
                      if (vpConnected[i]->mnId == (*spcit)->mnId)
                      {
@@ -588,7 +707,7 @@ namespace ORB_SLAM2
 
          // If a children has no covisibility links with any parent candidate, assign to the original parent of this KF
          if (!mspChildrens.empty())
-            for (set<KeyFrame*>::iterator sit = mspChildrens.begin(); sit != mspChildrens.end(); sit++)
+            for (set<KeyFrame *>::iterator sit = mspChildrens.begin(); sit != mspChildrens.end(); sit++)
             {
                (*sit)->ChangeParent(mpParent);
             }
@@ -610,7 +729,7 @@ namespace ORB_SLAM2
       return mbBad;
    }
 
-   void KeyFrame::EraseConnection(KeyFrame* pKF)
+   void KeyFrame::EraseConnection(KeyFrame * pKF)
    {
       bool bUpdate = false;
       {
@@ -692,7 +811,7 @@ namespace ORB_SLAM2
 
    float KeyFrame::ComputeSceneMedianDepth(const int q)
    {
-      vector<MapPoint*> vpMapPoints;
+      vector<MapPoint *> vpMapPoints;
       cv::Mat Tcw_;
       {
          unique_lock<mutex> lock(mMutexFeatures);
@@ -710,7 +829,7 @@ namespace ORB_SLAM2
       {
          if (mvpMapPoints[i])
          {
-            MapPoint* pMP = mvpMapPoints[i];
+            MapPoint * pMP = mvpMapPoints[i];
             cv::Mat x3Dw = pMP->GetWorldPos();
             float z = Rcw2.dot(x3Dw) + zcw;
             vDepths.push_back(z);
@@ -750,13 +869,78 @@ namespace ORB_SLAM2
 
    void * KeyFrame::ReadBytes(const void * data, Map & map)
    {
+      KeyFrame::Header * pHeader = (KeyFrame::Header *)data;
+      mnId = pHeader->mnId;
+      mTimestamp = pHeader->mTimestamp;
+      mN = pHeader->N;
+      mnScaleLevels = pHeader->mnScaleLevels;
+      mfScaleFactor = pHeader->mfScaleFactor;
+      mfLogScaleFactor = pHeader->mfLogScaleFactor;
+      mbFirstConnection = pHeader->mbFirstConnection;
+      mpParent = map.GetKeyFrame(pHeader->parentKeyFrameId);
+      mbBad = pHeader->mbBad;
+
+      // read variable-length data
+      char * pData = (char *)(pHeader + 1);
+      pData = (char *)Serializer::ReadKeyPointVector(pData, mvKeys);
+      pData = (char *)Serializer::ReadKeyPointVector(pData, mvKeysUn);
+      pData = (char *)Serializer::ReadVector<float>(pData, mvuRight);
+      pData = (char *)Serializer::ReadVector<float>(pData, mvDepth);
+      pData = (char *)Serializer::ReadMatrix(pData, mDescriptors);
+      pData = (char *)Serializer::ReadMatrix(pData, mTcp);
+      pData = (char *)Serializer::ReadVector<float>(pData, mvScaleFactors);
+      pData = (char *)Serializer::ReadVector<float>(pData, mvLevelSigma2);
+      pData = (char *)Serializer::ReadVector<float>(pData, mvInvLevelSigma2);
+      pData = (char *)Serializer::ReadMatrix(pData, Tcw);
+      pData = (char *)Serializer::ReadMatrix(pData, Twc);
+      pData = (char *)Serializer::ReadMatrix(pData, Ow);
+      pData = (char *)ReadMapPoints(pData, map, mvpMapPoints);
+      pData = (char *)ReadKeyFrameWeights(pData, map, mConnectedKeyFrameWeights);
+      pData = (char *)ReadKeyFrames(pData, map, mvpOrderedConnectedKeyFrames);
+      pData = (char *)Serializer::ReadVector<int>(pData, mvOrderedWeights);
+      pData = (char *)ReadKeyFrames(pData, map, mspChildrens);
+      pData = (char *)ReadKeyFrames(pData, map, mspLoopEdges);
+
+      // rebuild mGrid
       AssignFeaturesToGrid();
-      return NULL;
+
+      return pData;
    }
 
    void * KeyFrame::WriteBytes(const void * data)
    {
-      return NULL;
+      KeyFrame::Header * pHeader = (KeyFrame::Header *)data;
+      pHeader->mnId = mnId;
+      pHeader->mTimestamp = mTimestamp;
+      pHeader->N = mN;
+      pHeader->mnScaleLevels = mnScaleLevels;
+      pHeader->mfScaleFactor = mfScaleFactor;
+      pHeader->mfLogScaleFactor = mfLogScaleFactor;
+      pHeader->mbFirstConnection = mbFirstConnection;
+      pHeader->parentKeyFrameId = mpParent->GetId();
+      pHeader->mbBad = mbBad;
+
+      // write variable-length data
+      char * pData = (char *)(pHeader + 1);
+      pData = (char *)Serializer::WriteKeyPointVector(pData, mvKeys);
+      pData = (char *)Serializer::WriteKeyPointVector(pData, mvKeysUn);
+      pData = (char *)Serializer::WriteVector<float>(pData, mvuRight);
+      pData = (char *)Serializer::WriteVector<float>(pData, mvDepth);
+      pData = (char *)Serializer::WriteMatrix(pData, mDescriptors);
+      pData = (char *)Serializer::WriteMatrix(pData, mTcp);
+      pData = (char *)Serializer::WriteVector<float>(pData, mvScaleFactors);
+      pData = (char *)Serializer::WriteVector<float>(pData, mvLevelSigma2);
+      pData = (char *)Serializer::WriteVector<float>(pData, mvInvLevelSigma2);
+      pData = (char *)Serializer::WriteMatrix(pData, Tcw);
+      pData = (char *)Serializer::WriteMatrix(pData, Twc);
+      pData = (char *)Serializer::WriteMatrix(pData, Ow);
+      pData = (char *)WriteMapPoints(pData, mvpMapPoints);
+      pData = (char *)WriteKeyFrameWeights(pData, mConnectedKeyFrameWeights);
+      pData = (char *)WriteKeyFrames(pData, mvpOrderedConnectedKeyFrames);
+      pData = (char *)Serializer::WriteVector<int>(pData, mvOrderedWeights);
+      pData = (char *)WriteKeyFrames(pData, mspChildrens);
+      pData = (char *)WriteKeyFrames(pData, mspLoopEdges);
+      return pData;
    }
 
 } //namespace ORB_SLAM

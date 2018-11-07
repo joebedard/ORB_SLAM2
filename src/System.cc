@@ -231,7 +231,7 @@ namespace ORB_SLAM2
          // If the reference keyframe was culled, traverse the spanning tree to get a suitable keyframe.
          while (pKF->isBad())
          {
-            Trw = Trw * pKF->mTcp;
+            Trw = Trw * pKF->Tcp;
             pKF = pKF->GetParent();
          }
 
@@ -327,7 +327,7 @@ namespace ORB_SLAM2
          while (pKF->isBad())
          {
             //Print("bad parent");
-            Trw = Trw * pKF->mTcp;
+            Trw = Trw * pKF->Tcp;
             pKF = pKF->GetParent();
          }
 

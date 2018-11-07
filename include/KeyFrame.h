@@ -63,27 +63,27 @@ namespace ORB_SLAM2
       void ComputeBoW(ORBVocabulary & vocab);
 
       // Covisibility graph functions
-      void AddConnection(KeyFrame* pKF, const int &weight);
-      void EraseConnection(KeyFrame* pKF);
+      void AddConnection(KeyFrame * pKF, const int &weight);
+      void EraseConnection(KeyFrame * pKF);
       void UpdateConnections();
       void UpdateBestCovisibles();
       std::set<KeyFrame *> GetConnectedKeyFrames();
-      std::vector<KeyFrame* > GetVectorCovisibleKeyFrames();
-      std::vector<KeyFrame*> GetBestCovisibilityKeyFrames(const int &N);
-      std::vector<KeyFrame*> GetCovisiblesByWeight(const int &w);
-      int GetWeight(KeyFrame* pKF);
+      std::vector<KeyFrame * > GetVectorCovisibleKeyFrames();
+      std::vector<KeyFrame *> GetBestCovisibilityKeyFrames(const int & n);
+      std::vector<KeyFrame *> GetCovisiblesByWeight(const int & w);
+      int GetWeight(KeyFrame * pKF);
 
       // Spanning tree functions
-      void AddChild(KeyFrame* pKF);
-      void EraseChild(KeyFrame* pKF);
-      void ChangeParent(KeyFrame* pKF);
-      std::set<KeyFrame*> GetChilds();
-      KeyFrame* GetParent();
-      bool hasChild(KeyFrame* pKF);
+      void AddChild(KeyFrame * pKF);
+      void EraseChild(KeyFrame * pKF);
+      void ChangeParent(KeyFrame * pKF);
+      std::set<KeyFrame *> GetChilds();
+      KeyFrame * GetParent();
+      bool hasChild(KeyFrame * pKF);
 
       // Loop Edges
-      void AddLoopEdge(KeyFrame* pKF);
-      std::set<KeyFrame*> GetLoopEdges();
+      void AddLoopEdge(KeyFrame * pKF);
+      std::set<KeyFrame *> GetLoopEdges();
 
       // MapPoint observation functions
       void AddMapPoint(MapPoint* pMP, const size_t &idx);
@@ -126,7 +126,7 @@ namespace ORB_SLAM2
          return a > b;
       }
 
-      static bool lId(KeyFrame* pKF1, KeyFrame* pKF2) {
+      static bool lId(KeyFrame * pKF1, KeyFrame * pKF2) {
          return pKF1->mnId < pKF2->mnId;
       }
 
@@ -134,7 +134,8 @@ namespace ORB_SLAM2
    // The following variables are accesed from only 1 thread or never change (no mutex needed).
    public:
 
-      double & timestamp;
+      // read-only access to private variable
+      const double & timestamp;
 
       // Variables used by the tracking
       long unsigned int mnTrackReferenceForFrame;
@@ -161,41 +162,38 @@ namespace ORB_SLAM2
       FrameCalibration mFC;
 
       // Number of KeyPoints (features).
-      const int N;
-
-      // Vector of KeyPoints (features) based on original image(s). Used for visualization.
-      const std::vector<cv::KeyPoint> mvKeys;
+      const int & N;
 
       // Vector of undistorted KeyPoints (features). Used by tracking and mapping.
       // If it is a stereo frame, mvKeysUn is redundant because images are pre-rectified.
       // If it is a RGB-D frame, the RGB images might be distorted.
-      const std::vector<cv::KeyPoint> mvKeysUn;
+      const std::vector<cv::KeyPoint> & keysUn;
 
       // Corresponding stereo coordinate for each KeyPoint.
       // If this frame is monocular, all elements are negative.
-      const std::vector<float> mvuRight;
+      const std::vector<float> & right;
 
       // Corresponding depth for each KeyPoint.
       // If this frame is monocular, all elements are negative.
-      const std::vector<float> mvDepth;
+      const std::vector<float> & depth;
 
       // Corresponding descriptor for each KeyPoint.
-      const cv::Mat mDescriptors;
+      const cv::Mat & descriptors;
 
       //BoW
       DBoW2::BowVector mBowVec;
       DBoW2::FeatureVector mFeatVec;
 
       // Pose relative to parent (this is computed when bad flag is activated)
-      cv::Mat mTcp;
+      const cv::Mat & Tcp;
 
       // Scale
-      const int mnScaleLevels;
-      const float mfScaleFactor;
-      const float mfLogScaleFactor;
-      const std::vector<float> mvScaleFactors;
-      const std::vector<float> mvLevelSigma2;
-      const std::vector<float> mvInvLevelSigma2;
+      const int & scaleLevels;
+      const float & scaleFactor;
+      const float & logScaleFactor;
+      const std::vector<float> & scaleFactors;
+      const std::vector<float> & levelSigma2;
+      const std::vector<float> & invLevelSigma2;
 
 
    // The following variables need to be accessed trough a mutex to be thread safe.
@@ -214,15 +212,15 @@ namespace ORB_SLAM2
       // not serialized, rebuilt with AssignFeaturesToGrid()
       std::vector<std::size_t> mGrid[FRAME_GRID_COLS][FRAME_GRID_ROWS];
 
-      std::map<KeyFrame*, int> mConnectedKeyFrameWeights;
-      std::vector<KeyFrame*> mvpOrderedConnectedKeyFrames;
+      std::map<KeyFrame *, int> mConnectedKeyFrameWeights;
+      std::vector<KeyFrame *> mvpOrderedConnectedKeyFrames;
       std::vector<int> mvOrderedWeights;
 
       // Spanning Tree and Loop Edges
       bool mbFirstConnection;
-      KeyFrame* mpParent;
-      std::set<KeyFrame*> mspChildrens;
-      std::set<KeyFrame*> mspLoopEdges;
+      KeyFrame * mpParent;
+      std::set<KeyFrame *> mspChildrens;
+      std::set<KeyFrame *> mspLoopEdges;
 
       // Bad flags
       bool mbNotErase; //server-only
@@ -239,22 +237,11 @@ namespace ORB_SLAM2
          id_type mnId;
          double mTimestamp;
          int N;
-         unsigned int quantityKeys;
-         unsigned int quantityKeysUn;
-         unsigned int quantityKeysRight;
-         unsigned int quantityKeysDepth;
          int mnScaleLevels;
          float mfScaleFactor;
          float mfLogScaleFactor;
-         unsigned int quantityScaleFactor;
-         unsigned int quantityMapPoints;
-         unsigned int quantityConnectedKeyFrameWeights;
-         unsigned int quantityOrderedConnectedKeyFrames;
-         unsigned int quantityOrderedWeights;
          bool mbFirstConnection;
          id_type parentKeyFrameId;
-         unsigned int quantityChildren;
-         unsigned int quantityLoopEdges;
          bool mbBad;
       };
 
@@ -268,18 +255,40 @@ namespace ORB_SLAM2
 
       double mTimestamp;
 
+      int mN;
+
+      // Vector of KeyPoints (features) based on original image(s). Used for visualization.
+      std::vector<cv::KeyPoint> mvKeys;
+
+      std::vector<cv::KeyPoint> mvKeysUn;
+
+      std::vector<float> mvuRight;
+
+      std::vector<float> mvDepth;
+
+      cv::Mat mDescriptors;
+
+      cv::Mat mTcp;
+
+      int mnScaleLevels;
+      float mfScaleFactor;
+      float mfLogScaleFactor;
+      std::vector<float> mvScaleFactors;
+      std::vector<float> mvLevelSigma2;
+      std::vector<float> mvInvLevelSigma2;
+
       // Grid (to speed up feature matching)
       const int mnGridCols;
       const int mnGridRows;
 
-      static void * ReadMapPoints(const void * buffer, Map & map, std::vector<MapPoint *> & kfv);
-      static void * WriteMapPoints(const void * buffer, const std::vector<MapPoint *> & kfv);
+      static void * ReadMapPoints(const void * buffer, Map & map, std::vector<MapPoint *> & mpv);
+      static void * WriteMapPoints(const void * buffer, const std::vector<MapPoint *> & mpv);
       static void * ReadKeyFrameWeights(const void * buffer, Map & map, std::map<KeyFrame *, int> & kfWeights);
       static void * WriteKeyFrameWeights(const void * buffer, const std::map<KeyFrame *, int> & kfWeights);
       static void * ReadKeyFrames(const void * buffer, Map & map, std::vector<KeyFrame *> & kfv);
       static void * WriteKeyFrames(const void * buffer, const std::vector<KeyFrame *> & kfv);
-      static void * ReadKeyFrames(const void * buffer, Map & map, std::set<KeyFrame *> & kfv);
-      static void * WriteKeyFrames(const void * buffer, const std::set<KeyFrame *> & kfv);
+      static void * ReadKeyFrames(const void * buffer, Map & map, std::set<KeyFrame *> & kfs);
+      static void * WriteKeyFrames(const void * buffer, const std::set<KeyFrame *> & kfs);
 
       bool PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY);
       void AssignFeaturesToGrid();
