@@ -53,7 +53,8 @@ namespace ORB_SLAM2
       LOGIN_TRACKER = 1,
       LOGOUT_TRACKER = 2,
       INITIALIZE = 3,
-      quantity = 4
+      INSERT_KEYFRAME = 4,
+      quantity = 5
    };
 
 }

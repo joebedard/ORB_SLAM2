@@ -48,8 +48,15 @@ namespace ORB_SLAM2
    {
       ServiceId serviceId;
       unsigned int trackerId;
-      unsigned int quantityMapPoints;
-      unsigned int quantityKeyFrames;
+      size_t quantityMapPoints;
+      size_t quantityKeyFrames;
+   };
+
+   struct InsertKeyFrameRequest
+   {
+      ServiceId serviceId;
+      unsigned int trackerId;
+      size_t quantityMapPoints;
    };
 
    struct GeneralReply
@@ -68,6 +75,11 @@ namespace ORB_SLAM2
       unsigned int mapPointIdSpan;
    };
 
+   struct InsertKeyFrameReply
+   {
+      ReplyCode replyCode;
+      bool inserted;
+   };
 }
 
 #endif // MESSAGES_H

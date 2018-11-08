@@ -171,23 +171,65 @@ zmq::message_t LogoutService(zmq::message_t & request)
 zmq::message_t InitializeService(zmq::message_t & request)
 {
    gOutServ.Print("begin InitializeService");
-   InitializeRequest * pReqData = request.data<InitializeRequest>();
-   std::vector<MapPoint*> mapPoints;
-   std::vector<KeyFrame*> keyFrames;
+   InitializeRequest * pReqHead = request.data<InitializeRequest>();
+   size_t quantityMPs = pReqHead->quantityMapPoints;
+   size_t quantityKFs = pReqHead->quantityKeyFrames;
 
-   // TODO - read MapPoints and KeyFrames
+   // read MapPoints and KeyFrames
+   char * pData = (char *)(pReqHead + 1);
+   std::vector<MapPoint*> mapPoints(quantityMPs);
+   std::vector<KeyFrame*> keyFrames(quantityKFs);
+   for (int i = 0; i < quantityMPs; ++i)
+   {
+      MapPoint * pMP = new MapPoint();
+      pData = (char *)pMP->ReadBytes(pData, gMapper->GetMap());
+   }
+   for (int i = 0; i < quantityKFs; ++i)
+   {
+      KeyFrame * pKF = new KeyFrame();
+      pData = (char *)pKF->ReadBytes(pData, gMapper->GetMap());
+   }
+
+   gMapper->Initialize(pReqHead->trackerId, mapPoints, keyFrames);
 
    zmq::message_t reply(sizeof(GeneralReply));
    GeneralReply * pRepData = reply.data<GeneralReply>();
-   gMapper->Initialize(pReqData->trackerId, mapPoints, keyFrames);
    pRepData->replyCode = ReplyCode::SUCCEEDED;
 
    gOutServ.Print("end InitializeService");
    return reply;
 }
 
+zmq::message_t InsertKeyFrameService(zmq::message_t & request)
+{
+   gOutServ.Print("begin InsertKeyFrameService");
+   InsertKeyFrameRequest * pReqHead = request.data<InsertKeyFrameRequest>();
+   size_t quantityMPs = pReqHead->quantityMapPoints;
+
+   // read MapPoints and KeyFrame
+   char * pData = (char *)(pReqHead + 1);
+   std::vector<MapPoint*> mapPoints(quantityMPs);
+   for (int i = 0; i < quantityMPs; ++i)
+   {
+      MapPoint * pMP = new MapPoint();
+      pData = (char *)pMP->ReadBytes(pData, gMapper->GetMap());
+   }
+   KeyFrame * pKF = new KeyFrame();
+   pData = (char *)pKF->ReadBytes(pData, gMapper->GetMap());
+
+   bool inserted = gMapper->InsertKeyFrame(pReqHead->trackerId, mapPoints, pKF);
+
+   zmq::message_t reply(sizeof(InsertKeyFrameReply));
+   InsertKeyFrameReply * pRepData = reply.data<InsertKeyFrameReply>();
+   pRepData->replyCode = ReplyCode::SUCCEEDED;
+   pRepData->inserted = inserted;
+
+   gOutServ.Print("end InsertKeyFrameService");
+   return reply;
+}
+
 // array of function pointer
-zmq::message_t (*gServices[ServiceId::quantity])(zmq::message_t & request) = { HelloService, LoginService, LogoutService, InitializeService };
+zmq::message_t (*gServices[ServiceId::quantity])(zmq::message_t & request) = { HelloService, LoginService, LogoutService, InitializeService , InsertKeyFrameService};
 
 void RunServer(void * param) try
 {

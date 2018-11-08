@@ -109,7 +109,7 @@ namespace ORB_SLAM2
       return true;
    }
 
-   void MapperClient::Initialize(unsigned int trackerId, vector<MapPoint*> & mapPoints, vector<KeyFrame*> & keyframes)
+   void MapperClient::Initialize(unsigned int trackerId, vector<MapPoint *> & mapPoints, vector<KeyFrame*> & keyframes)
    {
       Print("begin Initialize");
       if (mInitialized)
@@ -139,7 +139,7 @@ namespace ORB_SLAM2
       Print("end Initialize");
    }
 
-   bool MapperClient::InsertKeyFrame(unsigned int trackerId, vector<MapPoint*> & mapPoints, KeyFrame *pKF)
+   bool MapperClient::InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame *pKF)
    {
       Print("begin InsertKeyFrame");
       // client: serialize KF and MPs and then send to server
@@ -193,6 +193,8 @@ namespace ORB_SLAM2
       pReqData->pivotCalib[14] = pivotCalib.at<float>(3, 2);
       pReqData->pivotCalib[15] = pivotCalib.at<float>(3, 3);
 
+      // login and get Id values and return them
+      Print("sending LoginTrackerRequest");
       zmq::message_t reply = RequestReply(request);
       LoginTrackerReply * pRepData = reply.data<LoginTrackerReply>();
       trackerId = pRepData->trackerId;
@@ -201,8 +203,6 @@ namespace ORB_SLAM2
       firstMapPointId = pRepData->firstMapPointId;
       mapPointIdSpan = pRepData->mapPointIdSpan;
 
-      // client: login and get Id values and return them
-      //mServer.LoginTracker(pivotCalib, trackerId, firstKeyFrameId, keyFrameIdSpan, firstMapPointId, mapPointIdSpan);
       Print("end LoginTracker");
    }
 
@@ -210,11 +210,12 @@ namespace ORB_SLAM2
    {
       Print("begin LogoutTracker");
 
-      zmq::message_t request(sizeof(LoginTrackerRequest));
+      zmq::message_t request(sizeof(LogoutTrackerRequest));
       LogoutTrackerRequest * pReqData = request.data<LogoutTrackerRequest>();
       pReqData->serviceId = ServiceId::LOGOUT_TRACKER;
       pReqData->trackerId = id;
 
+      Print("sending LogoutTrackerRequest");
       zmq::message_t reply = RequestReply(request);
 
       //mServer.LogoutTracker(id);
@@ -249,7 +250,6 @@ namespace ORB_SLAM2
 
    std::mutex & MapperClient::GetMutexMapUpdate()
    {
-      // TODO - replace with client mutex
       return mMutexMapUpdate;
    }
 
@@ -302,7 +302,7 @@ namespace ORB_SLAM2
       }
    }
 
-   void MapperClient::InitializeServer(unsigned int trackerId, vector<MapPoint*>& mapPoints, vector<KeyFrame*>& keyframes)
+   void MapperClient::InitializeServer(unsigned int trackerId, vector<MapPoint *>& mapPoints, vector<KeyFrame*>& keyframes)
    {
       Print("begin InitializeServer");
       size_t sizeMsg = sizeof(InitializeRequest);
@@ -331,17 +331,44 @@ namespace ORB_SLAM2
          pData = (char *)pKF->WriteBytes(pData);
       }
 
-      Print("Sending Initialize");
+      Print("sending InitializeRequest");
       zmq::message_t reply = RequestReply(request);
       // map changes are received via the subscriber
 
       Print("end InitializeServer");
    }
 
-   bool MapperClient::InsertKeyFrameServer(unsigned int trackerId, vector<MapPoint*>& mapPoints, KeyFrame * pKF)
+   bool MapperClient::InsertKeyFrameServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF)
    {
-      // TODO - build request and call server
-      return false;
+      Print("begin InsertKeyFrameServer");
+
+      size_t sizeMsg = sizeof(InsertKeyFrameRequest);
+      for (MapPoint * pMP : mapPoints)
+      {
+         sizeMsg += pMP->GetBufferSize();
+      }
+      sizeMsg += pKF->GetBufferSize();
+
+      zmq::message_t request(sizeMsg);
+      InsertKeyFrameRequest * pReqHead = (InsertKeyFrameRequest *)request.data();
+      pReqHead->serviceId = ServiceId::INSERT_KEYFRAME;
+      pReqHead->trackerId = trackerId;
+      pReqHead->quantityMapPoints = mapPoints.size();
+      char * pData = (char *)(pReqHead + 1);
+      for (MapPoint * pMP : mapPoints)
+      {
+         pData = (char *)pMP->WriteBytes(pData);
+      }
+      pData = (char *)pKF->WriteBytes(pData);
+
+      Print("sending InsertKeyFrameRequest");
+      zmq::message_t reply = RequestReply(request);
+      // map changes are received via the subscriber
+
+      InsertKeyFrameReply * pRepData = reply.data<InsertKeyFrameReply>();
+
+      Print("end InsertKeyFrameServer");
+      return pRepData->inserted;
    }
 
    void MapperClient::MapperServerObserverReset()

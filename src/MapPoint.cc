@@ -31,16 +31,52 @@ namespace ORB_SLAM2
 
    mutex MapPoint::mGlobalMutex;
 
-   MapPoint::MapPoint(id_type id, const cv::Mat &Pos, KeyFrame *pRefKF) :
-      mnFirstKFid(pRefKF->GetId()), nObs(0), mnTrackReferenceForFrame(0),
-      mnLastFrameSeen(0), mnBALocalForKF(0), mnFuseCandidateForKF(0), mnLoopPointForKF(0), mnCorrectedByKF(0),
-      mnCorrectedReference(0), mnBAGlobalForKF(0), mpRefKF(pRefKF), mnVisible(1), mnFound(1), mbBad(false),
-      mpReplaced(static_cast<MapPoint*>(NULL)), mfMinDistance(0), mfMaxDistance(0), mnId(id)
+   MapPoint::MapPoint()
+      : mnId(-1)
+      , mnFirstKFid(-1)
+      , nObs(0)
+      , mnTrackReferenceForFrame(0)
+      , mnLastFrameSeen(0)
+      , mnBALocalForKF(0)
+      , mnFuseCandidateForKF(0)
+      , mnLoopPointForKF(0)
+      , mnCorrectedByKF(0)
+      , mnCorrectedReference(0)
+      , mnBAGlobalForKF(0)
+      , mpRefKF(static_cast<KeyFrame*>(NULL))
+      , mnVisible(1)
+      , mnFound(1)
+      , mbBad(false)
+      , mpReplaced(static_cast<MapPoint*>(NULL))
+      , mfMinDistance(0)
+      , mfMaxDistance(0)
    {
-      if (Pos.empty())
+   }
+
+   MapPoint::MapPoint(id_type id, const cv::Mat & worldPos, KeyFrame *pRefKF) 
+      : mnId(id)
+      , mnFirstKFid(pRefKF->GetId())
+      , nObs(0)
+      , mnTrackReferenceForFrame(0)
+      , mnLastFrameSeen(0)
+      , mnBALocalForKF(0)
+      , mnFuseCandidateForKF(0)
+      , mnLoopPointForKF(0)
+      , mnCorrectedByKF(0)
+      , mnCorrectedReference(0)
+      , mnBAGlobalForKF(0)
+      , mpRefKF(pRefKF)
+      , mnVisible(1)
+      , mnFound(1)
+      , mbBad(false)
+      , mpReplaced(static_cast<MapPoint*>(NULL))
+      , mfMinDistance(0)
+      , mfMaxDistance(0)
+      , mNormalVector(cv::Mat::zeros(3, 1, CV_32F))
+      , mWorldPos(worldPos)
+   {
+      if (worldPos.empty())
          throw exception("MapPoint::SetWorldPos([])!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-      Pos.copyTo(mWorldPos);
-      mNormalVector = cv::Mat::zeros(3, 1, CV_32F);
    }
 
    void MapPoint::SetWorldPos(const cv::Mat &Pos)

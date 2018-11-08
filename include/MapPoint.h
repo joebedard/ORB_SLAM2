@@ -40,6 +40,10 @@ namespace ORB_SLAM2
    class MapPoint
    {
    public:
+
+      // constructor for map points
+      MapPoint();
+
       // constructor for map points
       MapPoint(id_type id, const cv::Mat &Pos, KeyFrame* pRefKF);
 

@@ -28,6 +28,26 @@
 
 namespace ORB_SLAM2
 {
+   KeyFrame::KeyFrame()
+      // public constants
+      : mnGridCols(FRAME_GRID_COLS)
+      , mnGridRows(FRAME_GRID_ROWS)
+      , timestamp(mTimestamp)
+      , N(mN)
+      , keysUn(mvKeysUn)
+      , right(mvuRight)
+      , depth(mvDepth)
+      , descriptors(mDescriptors)
+      , Tcp(mTcp)
+      , scaleLevels(mnScaleLevels)
+      , scaleFactor(mfScaleFactor)
+      , logScaleFactor(mfLogScaleFactor)
+      , scaleFactors(mvScaleFactors)
+      , levelSigma2(mvLevelSigma2)
+      , invLevelSigma2(mvInvLevelSigma2)
+   {
+
+   }
 
    KeyFrame::KeyFrame(id_type id, Frame & frame) 
       : SyncPrint("KeyFrame: ")
@@ -51,8 +71,6 @@ namespace ORB_SLAM2
       , mvLevelSigma2(frame.mvLevelSigma2)
       , mvInvLevelSigma2(frame.mvInvLevelSigma2)
       , mvpMapPoints(frame.mvpMapPoints)
-      , mnGridCols(FRAME_GRID_COLS)
-      , mnGridRows(FRAME_GRID_ROWS)
       , mnTrackReferenceForFrame(0)
       , mnFuseTargetForKF(0)
       , mnBALocalForKF(0)
@@ -68,7 +86,9 @@ namespace ORB_SLAM2
       , mbToBeErased(false)
       , mbBad(false)
 
-      // public const references
+      // public constants
+      , mnGridCols(FRAME_GRID_COLS)
+      , mnGridRows(FRAME_GRID_ROWS)
       , timestamp(mTimestamp)
       , N(mN)
       , keysUn(mvKeysUn)
