@@ -650,8 +650,8 @@ namespace ORB_SLAM2
       }
 
       // Optimize graph
-      Optimizer::OptimizeEssentialGraph(mMap, mMutexMapUpdate, mpMatchedKF, mpCurrentKF, NonCorrectedSim3, CorrectedSim3, LoopConnections, mbFixScale);
-      // TODO - detect map changes in Optimizer
+      Optimizer::OptimizeEssentialGraph(mMap, mMutexMapUpdate, mpMatchedKF, mpCurrentKF, NonCorrectedSim3, CorrectedSim3, LoopConnections, mbFixScale, mapChanges);
+      // TODO OK - detect map changes in Optimizer
 
       mMap.InformNewBigChange();
 

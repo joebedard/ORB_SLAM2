@@ -848,7 +848,8 @@ namespace ORB_SLAM2
       const LoopClosing::KeyFrameAndPose & NonCorrectedSim3,
       const LoopClosing::KeyFrameAndPose & CorrectedSim3,
       const std::map<KeyFrame *, set<KeyFrame *> > & LoopConnections, 
-      const bool & bFixScale)
+      const bool & bFixScale,
+      MapChangeEvent & mapChanges)
    {
       Print("begin OptimizeEssentialGraph");
       // Setup optimizer
@@ -1081,6 +1082,8 @@ namespace ORB_SLAM2
          cv::Mat Tiw = Converter::toCvSE3(eigR, eigt);
 
          pKFi->SetPose(Tiw);
+         // TODO OK - add to map changes
+         mapChanges.updatedKeyFrames.insert(pKFi);
       }
 
       Print("Correct points.");
@@ -1115,6 +1118,8 @@ namespace ORB_SLAM2
          pMP->SetWorldPos(cvCorrectedP3Dw);
 
          pMP->UpdateNormalAndDepth();
+         // TODO OK - add to map changes
+         mapChanges.updatedMapPoints.insert(pMP);
       }
       Print("end OptimizeEssentialGraph");
    }

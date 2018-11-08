@@ -75,7 +75,8 @@ namespace ORB_SLAM2
          const LoopClosing::KeyFrameAndPose & NonCorrectedSim3,
          const LoopClosing::KeyFrameAndPose & CorrectedSim3,
          const std::map<KeyFrame *, set<KeyFrame *> > & LoopConnections,
-         const bool & bFixScale);
+         const bool & bFixScale,
+         MapChangeEvent & mapChanges);
 
       // if bFixScale is true, optimize SE3 (stereo,rgbd), Sim3 otherwise (mono)
       static int OptimizeSim3(
