@@ -1574,7 +1574,6 @@ namespace ORB_SLAM2
                   pNewMP->UpdateNormalAndDepth();
                   points.push_back(pNewMP);
                }
-
                if (vDepthIdx[j].first > currentFrame.mFC->thDepth && j > 99)
                   break;
             }
@@ -1601,7 +1600,21 @@ namespace ORB_SLAM2
       }
       else
       {
-         // delete KeyFrame and MapPoints
+         // delete MapPoints and KeyFrame
+         for (size_t j = 0; j < vDepthIdx.size();j++)
+         {
+            int i = vDepthIdx[j].second;
+            MapPoint * pMP = pKF->GetMapPoint(i);
+            if (!pMP)
+            {
+               pMP->EraseObservation(pKF, &mMapper.GetMap());
+               pKF->EraseMapPointMatch(i);
+               if (pMP->Observations() < 1)
+                  delete pMP;
+            }
+            if (vDepthIdx[j].first > currentFrame.mFC->thDepth && j > 99)
+               break;
+         }
          delete pKF;
          Print("end CreateNewKeyFrame 2");
          return NULL;

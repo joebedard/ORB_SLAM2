@@ -145,7 +145,8 @@ namespace ORB_SLAM2
       // client: serialize KF and MPs and then send to server
       if (InsertKeyFrameServer(trackerId, mapPoints, pKF))
       {
-         // add points and keyframes to allow for for map synchronization with the server
+         // add points and keyframes to allow for map synchronization with the server
+         // which will happen after the Tracking client unlocks mMutexMapUpdate
          for (MapPoint * pMP : mapPoints)
          {
             mMap.AddMapPoint(pMP);
