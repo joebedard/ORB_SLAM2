@@ -56,6 +56,7 @@ namespace ORB_SLAM2
    {
       ServiceId serviceId;
       unsigned int trackerId;
+      id_type keyFrameId;
       size_t quantityMapPoints;
    };
 

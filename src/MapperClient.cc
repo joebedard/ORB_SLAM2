@@ -354,6 +354,7 @@ namespace ORB_SLAM2
       InsertKeyFrameRequest * pReqHead = (InsertKeyFrameRequest *)request.data();
       pReqHead->serviceId = ServiceId::INSERT_KEYFRAME;
       pReqHead->trackerId = trackerId;
+      pReqHead->keyFrameId = pKF->GetId();
       pReqHead->quantityMapPoints = mapPoints.size();
       char * pData = (char *)(pReqHead + 1);
       for (MapPoint * pMP : mapPoints)

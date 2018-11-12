@@ -28,9 +28,12 @@
 
 namespace ORB_SLAM2
 {
-   KeyFrame::KeyFrame()
+   KeyFrame::KeyFrame(id_type id)
+      : SyncPrint("KeyFrame: ")
+      , mnId(id)
+
       // public constants
-      : mnGridCols(FRAME_GRID_COLS)
+      , mnGridCols(FRAME_GRID_COLS)
       , mnGridRows(FRAME_GRID_ROWS)
       , timestamp(mTimestamp)
       , N(mN)

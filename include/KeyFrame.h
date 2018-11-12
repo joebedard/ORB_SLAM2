@@ -47,7 +47,7 @@ namespace ORB_SLAM2
    {
    public:
 
-      KeyFrame();
+      KeyFrame(id_type id);
 
       KeyFrame(id_type id, Frame &F);
 

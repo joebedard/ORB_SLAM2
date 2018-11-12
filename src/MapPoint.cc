@@ -451,13 +451,16 @@ namespace ORB_SLAM2
       return size;
    }
 
-   void * MapPoint::ReadBytes(const void * buffer, Map & map)
+   void * MapPoint::ReadBytes(const void * buffer, Map & map, KeyFrame * pNewKF)
    {
       MapPoint::Header * pHeader = (MapPoint::Header *)buffer;
       mnId = pHeader->mnId;
       mnFirstKFid = pHeader->mnFirstKFId;
       nObs = pHeader->nObs;
-      mpRefKF = map.GetKeyFrame(pHeader->mpRefKFId);
+      if (pNewKF->GetId() == pHeader->mpRefKFId)
+         mpRefKF = pNewKF;
+      else
+         mpRefKF = map.GetKeyFrame(pHeader->mpRefKFId);
       mnVisible = pHeader->mnVisible;
       mnFound = pHeader->mnFound;
       mbBad = pHeader->mbBad;
@@ -470,7 +473,7 @@ namespace ORB_SLAM2
       pData = (char *)Serializer::ReadMatrix(pData, mWorldPos);
       pData = (char *)Serializer::ReadMatrix(pData, mNormalVector);
       pData = (char *)Serializer::ReadMatrix(pData, mDescriptor);
-      pData = (char *)ReadObservations(pData, map, mObservations);
+      pData = (char *)ReadObservations(pData, map, pNewKF, mObservations);
       return pData;
    }
 
@@ -497,7 +500,7 @@ namespace ORB_SLAM2
       return pData;
    }
 
-   void * MapPoint::ReadObservations(const void * buffer, Map & map, std::map<KeyFrame *, size_t> & observations)
+   void * MapPoint::ReadObservations(const void * buffer, Map & map, KeyFrame * pNewKF, std::map<KeyFrame *, size_t> & observations)
    {
       observations.clear();
       size_t * pQuantity = (size_t *)buffer;
@@ -505,7 +508,11 @@ namespace ORB_SLAM2
       Observation * pEnd = pData + *pQuantity;
       while (pData < pEnd)
       {
-         KeyFrame * pKF = map.GetKeyFrame(pData->keyFrameId);
+         KeyFrame * pKF = NULL;
+         if (pNewKF->GetId() == pData->keyFrameId)
+            pKF = pNewKF;
+         else
+            pKF = map.GetKeyFrame(pData->keyFrameId);
          observations[pKF] = pData->index;
          ++pData;
       }

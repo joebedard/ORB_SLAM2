@@ -89,7 +89,7 @@ namespace ORB_SLAM2
       int PredictScale(const float &currentDist, Frame* pF);
 
       size_t GetBufferSize();
-      void * ReadBytes(const void * data, Map & map);
+      void * ReadBytes(const void * data, Map & map, KeyFrame * pNewKF);
       void * WriteBytes(const void * data);
 
    public:
@@ -174,7 +174,7 @@ namespace ORB_SLAM2
          size_t index;
       };
 
-      static void * ReadObservations(const void * buffer, Map & map, std::map<KeyFrame *, size_t> & observations);
+      static void * ReadObservations(const void * buffer, Map & map, KeyFrame * pNewKF, std::map<KeyFrame *, size_t> & observations);
 
       static void * WriteObservations(const void * buffer, std::map<KeyFrame *, size_t> & observations);
 

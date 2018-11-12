@@ -204,6 +204,7 @@ zmq::message_t InsertKeyFrameService(zmq::message_t & request)
 {
    gOutServ.Print("begin InsertKeyFrameService");
    InsertKeyFrameRequest * pReqHead = request.data<InsertKeyFrameRequest>();
+   KeyFrame * pKF = new KeyFrame(pReqHead->keyFrameId);
    size_t quantityMPs = pReqHead->quantityMapPoints;
 
    // read MapPoints and KeyFrame
@@ -212,9 +213,8 @@ zmq::message_t InsertKeyFrameService(zmq::message_t & request)
    for (int i = 0; i < quantityMPs; ++i)
    {
       MapPoint * pMP = new MapPoint();
-      pData = (char *)pMP->ReadBytes(pData, gMapper->GetMap());
+      pData = (char *)pMP->ReadBytes(pData, gMapper->GetMap(), pKF);
    }
-   KeyFrame * pKF = new KeyFrame();
    pData = (char *)pKF->ReadBytes(pData, gMapper->GetMap());
 
    bool inserted = gMapper->InsertKeyFrame(pReqHead->trackerId, mapPoints, pKF);
