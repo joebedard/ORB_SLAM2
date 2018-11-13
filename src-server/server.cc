@@ -118,9 +118,9 @@ zmq::message_t HelloService(zmq::message_t & request)
    }
 }
 
-zmq::message_t LoginService(zmq::message_t & request)
+zmq::message_t LoginTracker(zmq::message_t & request)
 {
-   gOutServ.Print("begin LoginService");
+   gOutServ.Print("begin LoginTracker");
    LoginTrackerRequest * pReqData = request.data<LoginTrackerRequest>();
    cv::Mat pivotCalib(4, 4, CV_32F);
    pivotCalib.at<float>(0, 0) = pReqData->pivotCalib[0];
@@ -150,13 +150,13 @@ zmq::message_t LoginService(zmq::message_t & request)
       pRepData->mapPointIdSpan);
    pRepData->replyCode = ReplyCode::SUCCEEDED;
 
-   gOutServ.Print("end LoginService");
+   gOutServ.Print("end LoginTracker");
    return reply;
 }
 
-zmq::message_t LogoutService(zmq::message_t & request)
+zmq::message_t LogoutTracker(zmq::message_t & request)
 {
-   gOutServ.Print("begin LogoutService");
+   gOutServ.Print("begin LogoutTracker");
    LogoutTrackerRequest * pReqData = request.data<LogoutTrackerRequest>();
 
    zmq::message_t reply(sizeof(GeneralReply));
@@ -164,13 +164,13 @@ zmq::message_t LogoutService(zmq::message_t & request)
    gMapper->LogoutTracker(pReqData->trackerId);
    pRepData->replyCode = ReplyCode::SUCCEEDED;
 
-   gOutServ.Print("end LogoutService");
+   gOutServ.Print("end LogoutTracker");
    return reply;
 }
 
-zmq::message_t InitializeMonoService(zmq::message_t & request)
+zmq::message_t InitializeMono(zmq::message_t & request)
 {
-   gOutServ.Print("begin InitializeMonoService");
+   gOutServ.Print("begin InitializeMono");
    InitializeMonoRequest * pReqHead = request.data<InitializeMonoRequest>();
    KeyFrame * pKF1 = new KeyFrame(pReqHead->keyFrameId1);
    KeyFrame * pKF2 = new KeyFrame(pReqHead->keyFrameId2);
@@ -193,13 +193,13 @@ zmq::message_t InitializeMonoService(zmq::message_t & request)
    GeneralReply * pRepData = reply.data<GeneralReply>();
    pRepData->replyCode = ReplyCode::SUCCEEDED;
 
-   gOutServ.Print("end InitializeMonoService");
+   gOutServ.Print("end InitializeMono");
    return reply;
 }
 
-zmq::message_t InitializeStereoService(zmq::message_t & request)
+zmq::message_t InitializeStereo(zmq::message_t & request)
 {
-   gOutServ.Print("begin InitializeStereoService");
+   gOutServ.Print("begin InitializeStereo");
    InitializeStereoRequest * pReqHead = request.data<InitializeStereoRequest>();
    KeyFrame * pKF = new KeyFrame(pReqHead->keyFrameId);
    size_t quantityMPs = pReqHead->quantityMapPoints;
@@ -220,13 +220,31 @@ zmq::message_t InitializeStereoService(zmq::message_t & request)
    GeneralReply * pRepData = reply.data<GeneralReply>();
    pRepData->replyCode = ReplyCode::SUCCEEDED;
 
-   gOutServ.Print("end InitializeStereoService");
+   gOutServ.Print("end InitializeStereo");
    return reply;
 }
 
-zmq::message_t InsertKeyFrameService(zmq::message_t & request)
+zmq::message_t GetMap(zmq::message_t & request)
 {
-   gOutServ.Print("begin InsertKeyFrameService");
+   gOutServ.Print("begin GetMap");
+
+   GetMapRequest * pReqData = request.data<GetMapRequest>();
+
+   zmq::message_t reply(sizeof(GeneralReply));
+   GeneralReply * pRepData = reply.data<GeneralReply>();
+
+   // TODO - lock map and send it via pub-sub to the tracking client
+   gMapper->GetMap();
+
+   pRepData->replyCode = ReplyCode::SUCCEEDED;
+
+   gOutServ.Print("end GetMap");
+   return reply;
+}
+
+zmq::message_t InsertKeyFrame(zmq::message_t & request)
+{
+   gOutServ.Print("begin InsertKeyFrame");
    InsertKeyFrameRequest * pReqHead = request.data<InsertKeyFrameRequest>();
    KeyFrame * pKF = new KeyFrame(pReqHead->keyFrameId);
    size_t quantityMPs = pReqHead->quantityMapPoints;
@@ -248,13 +266,13 @@ zmq::message_t InsertKeyFrameService(zmq::message_t & request)
    pRepData->replyCode = ReplyCode::SUCCEEDED;
    pRepData->inserted = inserted;
 
-   gOutServ.Print("end InsertKeyFrameService");
+   gOutServ.Print("end InsertKeyFrame");
    return reply;
 }
 
 // array of function pointer
 zmq::message_t (*gServices[ServiceId::quantity])(zmq::message_t & request) = {
-   HelloService, LoginService, LogoutService, InitializeMonoService, InitializeStereoService, InsertKeyFrameService};
+   HelloService, LoginTracker, LogoutTracker, InitializeMono, InitializeStereo, GetMap, InsertKeyFrame};
 
 void RunServer(void * param) try
 {

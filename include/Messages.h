@@ -39,6 +39,12 @@ namespace ORB_SLAM2
       float pivotCalib[16];
    };
 
+   struct GetMapRequest
+   {
+      ServiceId serviceId;
+      unsigned int trackerId;
+   };
+
    struct LogoutTrackerRequest
    {
       ServiceId serviceId;

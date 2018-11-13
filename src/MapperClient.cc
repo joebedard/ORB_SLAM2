@@ -26,14 +26,15 @@
 namespace ORB_SLAM2
 {
 
-   MapperClient::MapperClient(cv::FileStorage & settings, ORBVocabulary & vocab, const bool bMonocular) :
-      SyncPrint("MapperClient: "),
-      mVocab(vocab),
-      mbMonocular(bMonocular),
-      mInitialized(false),
-      mMapperServerObserver(this),
-      mContext(2),
-      mSocketReq(mContext, ZMQ_REQ)
+   MapperClient::MapperClient(cv::FileStorage & settings, ORBVocabulary & vocab, const bool bMonocular) 
+      : SyncPrint("MapperClient: ")
+      , mVocab(vocab)
+      , mbMonocular(bMonocular)
+      , mInitialized(false)
+      , mMapperServerObserver(this)
+      , mContext(2)
+      , mSocketReq(mContext, ZMQ_REQ)
+      , mSocketSub(mContext, ZMQ_SUB)
    {
       mServerAddress.append(settings["Server.Address"]);
       if (0 == mServerAddress.length())
@@ -52,6 +53,9 @@ namespace ORB_SLAM2
       mSocketReq.setsockopt(ZMQ_LINGER, &linger, sizeof(linger));
 
       mSocketReq.connect(mServerAddress);
+
+      mSocketSub.connect(mPublisherAddress);
+      mSocketSub.setsockopt<unsigned int>(ZMQ_SUBSCRIBE, -1); // -1 is for broadcast messages
 
       GreetServer();
    }
@@ -196,6 +200,28 @@ namespace ORB_SLAM2
    {
       Print("begin LoginTracker");
 
+      LoginTrackerServer(pivotCalib, trackerId, firstKeyFrameId, keyFrameIdSpan, firstMapPointId, mapPointIdSpan);
+
+      {
+         unique_lock<mutex> lock(mMutexSocketSub);
+         mSocketSub.setsockopt<unsigned int>(ZMQ_SUBSCRIBE, trackerId);
+      }
+
+      GetMapFromServer(trackerId);
+
+      Print("end LoginTracker");
+   }
+
+   void MapperClient::LoginTrackerServer(
+      const cv::Mat & pivotCalib,
+      unsigned int & trackerId,
+      unsigned long  & firstKeyFrameId,
+      unsigned int & keyFrameIdSpan,
+      unsigned long & firstMapPointId,
+      unsigned int & mapPointIdSpan)
+   {
+      Print("begin LoginTrackerServer");
+
       zmq::message_t request(sizeof(LoginTrackerRequest));
       LoginTrackerRequest * pReqData = request.data<LoginTrackerRequest>();
       pReqData->serviceId = ServiceId::LOGIN_TRACKER;
@@ -226,7 +252,23 @@ namespace ORB_SLAM2
       firstMapPointId = pRepData->firstMapPointId;
       mapPointIdSpan = pRepData->mapPointIdSpan;
 
-      Print("end LoginTracker");
+      Print("end LoginTrackerServer");
+   }
+
+   void MapperClient::GetMapFromServer(const unsigned int trackerId)
+   {
+      Print("begin GetMapFromServer");
+
+      zmq::message_t request(sizeof(GetMapRequest));
+      GetMapRequest * pReqData = request.data<GetMapRequest>();
+      pReqData->serviceId = ServiceId::LOGIN_TRACKER;
+      pReqData->trackerId = trackerId;
+
+      // login and get Id values and return them
+      Print("sending GetMapRequest");
+      zmq::message_t reply = RequestReply(request);
+
+      Print("end GetMapFromServer");
    }
 
    void MapperClient::LogoutTracker(unsigned int id)
@@ -324,7 +366,6 @@ namespace ORB_SLAM2
          Print("unable to greet server");
       }
    }
-
 
    void MapperClient::InitializeMonoServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2)
    {

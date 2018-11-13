@@ -54,8 +54,9 @@ namespace ORB_SLAM2
       LOGOUT_TRACKER = 2,
       INITIALIZE_MONO = 3,
       INITIALIZE_STEREO = 4,
-      INSERT_KEYFRAME = 5,
-      quantity = 6
+      GET_MAP = 5,
+      INSERT_KEYFRAME = 6,
+      quantity = 7
    };
 
 }

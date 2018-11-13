@@ -110,6 +110,8 @@ namespace ORB_SLAM2
 
       std::mutex mMutexMapUpdate;
 
+      std::mutex mMutexSocketSub;
+
       ORBVocabulary & mVocab;
 
       bool mbMonocular;
@@ -128,9 +130,21 @@ namespace ORB_SLAM2
 
       zmq::socket_t mSocketReq;
 
+      zmq::socket_t mSocketSub;
+
       zmq::message_t RequestReply(zmq::message_t & request);
 
       void GreetServer();
+
+      void LoginTrackerServer(
+         const cv::Mat & pivotCalib,
+         unsigned int & trackerId,
+         unsigned long  & firstKeyFrameId,
+         unsigned int & keyFrameIdSpan,
+         unsigned long & firstMapPointId,
+         unsigned int & mapPointIdSpan);
+
+      void GetMapFromServer(const unsigned int trackerId);
 
       void InitializeMonoServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2);
 
