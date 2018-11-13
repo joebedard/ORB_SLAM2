@@ -168,35 +168,59 @@ zmq::message_t LogoutService(zmq::message_t & request)
    return reply;
 }
 
-zmq::message_t InitializeService(zmq::message_t & request)
+zmq::message_t InitializeMonoService(zmq::message_t & request)
 {
-   gOutServ.Print("begin InitializeService");
-   InitializeRequest * pReqHead = request.data<InitializeRequest>();
+   gOutServ.Print("begin InitializeMonoService");
+   InitializeMonoRequest * pReqHead = request.data<InitializeMonoRequest>();
+   KeyFrame * pKF1 = new KeyFrame(pReqHead->keyFrameId1);
+   KeyFrame * pKF2 = new KeyFrame(pReqHead->keyFrameId2);
    size_t quantityMPs = pReqHead->quantityMapPoints;
-   size_t quantityKFs = pReqHead->quantityKeyFrames;
 
    // read MapPoints and KeyFrames
    char * pData = (char *)(pReqHead + 1);
    std::vector<MapPoint*> mapPoints(quantityMPs);
-   std::vector<KeyFrame*> keyFrames(quantityKFs);
    for (int i = 0; i < quantityMPs; ++i)
    {
       MapPoint * pMP = new MapPoint();
-      pData = (char *)pMP->ReadBytes(pData, gMapper->GetMap());
+      pData = (char *)pMP->ReadBytes(pData, gMapper->GetMap(), pKF1, pKF2);
    }
-   for (int i = 0; i < quantityKFs; ++i)
-   {
-      KeyFrame * pKF = new KeyFrame();
-      pData = (char *)pKF->ReadBytes(pData, gMapper->GetMap());
-   }
+   pData = (char *)pKF1->ReadBytes(pData, gMapper->GetMap());
+   pData = (char *)pKF2->ReadBytes(pData, gMapper->GetMap());
 
-   gMapper->Initialize(pReqHead->trackerId, mapPoints, keyFrames);
+   gMapper->InitializeMono(pReqHead->trackerId, mapPoints, pKF1, pKF2);
 
    zmq::message_t reply(sizeof(GeneralReply));
    GeneralReply * pRepData = reply.data<GeneralReply>();
    pRepData->replyCode = ReplyCode::SUCCEEDED;
 
-   gOutServ.Print("end InitializeService");
+   gOutServ.Print("end InitializeMonoService");
+   return reply;
+}
+
+zmq::message_t InitializeStereoService(zmq::message_t & request)
+{
+   gOutServ.Print("begin InitializeStereoService");
+   InitializeStereoRequest * pReqHead = request.data<InitializeStereoRequest>();
+   KeyFrame * pKF = new KeyFrame(pReqHead->keyFrameId);
+   size_t quantityMPs = pReqHead->quantityMapPoints;
+
+   // read MapPoints and KeyFrames
+   char * pData = (char *)(pReqHead + 1);
+   std::vector<MapPoint*> mapPoints(quantityMPs);
+   for (int i = 0; i < quantityMPs; ++i)
+   {
+      MapPoint * pMP = new MapPoint();
+      pData = (char *)pMP->ReadBytes(pData, gMapper->GetMap(), pKF, NULL);
+   }
+   pData = (char *)pKF->ReadBytes(pData, gMapper->GetMap());
+
+   gMapper->InitializeStereo(pReqHead->trackerId, mapPoints, pKF);
+
+   zmq::message_t reply(sizeof(GeneralReply));
+   GeneralReply * pRepData = reply.data<GeneralReply>();
+   pRepData->replyCode = ReplyCode::SUCCEEDED;
+
+   gOutServ.Print("end InitializeStereoService");
    return reply;
 }
 
@@ -213,7 +237,7 @@ zmq::message_t InsertKeyFrameService(zmq::message_t & request)
    for (int i = 0; i < quantityMPs; ++i)
    {
       MapPoint * pMP = new MapPoint();
-      pData = (char *)pMP->ReadBytes(pData, gMapper->GetMap(), pKF);
+      pData = (char *)pMP->ReadBytes(pData, gMapper->GetMap(), pKF, NULL);
    }
    pData = (char *)pKF->ReadBytes(pData, gMapper->GetMap());
 
@@ -229,7 +253,8 @@ zmq::message_t InsertKeyFrameService(zmq::message_t & request)
 }
 
 // array of function pointer
-zmq::message_t (*gServices[ServiceId::quantity])(zmq::message_t & request) = { HelloService, LoginService, LogoutService, InitializeService , InsertKeyFrameService};
+zmq::message_t (*gServices[ServiceId::quantity])(zmq::message_t & request) = {
+   HelloService, LoginService, LogoutService, InitializeMonoService, InitializeStereoService, InsertKeyFrameService};
 
 void RunServer(void * param) try
 {
@@ -332,7 +357,7 @@ int main(int argc, char * argv[]) try
    //Initialize and start the Viewer thread
    Viewer viewer(NULL, &mapDrawer, NULL, &mapperServer);
    viewer.Run(); //ends when window is closed
-   gShouldRun = false; //signal tracking threads to stop
+   gShouldRun = false; //signal server threads to stop
 
    /*
    gOutMain.Print("Press X to exit.");

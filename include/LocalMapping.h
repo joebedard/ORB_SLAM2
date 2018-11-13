@@ -54,12 +54,12 @@ namespace ORB_SLAM2
          unsigned int mapPointIdSpan
       );
 
-      void SetLoopCloser(LoopClosing* pLoopCloser);
+      void SetLoopCloser(LoopClosing * pLoopCloser);
 
       // Main function
       void Run();
 
-      bool InsertKeyFrame(vector<MapPoint *> mapPoints, KeyFrame* pKF);
+      bool InsertKeyFrame(KeyFrame * pKF);
 
       // Thread Synch
       void RequestPause();
@@ -97,7 +97,7 @@ namespace ORB_SLAM2
 
       void KeyFrameCulling(MapChangeEvent & mapChanges);
 
-      cv::Mat ComputeF12(KeyFrame* &pKF1, KeyFrame* &pKF2);
+      cv::Mat ComputeF12(KeyFrame * &pKF1, KeyFrame * &pKF2);
 
       cv::Mat SkewSymmetricMatrix(const cv::Mat &v);
 
@@ -119,13 +119,13 @@ namespace ORB_SLAM2
 
       ORBVocabulary & mVocab;
 
-      LoopClosing* mpLoopCloser;
+      LoopClosing * mpLoopCloser;
 
-      list<KeyFrame*> mlNewKeyFrames;
+      list<KeyFrame *> mlNewKeyFrames;
 
-      KeyFrame* mpCurrentKeyFrame;
+      KeyFrame * mpCurrentKeyFrame;
 
-      list<MapPoint*> mlpRecentAddedMapPoints;
+      list<MapPoint *> mlpRecentAddedMapPoints;
 
       mutex mMutexNewKFs;
 

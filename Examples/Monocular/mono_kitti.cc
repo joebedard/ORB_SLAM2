@@ -125,9 +125,14 @@ int main(int argc, char **argv) try
 
     return 0;
 }
-catch (const std::exception& e)
+catch (const std::exception & e)
 {
    std::cerr << e.what() << std::endl;
+   return -1;
+}
+catch (...)
+{
+   std::cerr << "An exception was not caught in the main thread.";
    return -1;
 }
 

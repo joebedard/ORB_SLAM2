@@ -29,6 +29,7 @@ namespace ORB_SLAM2
    MapperServer::MapperServer(ORBVocabulary & vocab, const bool bMonocular) :
       SyncPrint("MapperServer: "),
       mVocab(vocab),
+      mbMonocular(bMonocular),
       mKeyFrameDB(vocab),
       mInitialized(false),
       mLocalMapper(mMap, mMutexMapUpdate, mKeyFrameDB, mVocab, bMonocular, FIRST_MAPPOINT_ID_LOCALMAPPER, MAPPOINT_ID_SPAN),
@@ -97,7 +98,7 @@ namespace ORB_SLAM2
       Print("Reset Complete");
    }
 
-   std::vector<KeyFrame*> MapperServer::DetectRelocalizationCandidates(Frame* F)
+   std::vector<KeyFrame *> MapperServer::DetectRelocalizationCandidates(Frame * F)
    {
       return mKeyFrameDB.DetectRelocalizationCandidates(F);
    }
@@ -117,9 +118,9 @@ namespace ORB_SLAM2
       return mLocalMapper.AcceptKeyFrames();
    }
 
-   void MapperServer::Initialize(unsigned int trackerId, vector<MapPoint *> & mapPoints, vector<KeyFrame*> & keyframes)
+   void MapperServer::InitializeMono(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2)
    {
-      Print("begin Initialize");
+      Print("begin InitializeMono");
 
       if (mInitialized)
          throw exception("The mapper may only be initialized once.");
@@ -127,47 +128,79 @@ namespace ORB_SLAM2
       if (trackerId != 0)
          throw exception("Only the first Tracker (id=0) may initialize the map.");
 
+      if (!mbMonocular)
+         throw exception("Monocular initialize is not allowed on a stereo map.");
+
       ValidateTracker(trackerId);
 
-      // stereo and RGBD modes will create MapPoints
-      for (auto it : mapPoints)
+      for (MapPoint * pMP : mapPoints)
       {
-         mMap.AddMapPoint(it);
+         mMap.AddMapPoint(pMP);
       }
 
-      mMap.mvpKeyFrameOrigins.push_back(keyframes[0]);
+      // Insert KeyFrame in the map
+      mMap.mvpKeyFrameOrigins.push_back(pKF1);
+      mMap.AddKeyFrame(pKF1);
+      mMap.AddKeyFrame(pKF2);
 
-      for (auto it : keyframes)
+      if (mLocalMapper.InsertKeyFrame(pKF1) && mLocalMapper.InsertKeyFrame(pKF2))
       {
-         // Insert KeyFrame in the map
-         mMap.AddKeyFrame(it);
+         UpdateTrackerStatus(trackerId, mapPoints);
+         UpdateTrackerStatus(trackerId, pKF1);
+         UpdateTrackerStatus(trackerId, pKF2);
+         mInitialized = true;
       }
-
-      // all points are already added to the map
-      vector<MapPoint *> noAdditionalPoints;
-
-      for (auto it : keyframes)
+      else
       {
-         if (!InsertKeyFrame(trackerId, noAdditionalPoints, it))
-         {
-            mMap.Clear();
-            throw exception("Unable to InsertKeyFrame during Initialize.");
-         }
+         mMap.Clear();
+         throw exception("Unable to InsertKeyFrame during InitializeMono.");
       }
-
-      // stereo and RGBD modes will create MapPoints
-      UpdateTrackerStatus(trackerId, NULL, mapPoints);
-
-      mInitialized = true;
-
-      Print("end Initialize");
+      Print("end InitializeMono");
    }
 
-   bool MapperServer::InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame *pKF)
+   void MapperServer::InitializeStereo(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF)
+   {
+      Print("begin InitializeStereo");
+
+      if (mInitialized)
+         throw exception("The mapper may only be initialized once.");
+
+      if (trackerId != 0)
+         throw exception("Only the first Tracker (id=0) may initialize the map.");
+
+      if (mbMonocular)
+         throw exception("Stereo initialize is not allowed on a monocular map.");
+
+      ValidateTracker(trackerId);
+
+      for (MapPoint * pMP : mapPoints)
+      {
+         mMap.AddMapPoint(pMP);
+      }
+
+      // Insert KeyFrame in the map
+      mMap.mvpKeyFrameOrigins.push_back(pKF);
+      mMap.AddKeyFrame(pKF);
+
+      if (mLocalMapper.InsertKeyFrame(pKF))
+      {
+         UpdateTrackerStatus(trackerId, mapPoints);
+         UpdateTrackerStatus(trackerId, pKF);
+         mInitialized = true;
+      }
+      else
+      {
+         mMap.Clear();
+         throw exception("Unable to InsertKeyFrame during InitializeStereo.");
+      }
+      Print("end InitializeStereo");
+   }
+
+   bool MapperServer::InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF)
    {
       ValidateTracker(trackerId);
 
-      if (mLocalMapper.InsertKeyFrame(mapPoints, pKF))
+      if (mLocalMapper.InsertKeyFrame(pKF))
       {
          for (auto pMP : mapPoints)
          {
@@ -178,7 +211,8 @@ namespace ORB_SLAM2
          mMap.AddKeyFrame(pKF);
 
          // stereo and RGBD modes will create MapPoints
-         UpdateTrackerStatus(trackerId, pKF, mapPoints);
+         UpdateTrackerStatus(trackerId, mapPoints);
+         UpdateTrackerStatus(trackerId, pKF);
 
          return true;
       }
@@ -186,7 +220,7 @@ namespace ORB_SLAM2
          return false;
    }
 
-   void MapperServer::UpdateTrackerStatus(unsigned int trackerId, KeyFrame * pKF, vector<MapPoint *> mapPoints)
+   void MapperServer::UpdateTrackerStatus(unsigned int trackerId, KeyFrame * pKF)
    {
       unique_lock<mutex> lock(mMutexTrackerStatus);
 
@@ -199,6 +233,11 @@ namespace ORB_SLAM2
             mTrackers[trackerId].nextKeyFrameId = pKF->GetId() + KEYFRAME_ID_SPAN;
          }
       }
+   }
+
+   void MapperServer::UpdateTrackerStatus(unsigned int trackerId, vector<MapPoint *> mapPoints)
+   {
+      unique_lock<mutex> lock(mMutexTrackerStatus);
 
       for (auto pMP : mapPoints)
       {

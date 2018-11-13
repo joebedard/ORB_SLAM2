@@ -40,15 +40,17 @@ namespace ORB_SLAM2
 
       virtual void Reset() = 0;
 
-      virtual std::vector<KeyFrame*> DetectRelocalizationCandidates(Frame* F) = 0;
+      virtual std::vector<KeyFrame *> DetectRelocalizationCandidates(Frame * F) = 0;
 
       virtual bool GetPauseRequested() = 0;
 
       virtual bool AcceptKeyFrames() = 0;
 
-      virtual bool InsertKeyFrame(unsigned int trackerId, vector<MapPoint*> & mapPoints, KeyFrame* pKF) = 0;
+      virtual bool InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF) = 0;
 
-      virtual void Initialize(unsigned int trackerId, vector<MapPoint*> & mapPoints, vector<KeyFrame*> & keyframes) = 0;
+      virtual void InitializeMono(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2) = 0;
+
+      virtual void InitializeStereo(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF) = 0;
 
       virtual bool GetInitialized() = 0;
 

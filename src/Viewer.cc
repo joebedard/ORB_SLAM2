@@ -69,6 +69,7 @@ namespace ORB_SLAM2
 
    void Viewer::Run() try
    {
+      Print("begin Run");
       const int MENU_WIDTH = 220;
       const int MAPVIEW_WIDTH = 1280;
       const int MAPVIEW_HEIGHT = 768;

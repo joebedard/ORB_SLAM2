@@ -52,9 +52,10 @@ namespace ORB_SLAM2
       HELLO = 0,
       LOGIN_TRACKER = 1,
       LOGOUT_TRACKER = 2,
-      INITIALIZE = 3,
-      INSERT_KEYFRAME = 4,
-      quantity = 5
+      INITIALIZE_MONO = 3,
+      INITIALIZE_STEREO = 4,
+      INSERT_KEYFRAME = 5,
+      quantity = 6
    };
 
 }

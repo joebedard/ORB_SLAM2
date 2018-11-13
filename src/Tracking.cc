@@ -575,9 +575,7 @@ namespace ORB_SLAM2
          mCurrentFrame.SetPose(cv::Mat::eye(4, 4, CV_32F));
 
          // Create KeyFrame
-         KeyFrame* pKFini = new KeyFrame(NewKeyFrameId(), mCurrentFrame);
-         vector<KeyFrame *> keyframes;
-         keyframes.push_back(pKFini);
+         KeyFrame * pKFini = new KeyFrame(NewKeyFrameId(), mCurrentFrame);
 
          // Create MapPoints and associate to KeyFrame
          vector<MapPoint *> points;
@@ -610,7 +608,7 @@ namespace ORB_SLAM2
          mvpLocalMapPoints = points;
          mpReferenceKF = pKFini;
 
-         mMapper.Initialize(mId, points, keyframes);
+         mMapper.InitializeStereo(mId, points, pKFini);
          mState = TRACKING_OK;
 
          if (mpMapDrawer)
@@ -701,11 +699,12 @@ namespace ORB_SLAM2
 
    void Tracking::CreateInitialMapMonocular()
    {
+      Print("begin CreateInitialMapMonocular");
       Map map;
 
       // Create KeyFrames
-      KeyFrame* pKFini = new KeyFrame(NewKeyFrameId(), mInitialFrame);
-      KeyFrame* pKFcur = new KeyFrame(NewKeyFrameId(), mCurrentFrame);
+      KeyFrame * pKFini = new KeyFrame(NewKeyFrameId(), mInitialFrame);
+      KeyFrame * pKFcur = new KeyFrame(NewKeyFrameId(), mCurrentFrame);
 
       pKFini->ComputeBoW(mVocab);
       pKFcur->ComputeBoW(mVocab);
@@ -713,11 +712,8 @@ namespace ORB_SLAM2
       // Insert KFs in the map
       map.AddKeyFrame(pKFini);
       map.AddKeyFrame(pKFcur);
-      vector<KeyFrame *> keyframes;
-      keyframes.push_back(pKFini);
-      keyframes.push_back(pKFcur);
 
-      // Create MapPoints and asscoiate to keyframes
+      // Create MapPoints and associate to keyframes
       vector<MapPoint *> points;
       for (size_t i = 0; i < mvIniMatches.size();i++)
       {
@@ -794,7 +790,7 @@ namespace ORB_SLAM2
       }
 
       mvpLocalMapPoints = points;
-      mMapper.Initialize(mId, points, keyframes);
+      mMapper.InitializeMono(mId, points, pKFini, pKFcur);
 
       mCurrentFrame.SetPose(pKFcur->GetPose());
       mnLastFrameIdMadeIntoKeyFrame = mCurrentFrame.mnId;
@@ -814,6 +810,7 @@ namespace ORB_SLAM2
       }
 
       mState = TRACKING_OK;
+      Print("end CreateInitialMapMonocular");
    }
 
    void Tracking::CheckReplacedInLastFrame()
@@ -888,7 +885,7 @@ namespace ORB_SLAM2
    void Tracking::UpdateLastFrame()
    {
       // Update pose according to reference keyframe
-      KeyFrame* pRef = mLastFrame.mpReferenceKF;
+      KeyFrame * pRef = mLastFrame.mpReferenceKF;
       cv::Mat Tlr = mlRelativeFramePoses.back();
       mLastFrame.SetPose(Tlr*pRef->GetPose());
    }
@@ -1157,9 +1154,9 @@ namespace ORB_SLAM2
    {
       mvpLocalMapPoints.clear();
 
-      for (vector<KeyFrame*>::const_iterator itKF = mvpLocalKeyFrames.begin(), itEndKF = mvpLocalKeyFrames.end(); itKF != itEndKF; itKF++)
+      for (vector<KeyFrame *>::const_iterator itKF = mvpLocalKeyFrames.begin(), itEndKF = mvpLocalKeyFrames.end(); itKF != itEndKF; itKF++)
       {
-         KeyFrame* pKF = *itKF;
+         KeyFrame * pKF = *itKF;
          const vector<MapPoint*> vpMPs = pKF->GetMapPointMatches();
 
          for (vector<MapPoint*>::const_iterator itMP = vpMPs.begin(), itEndMP = vpMPs.end(); itMP != itEndMP; itMP++)
@@ -1182,7 +1179,7 @@ namespace ORB_SLAM2
    void Tracking::UpdateLocalMapKeyFrames()
    {
       // Each map point vote for the keyframes in which it has been observed
-      map<KeyFrame*, int> keyframeCounter;
+      map<KeyFrame *, int> keyframeCounter;
       for (int i = 0; i < mCurrentFrame.N; i++)
       {
          if (mCurrentFrame.mvpMapPoints[i])
@@ -1190,8 +1187,8 @@ namespace ORB_SLAM2
             MapPoint* pMP = mCurrentFrame.mvpMapPoints[i];
             if (!pMP->isBad())
             {
-               const map<KeyFrame*, size_t> observations = pMP->GetObservations();
-               for (map<KeyFrame*, size_t>::const_iterator it = observations.begin(), itend = observations.end(); it != itend; it++)
+               const map<KeyFrame *, size_t> observations = pMP->GetObservations();
+               for (map<KeyFrame *, size_t>::const_iterator it = observations.begin(), itend = observations.end(); it != itend; it++)
                   keyframeCounter[it->first]++;
             }
             else
@@ -1207,15 +1204,15 @@ namespace ORB_SLAM2
       }
 
       int max = 0;
-      KeyFrame* pKFmax = static_cast<KeyFrame*>(NULL);
+      KeyFrame * pKFmax = static_cast<KeyFrame *>(NULL);
 
       mvpLocalKeyFrames.clear();
       mvpLocalKeyFrames.reserve(3 * keyframeCounter.size());
 
       // All keyframes that observe a map point are included in the local map. Also check which keyframe shares most points
-      for (map<KeyFrame*, int>::const_iterator it = keyframeCounter.begin(), itEnd = keyframeCounter.end(); it != itEnd; it++)
+      for (map<KeyFrame *, int>::const_iterator it = keyframeCounter.begin(), itEnd = keyframeCounter.end(); it != itEnd; it++)
       {
-         KeyFrame* pKF = it->first;
+         KeyFrame * pKF = it->first;
 
          if (pKF->isBad())
             continue;
@@ -1232,19 +1229,19 @@ namespace ORB_SLAM2
 
 
       // Include also some not-already-included keyframes that are neighbors to already-included keyframes
-      for (vector<KeyFrame*>::const_iterator itKF = mvpLocalKeyFrames.begin(), itEndKF = mvpLocalKeyFrames.end(); itKF != itEndKF; itKF++)
+      for (vector<KeyFrame *>::const_iterator itKF = mvpLocalKeyFrames.begin(), itEndKF = mvpLocalKeyFrames.end(); itKF != itEndKF; itKF++)
       {
          // Limit the number of keyframes
          if (mvpLocalKeyFrames.size() > 80)
             break;
 
-         KeyFrame* pKF = *itKF;
+         KeyFrame * pKF = *itKF;
 
-         const vector<KeyFrame*> vNeighs = pKF->GetBestCovisibilityKeyFrames(10);
+         const vector<KeyFrame *> vNeighs = pKF->GetBestCovisibilityKeyFrames(10);
 
-         for (vector<KeyFrame*>::const_iterator itNeighKF = vNeighs.begin(), itEndNeighKF = vNeighs.end(); itNeighKF != itEndNeighKF; itNeighKF++)
+         for (vector<KeyFrame *>::const_iterator itNeighKF = vNeighs.begin(), itEndNeighKF = vNeighs.end(); itNeighKF != itEndNeighKF; itNeighKF++)
          {
-            KeyFrame* pNeighKF = *itNeighKF;
+            KeyFrame * pNeighKF = *itNeighKF;
             if (!pNeighKF->isBad())
             {
                if (pNeighKF->mnTrackReferenceForFrame != mCurrentFrame.mnId)
@@ -1256,10 +1253,10 @@ namespace ORB_SLAM2
             }
          }
 
-         const set<KeyFrame*> spChilds = pKF->GetChilds();
-         for (set<KeyFrame*>::const_iterator sit = spChilds.begin(), send = spChilds.end(); sit != send; sit++)
+         const set<KeyFrame *> spChilds = pKF->GetChilds();
+         for (set<KeyFrame *>::const_iterator sit = spChilds.begin(), send = spChilds.end(); sit != send; sit++)
          {
-            KeyFrame* pChildKF = *sit;
+            KeyFrame * pChildKF = *sit;
             if (!pChildKF->isBad())
             {
                if (pChildKF->mnTrackReferenceForFrame != mCurrentFrame.mnId)
@@ -1271,7 +1268,7 @@ namespace ORB_SLAM2
             }
          }
 
-         KeyFrame* pParent = pKF->GetParent();
+         KeyFrame * pParent = pKF->GetParent();
          if (pParent)
          {
             if (pParent->mnTrackReferenceForFrame != mCurrentFrame.mnId)
@@ -1299,7 +1296,7 @@ namespace ORB_SLAM2
 
       // Relocalization is performed when tracking is lost
       // Track Lost: Query KeyFrame Database for keyframe candidates for relocalisation
-      vector<KeyFrame*> vpCandidateKFs = mMapper.DetectRelocalizationCandidates(&mCurrentFrame);
+      vector<KeyFrame *> vpCandidateKFs = mMapper.DetectRelocalizationCandidates(&mCurrentFrame);
 
       if (vpCandidateKFs.empty())
       {
@@ -1326,7 +1323,7 @@ namespace ORB_SLAM2
 
       for (int i = 0; i < nCandidateKFs; i++)
       {
-         KeyFrame* pKF = vpCandidateKFs[i];
+         KeyFrame * pKF = vpCandidateKFs[i];
          if (pKF->isBad())
             vbDiscarded[i] = true;
          else
@@ -1533,7 +1530,7 @@ namespace ORB_SLAM2
    KeyFrame * Tracking::CreateNewKeyFrame(Frame & currentFrame, SensorType sensorType)
    {
       Print("begin CreateNewKeyFrame");
-      KeyFrame* pKF = new KeyFrame(NewKeyFrameId(), currentFrame);
+      KeyFrame * pKF = new KeyFrame(NewKeyFrameId(), currentFrame);
 
       // Some KeyPoints (features) don't yet have MapPoints, so we create them.
       // We sort points by the measured depth by the stereo/RGBD sensor.

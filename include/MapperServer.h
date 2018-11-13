@@ -50,15 +50,17 @@ namespace ORB_SLAM2
 
       virtual void Reset();
 
-      virtual std::vector<KeyFrame*> DetectRelocalizationCandidates(Frame* F);
+      virtual std::vector<KeyFrame *> DetectRelocalizationCandidates(Frame * F);
 
       virtual bool GetPauseRequested();
 
       virtual bool AcceptKeyFrames();
 
-      virtual bool InsertKeyFrame(unsigned int trackerId, vector<MapPoint*> & mapPoints, KeyFrame* pKF);
+      virtual bool InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF);
 
-      virtual void Initialize(unsigned int trackerId, vector<MapPoint*> & mapPoints, vector<KeyFrame*> & keyframes);
+      virtual void InitializeMono(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2);
+
+      virtual void InitializeStereo(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF);
 
       virtual bool GetInitialized();
 
@@ -130,7 +132,9 @@ namespace ORB_SLAM2
 
       void ResetTrackerStatus();
 
-      void UpdateTrackerStatus(unsigned int trackerId, KeyFrame * pKF, vector<MapPoint *> mapPoints);
+      void UpdateTrackerStatus(unsigned int trackerId, KeyFrame * pKF);
+
+      void UpdateTrackerStatus(unsigned int trackerId, vector<MapPoint *> mapPoints);
 
       void ValidateTracker(unsigned int trackerId);
 

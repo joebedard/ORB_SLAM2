@@ -451,14 +451,16 @@ namespace ORB_SLAM2
       return size;
    }
 
-   void * MapPoint::ReadBytes(const void * buffer, Map & map, KeyFrame * pNewKF)
+   void * MapPoint::ReadBytes(const void * buffer, Map & map, KeyFrame * pNewKF1, KeyFrame * pNewKF2)
    {
       MapPoint::Header * pHeader = (MapPoint::Header *)buffer;
       mnId = pHeader->mnId;
       mnFirstKFid = pHeader->mnFirstKFId;
       nObs = pHeader->nObs;
-      if (pNewKF->GetId() == pHeader->mpRefKFId)
-         mpRefKF = pNewKF;
+      if (pNewKF1 && pNewKF1->GetId() == pHeader->mpRefKFId)
+         mpRefKF = pNewKF1;
+      else if (pNewKF2 && pNewKF2->GetId() == pHeader->mpRefKFId)
+         mpRefKF = pNewKF2;
       else
          mpRefKF = map.GetKeyFrame(pHeader->mpRefKFId);
       mnVisible = pHeader->mnVisible;
@@ -473,7 +475,7 @@ namespace ORB_SLAM2
       pData = (char *)Serializer::ReadMatrix(pData, mWorldPos);
       pData = (char *)Serializer::ReadMatrix(pData, mNormalVector);
       pData = (char *)Serializer::ReadMatrix(pData, mDescriptor);
-      pData = (char *)ReadObservations(pData, map, pNewKF, mObservations);
+      pData = (char *)ReadObservations(pData, map, pNewKF1, pNewKF2, mObservations);
       return pData;
    }
 
@@ -500,7 +502,7 @@ namespace ORB_SLAM2
       return pData;
    }
 
-   void * MapPoint::ReadObservations(const void * buffer, Map & map, KeyFrame * pNewKF, std::map<KeyFrame *, size_t> & observations)
+   void * MapPoint::ReadObservations(const void * buffer, Map & map, KeyFrame * pNewKF1, KeyFrame * pNewKF2, std::map<KeyFrame *, size_t> & observations)
    {
       observations.clear();
       size_t * pQuantity = (size_t *)buffer;
@@ -509,8 +511,10 @@ namespace ORB_SLAM2
       while (pData < pEnd)
       {
          KeyFrame * pKF = NULL;
-         if (pNewKF->GetId() == pData->keyFrameId)
-            pKF = pNewKF;
+         if (pNewKF1 && pNewKF1->GetId() == pData->keyFrameId)
+            pKF = pNewKF1;
+         else if (pNewKF2 && pNewKF2->GetId() == pData->keyFrameId)
+            pKF = pNewKF2;
          else
             pKF = map.GetKeyFrame(pData->keyFrameId);
          observations[pKF] = pData->index;

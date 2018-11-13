@@ -83,10 +83,10 @@ namespace ORB_SLAM2
       Print("Reset Complete");
    }
 
-   std::vector<KeyFrame*> MapperClient::DetectRelocalizationCandidates(Frame* F)
+   std::vector<KeyFrame *> MapperClient::DetectRelocalizationCandidates(Frame * F)
    {
       // TODO - call server relocalization
-      return std::vector<KeyFrame*>();
+      return std::vector<KeyFrame *>();
       //return mServer.DetectRelocalizationCandidates(F);
    }
 
@@ -109,9 +109,14 @@ namespace ORB_SLAM2
       return true;
    }
 
-   void MapperClient::Initialize(unsigned int trackerId, vector<MapPoint *> & mapPoints, vector<KeyFrame*> & keyframes)
+   void MapperClient::InitializeMono(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2)
    {
-      Print("begin Initialize");
+
+   }
+
+   void MapperClient::InitializeStereo(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF)
+   {
+      Print("begin InitializeMono");
       if (mInitialized)
          throw exception("The mapper may only be initialized once.");
 
@@ -125,21 +130,18 @@ namespace ORB_SLAM2
       }
 
       // is this needed for tracking client?
-      mMap.mvpKeyFrameOrigins.push_back(keyframes[0]);
+      mMap.mvpKeyFrameOrigins.push_back(pKF);
 
-      for (auto it : keyframes)
-      {
-         // Insert KeyFrame in the map
-         mMap.AddKeyFrame(it);
-      }
+      // Insert KeyFrame in the map
+      mMap.AddKeyFrame(pKF);
 
-      InitializeServer(trackerId, mapPoints, keyframes);
+      InitializeServer(trackerId, mapPoints, pKF);
 
       mInitialized = true;
-      Print("end Initialize");
+      Print("end InitializeMono");
    }
 
-   bool MapperClient::InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame *pKF)
+   bool MapperClient::InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF)
    {
       Print("begin InsertKeyFrame");
       // client: serialize KF and MPs and then send to server
@@ -303,34 +305,62 @@ namespace ORB_SLAM2
       }
    }
 
-   void MapperClient::InitializeServer(unsigned int trackerId, vector<MapPoint *>& mapPoints, vector<KeyFrame*>& keyframes)
+
+   void MapperClient::InitializeServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2)
    {
       Print("begin InitializeServer");
-      size_t sizeMsg = sizeof(InitializeRequest);
+      size_t sizeMsg = sizeof(InitializeMonoRequest);
       for (MapPoint * pMP : mapPoints)
       {
          sizeMsg += pMP->GetBufferSize();
       }
-      for (KeyFrame * pKF : keyframes)
-      {
-         sizeMsg += pKF->GetBufferSize();
-      }
+      sizeMsg += pKF1->GetBufferSize();
+      sizeMsg += pKF2->GetBufferSize();
 
       zmq::message_t request(sizeMsg);
-      InitializeRequest * pReqHead = (InitializeRequest *)request.data();
-      pReqHead->serviceId = ServiceId::INITIALIZE;
+      InitializeMonoRequest * pReqHead = (InitializeMonoRequest *)request.data();
+      pReqHead->serviceId = ServiceId::INITIALIZE_MONO;
       pReqHead->trackerId = trackerId;
+      pReqHead->keyFrameId1 = pKF1->GetId();
+      pReqHead->keyFrameId2 = pKF2->GetId();
       pReqHead->quantityMapPoints = mapPoints.size();
-      pReqHead->quantityKeyFrames = keyframes.size();
       char * pData = (char *)(pReqHead + 1);
       for (MapPoint * pMP : mapPoints)
       {
          pData = (char *)pMP->WriteBytes(pData);
       }
-      for (KeyFrame * pKF : keyframes)
+      pData = (char *)pKF1->WriteBytes(pData);
+      pData = (char *)pKF2->WriteBytes(pData);
+
+      Print("sending InitializeRequest");
+      zmq::message_t reply = RequestReply(request);
+      // map changes are received via the subscriber
+
+      Print("end InitializeServer");
+   }
+
+   void MapperClient::InitializeServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF)
+   {
+      Print("begin InitializeServer");
+      size_t sizeMsg = sizeof(InitializeStereoRequest);
+      for (MapPoint * pMP : mapPoints)
       {
-         pData = (char *)pKF->WriteBytes(pData);
+         sizeMsg += pMP->GetBufferSize();
       }
+      sizeMsg += pKF->GetBufferSize();
+
+      zmq::message_t request(sizeMsg);
+      InitializeStereoRequest * pReqHead = (InitializeStereoRequest *)request.data();
+      pReqHead->serviceId = ServiceId::INITIALIZE_STEREO;
+      pReqHead->trackerId = trackerId;
+      pReqHead->keyFrameId = pKF->GetId();
+      pReqHead->quantityMapPoints = mapPoints.size();
+      char * pData = (char *)(pReqHead + 1);
+      for (MapPoint * pMP : mapPoints)
+      {
+         pData = (char *)pMP->WriteBytes(pData);
+      }
+      pData = (char *)pKF->WriteBytes(pData);
 
       Print("sending InitializeRequest");
       zmq::message_t reply = RequestReply(request);

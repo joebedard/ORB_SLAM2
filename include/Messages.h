@@ -22,6 +22,7 @@
 #define MESSAGES_H
 
 #include "Enums.h"
+#include "Typedefs.h"
 
 namespace ORB_SLAM2
 {
@@ -44,12 +45,21 @@ namespace ORB_SLAM2
       unsigned int trackerId;
    };
 
-   struct InitializeRequest
+   struct InitializeMonoRequest
    {
       ServiceId serviceId;
       unsigned int trackerId;
+      id_type keyFrameId1;
+      id_type keyFrameId2;
       size_t quantityMapPoints;
-      size_t quantityKeyFrames;
+   };
+
+   struct InitializeStereoRequest
+   {
+      ServiceId serviceId;
+      unsigned int trackerId;
+      id_type keyFrameId;
+      size_t quantityMapPoints;
    };
 
    struct InsertKeyFrameRequest
