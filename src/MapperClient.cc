@@ -28,7 +28,6 @@ namespace ORB_SLAM2
 
    MapperClient::MapperClient(cv::FileStorage & settings, ORBVocabulary & vocab, const bool bMonocular) :
       SyncPrint("MapperClient: "),
-      //mServer(vocab, bMonocular),
       mVocab(vocab),
       mbMonocular(bMonocular),
       mInitialized(false),
@@ -53,8 +52,6 @@ namespace ORB_SLAM2
       mSocketReq.setsockopt(ZMQ_LINGER, &linger, sizeof(linger));
 
       mSocketReq.connect(mServerAddress);
-
-      //mServer.AddObserver(&mMapperServerObserver);
 
       GreetServer();
    }
@@ -111,12 +108,35 @@ namespace ORB_SLAM2
 
    void MapperClient::InitializeMono(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2)
    {
+      Print("begin InitializeMono");
+      if (mInitialized)
+         throw exception("The mapper may only be initialized once.");
 
+      if (trackerId != 0)
+         throw exception("Only the first Tracker (id=0) may initialize the map.");
+
+      // stereo and RGBD modes will create MapPoints
+      for (auto it : mapPoints)
+      {
+         mMap.AddMapPoint(it);
+      }
+
+      // is this needed for tracking client?
+      mMap.mvpKeyFrameOrigins.push_back(pKF1);
+
+      // Insert KeyFrame in the map
+      mMap.AddKeyFrame(pKF1);
+      mMap.AddKeyFrame(pKF2);
+
+      InitializeMonoServer(trackerId, mapPoints, pKF1, pKF2);
+
+      mInitialized = true;
+      Print("end InitializeMono");
    }
 
    void MapperClient::InitializeStereo(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF)
    {
-      Print("begin InitializeMono");
+      Print("begin InitializeStereo");
       if (mInitialized)
          throw exception("The mapper may only be initialized once.");
 
@@ -135,10 +155,10 @@ namespace ORB_SLAM2
       // Insert KeyFrame in the map
       mMap.AddKeyFrame(pKF);
 
-      InitializeServer(trackerId, mapPoints, pKF);
+      InitializeStereoServer(trackerId, mapPoints, pKF);
 
       mInitialized = true;
-      Print("end InitializeMono");
+      Print("end InitializeStereo");
    }
 
    bool MapperClient::InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF)
@@ -306,9 +326,9 @@ namespace ORB_SLAM2
    }
 
 
-   void MapperClient::InitializeServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2)
+   void MapperClient::InitializeMonoServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2)
    {
-      Print("begin InitializeServer");
+      Print("begin InitializeMonoServer");
       size_t sizeMsg = sizeof(InitializeMonoRequest);
       for (MapPoint * pMP : mapPoints)
       {
@@ -332,16 +352,16 @@ namespace ORB_SLAM2
       pData = (char *)pKF1->WriteBytes(pData);
       pData = (char *)pKF2->WriteBytes(pData);
 
-      Print("sending InitializeRequest");
+      Print("sending InitializeMonoRequest");
       zmq::message_t reply = RequestReply(request);
       // map changes are received via the subscriber
 
-      Print("end InitializeServer");
+      Print("end InitializeMonoServer");
    }
 
-   void MapperClient::InitializeServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF)
+   void MapperClient::InitializeStereoServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF)
    {
-      Print("begin InitializeServer");
+      Print("begin InitializeStereoServer");
       size_t sizeMsg = sizeof(InitializeStereoRequest);
       for (MapPoint * pMP : mapPoints)
       {
@@ -362,11 +382,11 @@ namespace ORB_SLAM2
       }
       pData = (char *)pKF->WriteBytes(pData);
 
-      Print("sending InitializeRequest");
+      Print("sending InitializeStereoRequest");
       zmq::message_t reply = RequestReply(request);
       // map changes are received via the subscriber
 
-      Print("end InitializeServer");
+      Print("end InitializeStereoServer");
    }
 
    bool MapperClient::InsertKeyFrameServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF)

@@ -132,9 +132,9 @@ namespace ORB_SLAM2
 
       void GreetServer();
 
-      void InitializeServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF);
+      void InitializeMonoServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2);
 
-      void InitializeServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2);
+      void InitializeStereoServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF);
 
       bool InsertKeyFrameServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF);
 
