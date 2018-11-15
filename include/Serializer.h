@@ -19,6 +19,8 @@
 */
 
 #include <opencv2\core\mat.hpp>
+#include <vector>
+#include <set>
 
 #ifndef SERIALIZER_H
 #define SERIALIZER_H
@@ -48,9 +50,17 @@ namespace ORB_SLAM2
       // utility function to write a std::vector<cv::KeyPoint> to a pre-allocated memory buffer
       static void * WriteKeyPointVector(const void * buffer, const std::vector<cv::KeyPoint> & kpv);
 
+      // utility template function to read a single value
+      template<typename T>
+      static void * ReadValue(const void * buffer, T & val);
+
+      // utility template function to write a single value
+      template<typename T>
+      static void * WriteValue(const void * buffer, const T val);
+
       // utility template function to calculate the serialized size of a std::vector<T>
       template<typename T>
-      static size_t GetVectorBufferSize(const std::vector<T> & v);
+      static size_t GetVectorBufferSize(const size_t quantity);
 
       // utility template function to read a std::vector<T> from a pre-allocated memory buffer
       template<typename T>
@@ -59,6 +69,18 @@ namespace ORB_SLAM2
       // utility template function to write a std::vector<T> to a pre-allocated memory buffer
       template<typename T>
       static void * WriteVector(const void * buffer, const std::vector<T> & v);
+
+      // utility template function to calculate the serialized size of a std::set<T>
+      template<typename T>
+      static size_t GetSetBufferSize(const size_t quantity);
+
+      // utility template function to read a std::set<T> from a pre-allocated memory buffer
+      template<typename T>
+      static void * ReadSet(const void * buffer, std::set<T> & s);
+
+      // utility template function to write a std::set<T> to a pre-allocated memory buffer
+      template<typename T>
+      static void * WriteSet(const void * buffer, const std::set<T> & s);
 
    private:
 
@@ -92,9 +114,25 @@ namespace ORB_SLAM2
    };
 
    template<typename T>
-   inline size_t Serializer::GetVectorBufferSize(const std::vector<T> & v)
+   inline void * Serializer::ReadValue(const void * buffer, T & val)
    {
-      return sizeof(size_t) + v.size() * sizeof(T);
+      T * pVal = (T *)buffer;
+      val = *pVal;
+      return pVal + 1;
+   }
+
+   template<typename T>
+   inline void * Serializer::WriteValue(const void * buffer, const T val)
+   {
+      T * pVal = (T *)buffer;
+      *pVal = val;
+      return pVal + 1;
+   }
+
+   template<typename T>
+   inline size_t Serializer::GetVectorBufferSize(const size_t quantity)
+   {
+      return sizeof(size_t) + quantity * sizeof(T);
    }
 
    template<typename T>
@@ -118,6 +156,40 @@ namespace ORB_SLAM2
       *pQuantity = v.size();
       T * pData = (T *)(pQuantity + 1);
       for (T t : v)
+      {
+         *pData = t;
+         ++pData;
+      }
+      return pData;
+   }
+
+   template<typename T>
+   inline size_t Serializer::GetSetBufferSize(const size_t quantity)
+   {
+      return sizeof(size_t) + quantity * sizeof(T);
+   }
+
+   template<typename T>
+   void * Serializer::ReadSet(const void * buffer, std::set<T> & s)
+   {
+      size_t * pQuantity = (size_t *)buffer;
+      s.clear();
+      T * pData = (T *)(pQuantity + 1);
+      for (int i = 0; i < *pQuantity; ++i)
+      {
+         s.insert(*pData);
+         ++pData;
+      }
+      return pData;
+   }
+
+   template<typename T>
+   void * Serializer::WriteSet(const void * buffer, const std::set<T> & s)
+   {
+      size_t * pQuantity = (size_t *)buffer;
+      *pQuantity = s.size();
+      T * pData = (T *)(pQuantity + 1);
+      for (T t : s)
       {
          *pData = t;
          ++pData;

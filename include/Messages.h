@@ -55,25 +55,18 @@ namespace ORB_SLAM2
    {
       ServiceId serviceId;
       unsigned int trackerId;
-      id_type keyFrameId1;
-      id_type keyFrameId2;
-      size_t quantityMapPoints;
    };
 
    struct InitializeStereoRequest
    {
       ServiceId serviceId;
       unsigned int trackerId;
-      id_type keyFrameId;
-      size_t quantityMapPoints;
    };
 
    struct InsertKeyFrameRequest
    {
       ServiceId serviceId;
       unsigned int trackerId;
-      id_type keyFrameId;
-      size_t quantityMapPoints;
    };
 
    struct GeneralReply
@@ -86,10 +79,16 @@ namespace ORB_SLAM2
    {
       ReplyCode replyCode;
       unsigned int trackerId;
-      unsigned long firstKeyFrameId;
+      id_type firstKeyFrameId;
       unsigned int keyFrameIdSpan;
-      unsigned long firstMapPointId;
+      id_type firstMapPointId;
       unsigned int mapPointIdSpan;
+   };
+
+   struct MapMessage
+   {
+      unsigned int trackerId;
+      MessageId messageId;
    };
 
    struct InsertKeyFrameReply

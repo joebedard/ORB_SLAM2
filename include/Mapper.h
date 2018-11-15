@@ -61,9 +61,9 @@ namespace ORB_SLAM2
       virtual void LoginTracker(
          const cv::Mat & pivotCalib,
          unsigned int & trackerId,
-         unsigned long  & firstKeyFrameId,
+         id_type  & firstKeyFrameId,
          unsigned int & keyFrameIdSpan,
-         unsigned long & firstMapPointId,
+         id_type & firstMapPointId,
          unsigned int & mapPointIdSpan) = 0;
 
       virtual void LogoutTracker(unsigned int id) = 0;

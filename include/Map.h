@@ -40,6 +40,7 @@ namespace ORB_SLAM2
    class Map : SyncPrint
    {
    public:
+
       Map();
 
       void AddKeyFrame(KeyFrame * pKF);
@@ -60,17 +61,21 @@ namespace ORB_SLAM2
 
       std::vector<KeyFrame *> GetAllKeyFrames();
 
-      KeyFrame * GetKeyFrame(id_type keyFrameId);
+      std::set<KeyFrame *> GetKeyFrameSet();
+
+      KeyFrame * GetKeyFrame(id_type keyFrameId) const;
 
       std::vector<MapPoint *> GetAllMapPoints();
 
-      MapPoint * GetMapPoint(id_type mapPointId);
+      std::set<MapPoint *> GetMapPointSet();
 
-      long unsigned int MapPointsInMap();
+      MapPoint * GetMapPoint(id_type mapPointId) const;
 
-      long unsigned  KeyFramesInMap();
+      size_t MapPointsInMap();
 
-      long unsigned int GetMaxKFid();
+      size_t  KeyFramesInMap();
+
+      id_type GetMaxKFid();
 
       void Clear();
 
@@ -80,7 +85,7 @@ namespace ORB_SLAM2
 
    protected:
 
-      long unsigned int mnMaxKFid;
+      id_type mnMaxKFid;
 
       // Index related to a big change in the map (loop closure, global BA)
       int mnBigChangeIdx;

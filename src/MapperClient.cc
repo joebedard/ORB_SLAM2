@@ -215,9 +215,9 @@ namespace ORB_SLAM2
    void MapperClient::LoginTrackerServer(
       const cv::Mat & pivotCalib,
       unsigned int & trackerId,
-      unsigned long  & firstKeyFrameId,
+      id_type  & firstKeyFrameId,
       unsigned int & keyFrameIdSpan,
-      unsigned long & firstMapPointId,
+      id_type & firstMapPointId,
       unsigned int & mapPointIdSpan)
    {
       Print("begin LoginTrackerServer");
@@ -261,10 +261,9 @@ namespace ORB_SLAM2
 
       zmq::message_t request(sizeof(GetMapRequest));
       GetMapRequest * pReqData = request.data<GetMapRequest>();
-      pReqData->serviceId = ServiceId::LOGIN_TRACKER;
+      pReqData->serviceId = ServiceId::GET_MAP;
       pReqData->trackerId = trackerId;
 
-      // login and get Id values and return them
       Print("sending GetMapRequest");
       zmq::message_t reply = RequestReply(request);
 
@@ -283,7 +282,6 @@ namespace ORB_SLAM2
       Print("sending LogoutTrackerRequest");
       zmq::message_t reply = RequestReply(request);
 
-      //mServer.LogoutTracker(id);
       Print("end LogoutTracker");
    }
 
@@ -371,27 +369,18 @@ namespace ORB_SLAM2
    {
       Print("begin InitializeMonoServer");
       size_t sizeMsg = sizeof(InitializeMonoRequest);
-      for (MapPoint * pMP : mapPoints)
-      {
-         sizeMsg += pMP->GetBufferSize();
-      }
       sizeMsg += pKF1->GetBufferSize();
       sizeMsg += pKF2->GetBufferSize();
+      sizeMsg += MapPoint::GetVectorBufferSize(mapPoints);
 
       zmq::message_t request(sizeMsg);
-      InitializeMonoRequest * pReqHead = (InitializeMonoRequest *)request.data();
+      InitializeMonoRequest * pReqHead = request.data<InitializeMonoRequest>();
       pReqHead->serviceId = ServiceId::INITIALIZE_MONO;
       pReqHead->trackerId = trackerId;
-      pReqHead->keyFrameId1 = pKF1->GetId();
-      pReqHead->keyFrameId2 = pKF2->GetId();
-      pReqHead->quantityMapPoints = mapPoints.size();
       char * pData = (char *)(pReqHead + 1);
-      for (MapPoint * pMP : mapPoints)
-      {
-         pData = (char *)pMP->WriteBytes(pData);
-      }
       pData = (char *)pKF1->WriteBytes(pData);
       pData = (char *)pKF2->WriteBytes(pData);
+      pData = (char *)MapPoint::WriteVector(pData, mapPoints);
 
       Print("sending InitializeMonoRequest");
       zmq::message_t reply = RequestReply(request);
@@ -404,24 +393,16 @@ namespace ORB_SLAM2
    {
       Print("begin InitializeStereoServer");
       size_t sizeMsg = sizeof(InitializeStereoRequest);
-      for (MapPoint * pMP : mapPoints)
-      {
-         sizeMsg += pMP->GetBufferSize();
-      }
       sizeMsg += pKF->GetBufferSize();
+      sizeMsg += MapPoint::GetVectorBufferSize(mapPoints);
 
       zmq::message_t request(sizeMsg);
-      InitializeStereoRequest * pReqHead = (InitializeStereoRequest *)request.data();
+      InitializeStereoRequest * pReqHead = request.data<InitializeStereoRequest>();
       pReqHead->serviceId = ServiceId::INITIALIZE_STEREO;
       pReqHead->trackerId = trackerId;
-      pReqHead->keyFrameId = pKF->GetId();
-      pReqHead->quantityMapPoints = mapPoints.size();
       char * pData = (char *)(pReqHead + 1);
-      for (MapPoint * pMP : mapPoints)
-      {
-         pData = (char *)pMP->WriteBytes(pData);
-      }
       pData = (char *)pKF->WriteBytes(pData);
+      pData = (char *)MapPoint::WriteVector(pData, mapPoints);
 
       Print("sending InitializeStereoRequest");
       zmq::message_t reply = RequestReply(request);
@@ -435,24 +416,16 @@ namespace ORB_SLAM2
       Print("begin InsertKeyFrameServer");
 
       size_t sizeMsg = sizeof(InsertKeyFrameRequest);
-      for (MapPoint * pMP : mapPoints)
-      {
-         sizeMsg += pMP->GetBufferSize();
-      }
       sizeMsg += pKF->GetBufferSize();
+      sizeMsg += MapPoint::GetVectorBufferSize(mapPoints);
 
       zmq::message_t request(sizeMsg);
       InsertKeyFrameRequest * pReqHead = (InsertKeyFrameRequest *)request.data();
       pReqHead->serviceId = ServiceId::INSERT_KEYFRAME;
       pReqHead->trackerId = trackerId;
-      pReqHead->keyFrameId = pKF->GetId();
-      pReqHead->quantityMapPoints = mapPoints.size();
       char * pData = (char *)(pReqHead + 1);
-      for (MapPoint * pMP : mapPoints)
-      {
-         pData = (char *)pMP->WriteBytes(pData);
-      }
       pData = (char *)pKF->WriteBytes(pData);
+      pData = (char *)MapPoint::WriteVector(pData, mapPoints);
 
       Print("sending InsertKeyFrameRequest");
       zmq::message_t reply = RequestReply(request);

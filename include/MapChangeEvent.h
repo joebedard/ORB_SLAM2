@@ -33,18 +33,26 @@ namespace ORB_SLAM2
    {
    public:
 
+      MapChangeEvent();
+
       set<KeyFrame *> updatedKeyFrames;
 
-      set<unsigned long int> deletedKeyFrames;
+      set<id_type> deletedKeyFrames;
 
       set<MapPoint *> updatedMapPoints;
 
-      set<unsigned long int> deletedMapPoints;
+      set<id_type> deletedMapPoints;
 
-      bool empty()
+      inline bool empty()
       {
          return updatedKeyFrames.empty() && deletedKeyFrames.empty() && updatedMapPoints.empty() && deletedMapPoints.empty();
       }
+
+      size_t GetBufferSize();
+
+      void * ReadBytes(const void * buffer, Map & map);
+
+      void * WriteBytes(const void * buffer);
    };
 
 }

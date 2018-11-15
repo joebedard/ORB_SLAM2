@@ -30,6 +30,7 @@
 #include <MapperServer.h>
 #include <MapDrawer.h>
 #include <Viewer.h>
+#include <Serializer.h>
 
 using namespace ORB_SLAM2;
 
@@ -45,16 +46,25 @@ SyncPrint gOutServ("server: ");
 char * gVocabFilename = NULL;
 char * gMapperFilename = NULL;
 
+// settings from config file
+struct Settings
+{
+   std::string serverAddress;
+   int serverTimeout;
+   int serverLinger;
+   std::string publisherAddress;
+   int publisherTimeout;
+   int publisherLinger;
+};
+
 // server variables
 struct ServerParam
 {
    int returnCode;
-   std::string serverAddress;
-   int timeout;
-   int linger;
-   std::string publisherAddress;
+   zmq::socket_t * socket;
 };
 bool gShouldRun = true;
+zmq::socket_t * gSocketPub;
 MapperServer * gMapper = NULL;
 
 void ParseParams(int paramc, char * paramv[])
@@ -69,26 +79,30 @@ void ParseParams(int paramc, char * paramv[])
    gMapperFilename = paramv[2];
 }
 
-void VerifySettings(cv::FileStorage & settings, const char * settingsFilePath, ServerParam & param)
+void VerifySettings(cv::FileStorage & fileStorage, const char * settingsFilePath, Settings & settings)
 {
-   if (!settings.isOpened())
+   if (!fileStorage.isOpened())
    {
-      std::string m("Failed to open settings file at: ");
+      std::string m("Failed to open file at: ");
       m.append(settingsFilePath);
       throw std::exception(m.c_str());
    }
 
-   param.serverAddress.append(settings["Server.Address"]);
-   if (0 == param.serverAddress.length())
+   settings.serverAddress.append(fileStorage["Server.Address"]);
+   if (0 == settings.serverAddress.length())
       throw std::exception("Server.Address property is not set or value is not in quotes.");
 
-   param.publisherAddress.append(settings["Publisher.Address"]);
-   if (0 == param.publisherAddress.length())
+   settings.serverTimeout = fileStorage["Server.Timeout"];
+
+   settings.serverLinger = fileStorage["Server.Linger"];
+
+   settings.publisherAddress.append(fileStorage["Publisher.Address"]);
+   if (0 == settings.publisherAddress.length())
       throw std::exception("Publisher.Address property is not set or value is not in quotes.");
 
-   param.timeout = settings["Server.Timeout"];
+   settings.publisherTimeout = fileStorage["Publisher.Timeout"];
 
-   param.linger = settings["Server.Linger"];
+   settings.publisherLinger = fileStorage["Publisher.Linger"];
 
 }
 
@@ -171,23 +185,38 @@ zmq::message_t LogoutTracker(zmq::message_t & request)
 zmq::message_t InitializeMono(zmq::message_t & request)
 {
    gOutServ.Print("begin InitializeMono");
+   std::unordered_map<id_type, KeyFrame *> newKeyFrames;
+   std::unordered_map<id_type, MapPoint *> newMapPoints;
+
    InitializeMonoRequest * pReqHead = request.data<InitializeMonoRequest>();
-   KeyFrame * pKF1 = new KeyFrame(pReqHead->keyFrameId1);
-   KeyFrame * pKF2 = new KeyFrame(pReqHead->keyFrameId2);
-   size_t quantityMPs = pReqHead->quantityMapPoints;
-
-   // read MapPoints and KeyFrames
    char * pData = (char *)(pReqHead + 1);
-   std::vector<MapPoint*> mapPoints(quantityMPs);
-   for (int i = 0; i < quantityMPs; ++i)
-   {
-      MapPoint * pMP = new MapPoint();
-      pData = (char *)pMP->ReadBytes(pData, gMapper->GetMap(), pKF1, pKF2);
-   }
-   pData = (char *)pKF1->ReadBytes(pData, gMapper->GetMap());
-   pData = (char *)pKF2->ReadBytes(pData, gMapper->GetMap());
 
-   gMapper->InitializeMono(pReqHead->trackerId, mapPoints, pKF1, pKF2);
+   // read KeyFrames
+   KeyFrame * pKF1 = NULL;
+   KeyFrame * pKF2 = NULL;
+   pData = (char *)KeyFrame::Read(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, &pKF1);
+   pData = (char *)KeyFrame::Read(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, &pKF2);
+   if (newKeyFrames.size() != 2)
+      throw exception("InitializeMono newKeyFrames.size() != 2");
+
+   // read MapPoints 
+   std::vector<MapPoint*> mapPoints;
+   pData = (char *)MapPoint::ReadVector(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, mapPoints);
+   if (newMapPoints.size() != mapPoints.size())
+      throw exception("InitializeMono newMapPoints.size() != mapPoints.size()");
+
+   try
+   {
+      gMapper->InitializeMono(pReqHead->trackerId, mapPoints, pKF1, pKF2);
+   }
+   catch (exception & e)
+   {
+      delete pKF1;
+      delete pKF2;
+      for (MapPoint * pMP : mapPoints)
+         delete pMP;
+      throw e;
+   }
 
    zmq::message_t reply(sizeof(GeneralReply));
    GeneralReply * pRepData = reply.data<GeneralReply>();
@@ -200,21 +229,35 @@ zmq::message_t InitializeMono(zmq::message_t & request)
 zmq::message_t InitializeStereo(zmq::message_t & request)
 {
    gOutServ.Print("begin InitializeStereo");
+   std::unordered_map<id_type, KeyFrame *> newKeyFrames;
+   std::unordered_map<id_type, MapPoint *> newMapPoints;
+
    InitializeStereoRequest * pReqHead = request.data<InitializeStereoRequest>();
-   KeyFrame * pKF = new KeyFrame(pReqHead->keyFrameId);
-   size_t quantityMPs = pReqHead->quantityMapPoints;
-
-   // read MapPoints and KeyFrames
    char * pData = (char *)(pReqHead + 1);
-   std::vector<MapPoint*> mapPoints(quantityMPs);
-   for (int i = 0; i < quantityMPs; ++i)
-   {
-      MapPoint * pMP = new MapPoint();
-      pData = (char *)pMP->ReadBytes(pData, gMapper->GetMap(), pKF, NULL);
-   }
-   pData = (char *)pKF->ReadBytes(pData, gMapper->GetMap());
 
-   gMapper->InitializeStereo(pReqHead->trackerId, mapPoints, pKF);
+   // read KeyFrame
+   KeyFrame * pKF = NULL;
+   pData = (char *)KeyFrame::Read(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, &pKF);
+   if (newKeyFrames.size() != 1)
+      throw exception("InitializeStereo newKeyFrames.size() != 1");
+   
+   // read MapPoints
+   std::vector<MapPoint*> mapPoints;
+   pData = (char *)MapPoint::ReadVector(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, mapPoints);
+   if (newMapPoints.size() != mapPoints.size())
+      throw exception("InitializeStereo newMapPoints.size() != mapPoints.size()");
+
+   try
+   {
+      gMapper->InitializeStereo(pReqHead->trackerId, mapPoints, pKF);
+   }
+   catch (exception & e)
+   {
+      delete pKF;
+      for (MapPoint * pMP : mapPoints)
+         delete pMP;
+      throw e;
+   }
 
    zmq::message_t reply(sizeof(GeneralReply));
    GeneralReply * pRepData = reply.data<GeneralReply>();
@@ -230,12 +273,28 @@ zmq::message_t GetMap(zmq::message_t & request)
 
    GetMapRequest * pReqData = request.data<GetMapRequest>();
 
+   {
+      // TODO - lock map and send it via pub-sub to the tracking client
+      unique_lock<mutex> lock(gMapper->GetMutexMapUpdate());
+      std::set<id_type> noDeletes; // no deleted MapPoints or KeyFrames
+      MapChangeEvent mce;
+      mce.updatedKeyFrames = gMapper->GetMap().GetKeyFrameSet();
+      mce.deletedKeyFrames = noDeletes;
+      mce.updatedMapPoints = gMapper->GetMap().GetMapPointSet();
+      mce.deletedMapPoints = noDeletes;
+
+      size_t msgSize = sizeof(MapMessage) + mce.GetBufferSize();
+      zmq::message_t message(msgSize);
+      MapMessage * pMsgData = message.data<MapMessage>();
+      pMsgData->trackerId = pReqData->trackerId;
+      pMsgData->messageId = MessageId::MAP_CHANGE;
+      char * pData = (char *)(pMsgData + 1);
+      pData = (char *)mce.WriteBytes(pData);
+      gSocketPub->send(message);
+   }
+
    zmq::message_t reply(sizeof(GeneralReply));
    GeneralReply * pRepData = reply.data<GeneralReply>();
-
-   // TODO - lock map and send it via pub-sub to the tracking client
-   gMapper->GetMap();
-
    pRepData->replyCode = ReplyCode::SUCCEEDED;
 
    gOutServ.Print("end GetMap");
@@ -245,21 +304,31 @@ zmq::message_t GetMap(zmq::message_t & request)
 zmq::message_t InsertKeyFrame(zmq::message_t & request)
 {
    gOutServ.Print("begin InsertKeyFrame");
-   InsertKeyFrameRequest * pReqHead = request.data<InsertKeyFrameRequest>();
-   KeyFrame * pKF = new KeyFrame(pReqHead->keyFrameId);
-   size_t quantityMPs = pReqHead->quantityMapPoints;
+   std::unordered_map<id_type, KeyFrame *> newKeyFrames;
+   std::unordered_map<id_type, MapPoint *> newMapPoints;
 
-   // read MapPoints and KeyFrame
+   InsertKeyFrameRequest * pReqHead = request.data<InsertKeyFrameRequest>();
    char * pData = (char *)(pReqHead + 1);
-   std::vector<MapPoint*> mapPoints(quantityMPs);
-   for (int i = 0; i < quantityMPs; ++i)
-   {
-      MapPoint * pMP = new MapPoint();
-      pData = (char *)pMP->ReadBytes(pData, gMapper->GetMap(), pKF, NULL);
-   }
-   pData = (char *)pKF->ReadBytes(pData, gMapper->GetMap());
+
+   // read KeyFrame
+   KeyFrame * pKF = NULL;
+   pData = (char *)KeyFrame::Read(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, &pKF);
+   if (newKeyFrames.size() != 1)
+      throw exception("InsertKeyFrame newKeyFrames.size() != 1");
+
+   // read MapPoints
+   std::vector<MapPoint*> mapPoints;
+   pData = (char *)MapPoint::ReadVector(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, mapPoints);
+   if (newMapPoints.size() != mapPoints.size())
+      throw exception("InsertKeyFrame newMapPoints.size() != mapPoints.size()");
 
    bool inserted = gMapper->InsertKeyFrame(pReqHead->trackerId, mapPoints, pKF);
+   if (!inserted)
+   {
+      delete pKF;
+      for (MapPoint * pMP : mapPoints)
+         delete pMP;
+   }
 
    zmq::message_t reply(sizeof(InsertKeyFrameReply));
    InsertKeyFrameReply * pRepData = reply.data<InsertKeyFrameReply>();
@@ -271,18 +340,14 @@ zmq::message_t InsertKeyFrame(zmq::message_t & request)
 }
 
 // array of function pointer
-zmq::message_t (*gServices[ServiceId::quantity])(zmq::message_t & request) = {
+zmq::message_t (*gServices[ServiceId::quantityServiceId])(zmq::message_t & request) = {
    HelloService, LoginTracker, LogoutTracker, InitializeMono, InitializeStereo, GetMap, InsertKeyFrame};
 
 void RunServer(void * param) try
 {
    ServerParam * serverParam = (ServerParam *)param;
 
-   zmq::context_t context(1);
-   zmq::socket_t socket(context, ZMQ_REP);
-   socket.setsockopt(ZMQ_RCVTIMEO, &serverParam->timeout, sizeof(ServerParam::timeout));
-   socket.setsockopt(ZMQ_LINGER, &serverParam->linger, sizeof(ServerParam::linger));
-   socket.bind(serverParam->serverAddress);
+   zmq::socket_t & socket = *serverParam->socket;
 
    zmq::message_t request;
    while (gShouldRun) 
@@ -292,7 +357,7 @@ void RunServer(void * param) try
          try 
          {
             GeneralRequest * pReqData = request.data<GeneralRequest>();
-            if (pReqData->serviceId < ServiceId::quantity)
+            if (pReqData->serviceId < ServiceId::quantityServiceId)
             {
                zmq::message_t reply = gServices[pReqData->serviceId](request);
                socket.send(reply);
@@ -339,9 +404,9 @@ int main(int argc, char * argv[]) try
 {
    ParseParams(argc, argv);
 
-   cv::FileStorage mapperSettings(gMapperFilename, cv::FileStorage::READ);
-   ServerParam param;
-   VerifySettings(mapperSettings, gMapperFilename, param);
+   cv::FileStorage mapperFile(gMapperFilename, cv::FileStorage::READ);
+   Settings settings;
+   VerifySettings(mapperFile, gMapperFilename, settings);
 
    // Output welcome message
    stringstream ss1;
@@ -352,9 +417,24 @@ int main(int argc, char * argv[]) try
    ss1 << "This program comes with ABSOLUTELY NO WARRANTY;" << endl;
    ss1 << "This is free software, and you are welcome to redistribute it" << endl;
    ss1 << "under certain conditions. See LICENSE.txt." << endl << endl;
-   ss1 << "Server.Address=" << param.serverAddress << endl;
-   ss1 << "Publisher.Address=" << param.publisherAddress << endl;
+   ss1 << "Server.Address=" << settings.serverAddress << endl;
+   ss1 << "Publisher.Address=" << settings.publisherAddress << endl;
    gOutMain.Print(NULL, ss1);
+
+   zmq::context_t context(2);
+
+   zmq::socket_t socketRep(context, ZMQ_REP);
+   socketRep.setsockopt(ZMQ_RCVTIMEO, &settings.serverTimeout, sizeof(Settings::serverTimeout));
+   socketRep.setsockopt(ZMQ_LINGER, &settings.serverLinger, sizeof(Settings::serverLinger));
+   socketRep.bind(settings.serverAddress);
+   ServerParam param;
+   param.socket = &socketRep;
+
+   zmq::socket_t socketPub(context, ZMQ_PUB);
+   socketPub.setsockopt(ZMQ_RCVTIMEO, &settings.publisherTimeout, sizeof(Settings::publisherTimeout));
+   socketPub.setsockopt(ZMQ_LINGER, &settings.publisherLinger, sizeof(Settings::publisherLinger));
+   socketPub.bind(settings.publisherAddress);
+   gSocketPub = &socketPub;
 
    //Load ORB Vocabulary
    ORBVocabulary vocab;
@@ -370,7 +450,7 @@ int main(int argc, char * argv[]) try
    MapperServer mapperServer(vocab, false);
    gMapper = &mapperServer;
    thread serverThread(RunServer, &param);
-   MapDrawer mapDrawer(mapperSettings, mapperServer);
+   MapDrawer mapDrawer(mapperFile, mapperServer);
 
    //Initialize and start the Viewer thread
    Viewer viewer(NULL, &mapDrawer, NULL, &mapperServer);

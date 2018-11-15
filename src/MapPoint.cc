@@ -31,8 +31,8 @@ namespace ORB_SLAM2
 
    mutex MapPoint::mGlobalMutex;
 
-   MapPoint::MapPoint()
-      : mnId(-1)
+   MapPoint::MapPoint(id_type id)
+      : mnId(id)
       , mnFirstKFid(-1)
       , nObs(0)
       , mnTrackReferenceForFrame(0)
@@ -441,28 +441,152 @@ namespace ORB_SLAM2
       return mnId;
    }
 
+   MapPoint * MapPoint::Find(const id_type id, const Map & map, std::unordered_map<id_type, MapPoint *> & newMapPoints)
+   {
+      MapPoint * pMP = map.GetMapPoint(id);
+      if (pMP == NULL)
+      {
+         pMP = (newMapPoints.count(id) == 1) ? newMapPoints.at(id) : NULL;
+      }
+      return pMP;
+   }
+
+   id_type MapPoint::PeekId(const void * buffer)
+   {
+      MapPoint::Header * pHeader = (MapPoint::Header *)buffer;
+      return pHeader->mnId;
+   }
+
+   size_t MapPoint::GetVectorBufferSize(const std::vector<MapPoint *> & mpv)
+   {
+      size_t size = sizeof(size_t);
+      for (MapPoint * pMP : mpv)
+         size += pMP->GetBufferSize();
+      return size;
+   }
+
+   void * MapPoint::ReadVector(
+      void * buffer, 
+      const Map & map, 
+      std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
+      std::unordered_map<id_type, MapPoint *> & newMapPoints, 
+      std::vector<MapPoint *> & mpv)
+   {
+      size_t quantityMPs;
+      char * pData = (char *)Serializer::ReadValue<size_t>(buffer, quantityMPs);
+      mpv.resize(quantityMPs);
+      for (int i = 0; i < quantityMPs; ++i)
+      {
+         id_type id = MapPoint::PeekId(pData);
+         MapPoint * pMP = map.GetMapPoint(id);
+         if (pMP == NULL)
+         {
+            pMP = (newMapPoints.count(id) == 1) ? newMapPoints.at(id) : NULL;
+            if (pMP == NULL)
+            {
+               pMP = new MapPoint(id);
+               newMapPoints[id] = pMP;
+            }
+         }
+         mpv[i] = pMP;
+         pData = (char *)pMP->ReadBytes(pData, map, newKeyFrames);
+      }
+      return pData;
+   }
+
+   void * MapPoint::WriteVector(
+      void * buffer,
+      std::vector<MapPoint *> & mpv)
+   {
+      char * pData = (char *)Serializer::WriteValue<size_t>(buffer, mpv.size());
+      for (MapPoint * pMP : mpv)
+      {
+         pData = (char *)pMP->WriteBytes(pData);
+      }
+      return pData;
+   }
+
+   size_t MapPoint::GetSetBufferSize(const std::set<MapPoint *> & mps)
+   {
+      size_t size = sizeof(size_t);
+      for (MapPoint * pMP : mps)
+         size += pMP->GetBufferSize();
+      return size;
+   }
+
+   void * MapPoint::ReadSet(
+      void * buffer, 
+      const Map & map, 
+      std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
+      std::unordered_map<id_type, MapPoint *> & newMapPoints, 
+      std::set<MapPoint *> & mps)
+   {
+      size_t quantityMPs;
+      char * pData = (char *)Serializer::ReadValue<size_t>(buffer, quantityMPs);
+      mps.clear();
+      for (int i = 0; i < quantityMPs; ++i)
+      {
+         id_type id = MapPoint::PeekId(pData);
+         MapPoint * pMP = map.GetMapPoint(id);
+         if (pMP == NULL)
+         {
+            pMP = (newMapPoints.count(id) == 1) ? newMapPoints.at(id) : NULL;
+            if (pMP == NULL)
+            {
+               pMP = new MapPoint(id);
+               newMapPoints[id] = pMP;
+            }
+         }
+         mps.insert(pMP);
+         pData = (char *)pMP->ReadBytes(pData, map, newKeyFrames);
+      }
+      return pData;
+   }
+
+   void * MapPoint::WriteSet(
+      void * buffer,
+      std::set<MapPoint *> & mps)
+   {
+      char * pData = (char *)Serializer::WriteValue<size_t>(buffer, mps.size());
+      for (MapPoint * pMP : mps)
+      {
+         pData = (char *)pMP->WriteBytes(pData);
+      }
+      return pData;
+   }
+
    size_t MapPoint::GetBufferSize()
    {
       size_t size = sizeof(MapPoint::Header);
       size += Serializer::GetMatBufferSize(mWorldPos);
       size += Serializer::GetMatBufferSize(mNormalVector);
       size += Serializer::GetMatBufferSize(mDescriptor);
-      size += sizeof(size_t) + mObservations.size() * (sizeof(Observation));
+      size += Serializer::GetVectorBufferSize<Observation>(mObservations.size());
       return size;
    }
 
-   void * MapPoint::ReadBytes(const void * buffer, Map & map, KeyFrame * pNewKF1, KeyFrame * pNewKF2)
+   void * MapPoint::ReadBytes(
+      const void * buffer, 
+      const Map & map, 
+      std::unordered_map<id_type, KeyFrame *> & newKeyFrames)
    {
       MapPoint::Header * pHeader = (MapPoint::Header *)buffer;
-      mnId = pHeader->mnId;
+      if (mnId != pHeader->mnId)
+         throw exception("MapPoint::ReadBytes mnId != pHeader->mnId");
+
       mnFirstKFid = pHeader->mnFirstKFId;
       nObs = pHeader->nObs;
-      if (pNewKF1 && pNewKF1->GetId() == pHeader->mpRefKFId)
-         mpRefKF = pNewKF1;
-      else if (pNewKF2 && pNewKF2->GetId() == pHeader->mpRefKFId)
-         mpRefKF = pNewKF2;
-      else
-         mpRefKF = map.GetKeyFrame(pHeader->mpRefKFId);
+
+      mpRefKF = KeyFrame::Find(pHeader->mpRefKFId, map, newKeyFrames);
+      if (mpRefKF == NULL)
+      {
+         std::stringstream ss;
+         ss << "MapPoint::ReadBytes detected an unknown KeyFrame with id=" << pHeader->mpRefKFId;
+         throw exception(ss.str().c_str());
+         //mpRefKF = new KeyFrame(pHeader->mpRefKFId);
+         //newKeyFrames[pHeader->mpRefKFId] = mpRefKF;
+      }
+
       mnVisible = pHeader->mnVisible;
       mnFound = pHeader->mnFound;
       mbBad = pHeader->mbBad;
@@ -475,7 +599,7 @@ namespace ORB_SLAM2
       pData = (char *)Serializer::ReadMatrix(pData, mWorldPos);
       pData = (char *)Serializer::ReadMatrix(pData, mNormalVector);
       pData = (char *)Serializer::ReadMatrix(pData, mDescriptor);
-      pData = (char *)ReadObservations(pData, map, pNewKF1, pNewKF2, mObservations);
+      pData = (char *)ReadObservations(pData, map, newKeyFrames, mObservations);
       return pData;
    }
 
@@ -502,7 +626,11 @@ namespace ORB_SLAM2
       return pData;
    }
 
-   void * MapPoint::ReadObservations(const void * buffer, Map & map, KeyFrame * pNewKF1, KeyFrame * pNewKF2, std::map<KeyFrame *, size_t> & observations)
+   void * MapPoint::ReadObservations(
+      const void * buffer,
+      const Map & map,
+      std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
+      std::map<KeyFrame *, size_t> & observations)
    {
       observations.clear();
       size_t * pQuantity = (size_t *)buffer;
@@ -510,13 +638,15 @@ namespace ORB_SLAM2
       Observation * pEnd = pData + *pQuantity;
       while (pData < pEnd)
       {
-         KeyFrame * pKF = NULL;
-         if (pNewKF1 && pNewKF1->GetId() == pData->keyFrameId)
-            pKF = pNewKF1;
-         else if (pNewKF2 && pNewKF2->GetId() == pData->keyFrameId)
-            pKF = pNewKF2;
-         else
-            pKF = map.GetKeyFrame(pData->keyFrameId);
+         KeyFrame * pKF = KeyFrame::Find(pData->keyFrameId, map, newKeyFrames);
+         if (pKF == NULL)
+         {
+            std::stringstream ss;
+            ss << "MapPoint::ReadObservations detected an unknown KeyFrame with id=" << pData->keyFrameId;
+            throw exception(ss.str().c_str());
+            //pKF = new KeyFrame(pData->keyFrameId);
+            //newKeyFrames[pData->keyFrameId] = pKF;
+         }
          observations[pKF] = pData->index;
          ++pData;
       }

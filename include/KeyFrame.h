@@ -33,6 +33,7 @@
 #include "FrameCalibration.h"
 
 #include <mutex>
+#include <unordered_map>
 
 
 namespace ORB_SLAM2
@@ -120,8 +121,45 @@ namespace ORB_SLAM2
       // Compute Scene Depth (q=2 median). Used in monocular.
       float ComputeSceneMedianDepth(const int q);
 
+      static KeyFrame * Find(id_type id, const Map & map, std::unordered_map<id_type, KeyFrame *> & newKeyFrames);
+
+      static void * Read(
+         void * buffer, 
+         const Map & map, 
+         std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
+         std::unordered_map<id_type, MapPoint *> & newMapPoints,
+         KeyFrame ** const ppKF);
+
+      static size_t GetVectorBufferSize(const std::vector<KeyFrame *> & kfv);
+
+      static void * ReadVector(
+         void * buffer, 
+         const Map & map, 
+         std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
+         std::unordered_map<id_type, MapPoint *> & newMapPoints,
+         std::vector<KeyFrame *> & kfv);
+
+      static size_t GetSetBufferSize(const std::set<KeyFrame *> & kfs);
+
+      static void * ReadSet(
+         void * buffer, 
+         const Map & map, 
+         std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
+         std::unordered_map<id_type, MapPoint *> & newMapPoints,
+         std::set<KeyFrame *> & kfs);
+
+      static void * WriteSet(
+         void * buffer,
+         std::set<KeyFrame *> & kfs);
+
       size_t GetBufferSize();
-      void * ReadBytes(const void * data, Map & map);
+
+      void * ReadBytes(
+         const void * data, 
+         const Map & map, 
+         std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
+         std::unordered_map<id_type, MapPoint *> & newMapPoints);
+
       void * WriteBytes(const void * data);
 
       static bool weightComp(int a, int b) {
@@ -283,14 +321,39 @@ namespace ORB_SLAM2
       const int mnGridCols;
       const int mnGridRows;
 
-      static void * ReadMapPoints(const void * buffer, Map & map, std::vector<MapPoint *> & mpv);
-      static void * WriteMapPoints(const void * buffer, const std::vector<MapPoint *> & mpv);
-      static void * ReadKeyFrameWeights(const void * buffer, Map & map, std::map<KeyFrame *, int> & kfWeights);
+      static id_type PeekId(const void * data);
+
+      static void * ReadMapPointIds(
+         const void * buffer, 
+         const Map & map, 
+         std::unordered_map<id_type, MapPoint *> & newMapPoints, 
+         std::vector<MapPoint *> & mpv);
+
+      static void * WriteMapPointIds(const void * buffer, const std::vector<MapPoint *> & mpv);
+
+      static void * ReadKeyFrameWeights(
+         const void * buffer, 
+         const Map & map, 
+         std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
+         std::map<KeyFrame *, int> & kfWeights);
+    
       static void * WriteKeyFrameWeights(const void * buffer, const std::map<KeyFrame *, int> & kfWeights);
-      static void * ReadKeyFrames(const void * buffer, Map & map, std::vector<KeyFrame *> & kfv);
-      static void * WriteKeyFrames(const void * buffer, const std::vector<KeyFrame *> & kfv);
-      static void * ReadKeyFrames(const void * buffer, Map & map, std::set<KeyFrame *> & kfs);
-      static void * WriteKeyFrames(const void * buffer, const std::set<KeyFrame *> & kfs);
+
+      static void * ReadKeyFrameIds(
+         const void * buffer, 
+         const Map & map, 
+         std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
+         std::vector<KeyFrame *> & kfv);
+
+      static void * WriteKeyFrameIds(const void * buffer, const std::vector<KeyFrame *> & kfv);
+
+      static void * ReadKeyFrameIds(
+         const void * buffer, 
+         const Map & map, 
+         std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
+         std::set<KeyFrame *> & kfs);
+
+      static void * WriteKeyFrameIds(const void * buffer, const std::set<KeyFrame *> & kfs);
 
       bool PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY);
       void AssignFeaturesToGrid();

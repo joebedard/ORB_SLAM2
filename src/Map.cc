@@ -111,10 +111,24 @@ namespace ORB_SLAM2
       return allKeyFrames;
    }
 
-   KeyFrame * Map::GetKeyFrame(id_type keyFrameId)
+   set<KeyFrame *> Map::GetKeyFrameSet()
    {
+      Print("begin GetKeyFrameSet");
       unique_lock<mutex> lock(mMutexMap);
-      return mKeyFrames[keyFrameId];
+      set<KeyFrame *> allKeyFrames;
+      for (unordered_map<id_type, KeyFrame *>::iterator it = mKeyFrames.begin(); it != mKeyFrames.end(); ++it)
+      {
+         if (it->second == NULL) Print("it->second == NULL");
+         allKeyFrames.insert(it->second);
+      }
+      Print("end GetKeyFrameSet");
+      return allKeyFrames;
+   }
+
+   KeyFrame * Map::GetKeyFrame(const id_type keyFrameId) const
+   {
+      //unique_lock<mutex> lock(mMutexMap);
+      return (mKeyFrames.count(keyFrameId) == 1) ? mKeyFrames.at(keyFrameId) : NULL;
    }
 
    vector<MapPoint *> Map::GetAllMapPoints()
@@ -131,25 +145,39 @@ namespace ORB_SLAM2
       return allMapPoints;
    }
 
-   MapPoint * Map::GetMapPoint(id_type mapPointId)
+   set<MapPoint *> Map::GetMapPointSet()
    {
+      Print("begin GetMapPointSet");
       unique_lock<mutex> lock(mMutexMap);
-      return mMapPoints[mapPointId];
+      set<MapPoint *> allMapPoints;
+      for (unordered_map<id_type, MapPoint *>::iterator it = mMapPoints.begin(); it != mMapPoints.end(); ++it)
+      {
+         if (it->second == NULL) Print("it->second == NULL");
+         allMapPoints.insert(it->second);
+      }
+      Print("end GetMapPointSet");
+      return allMapPoints;
    }
 
-   long unsigned int Map::MapPointsInMap()
+   MapPoint * Map::GetMapPoint(id_type mapPointId) const
+   {
+      //unique_lock<mutex> lock(mMutexMap);
+      return (mMapPoints.count(mapPointId) == 1) ? mMapPoints.at(mapPointId) : NULL;
+   }
+
+   size_t Map::MapPointsInMap()
    {
       unique_lock<mutex> lock(mMutexMap);
       return mMapPoints.size();
    }
 
-   long unsigned int Map::KeyFramesInMap()
+   size_t Map::KeyFramesInMap()
    {
       unique_lock<mutex> lock(mMutexMap);
       return mKeyFrames.size();
    }
 
-   long unsigned int Map::GetMaxKFid()
+   id_type Map::GetMaxKFid()
    {
       unique_lock<mutex> lock(mMutexMap);
       return mnMaxKFid;

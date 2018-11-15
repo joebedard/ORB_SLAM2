@@ -109,6 +109,7 @@ src/KeyFrameDatabase.cc
 src/LocalMapping.cc
 src/LoopClosing.cc
 src/Map.cc
+src/MapChangeEvent.cc
 src/MapDrawer.cc
 src/Mapper.cc
 src/MapperClient.cc

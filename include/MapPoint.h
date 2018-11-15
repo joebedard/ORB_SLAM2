@@ -25,6 +25,7 @@
 
 #include <opencv2/core/core.hpp>
 #include <mutex>
+#include <unordered_map>
 
 #include "Typedefs.h"
 #include "KeyFrame.h"
@@ -42,7 +43,7 @@ namespace ORB_SLAM2
    public:
 
       // constructor for map points
-      MapPoint();
+      MapPoint(id_type id);
 
       // constructor for map points
       MapPoint(id_type id, const cv::Mat &Pos, KeyFrame* pRefKF);
@@ -88,9 +89,39 @@ namespace ORB_SLAM2
       int PredictScale(const float &currentDist, KeyFrame*pKF);
       int PredictScale(const float &currentDist, Frame* pF);
 
+      static MapPoint * Find(const id_type id, const Map & map, std::unordered_map<id_type, MapPoint *> & newMapPoints);
+
+      static size_t GetVectorBufferSize(const std::vector<MapPoint *> & mpv);
+
+      static void * ReadVector(
+         void * buffer, 
+         const Map & map, 
+         std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
+         std::unordered_map<id_type, MapPoint *> & newMapPoints,
+         std::vector<MapPoint *> & mpv);
+
+      static void * WriteVector(
+         void * buffer,
+         std::vector<MapPoint *> & mpv);
+
+      static size_t GetSetBufferSize(const std::set<MapPoint *> & mps);
+
+      static void * ReadSet(
+         void * buffer, 
+         const Map & map, 
+         std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
+         std::unordered_map<id_type, MapPoint *> & newMapPoints, 
+         std::set<MapPoint *> & mps);
+
+      static void * WriteSet(
+         void * buffer,
+         std::set<MapPoint *> & mps);
+
       size_t GetBufferSize();
-      void * ReadBytes(const void * data, Map & map, KeyFrame * pNewKF1, KeyFrame * pNewKF2);
-      void * WriteBytes(const void * data);
+
+      void * ReadBytes(const void * buffer, const Map & map, std::unordered_map<id_type, KeyFrame *> & newKeyFrames);
+
+      void * WriteBytes(const void * buffer);
 
    public:
       id_type mnFirstKFid;
@@ -174,7 +205,13 @@ namespace ORB_SLAM2
          size_t index;
       };
 
-      static void * ReadObservations(const void * buffer, Map & map, KeyFrame * pNewKF1, KeyFrame * pNewKF2, std::map<KeyFrame *, size_t> & observations);
+      static id_type PeekId(const void * buffer);
+
+      static void * ReadObservations(
+         const void * buffer,
+         const Map & map,
+         std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
+         std::map<KeyFrame *, size_t> & observations);
 
       static void * WriteObservations(const void * buffer, std::map<KeyFrame *, size_t> & observations);
 
