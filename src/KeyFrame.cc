@@ -965,8 +965,8 @@ namespace ORB_SLAM2
             pKF = new KeyFrame(id);
             newKeyFrames[id] = pKF;
          }
-         kfv[i] = pKF;
          pData = (char *)pKF->ReadBytes(pData, map, newKeyFrames, newMapPoints);
+         kfv[i] = pKF;
       }
       return pData;
    }
@@ -998,8 +998,8 @@ namespace ORB_SLAM2
             pKF = new KeyFrame(id);
             newKeyFrames[id] = pKF;
          }
-         kfs.insert(pKF);
          pData = (char *)pKF->ReadBytes(pData, map, newKeyFrames, newMapPoints);
+         kfs.insert(pKF);
       }
       return pData;
    }

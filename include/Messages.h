@@ -85,7 +85,7 @@ namespace ORB_SLAM2
       unsigned int mapPointIdSpan;
    };
 
-   struct MapMessage
+   struct GeneralMessage
    {
       unsigned int trackerId;
       MessageId messageId;

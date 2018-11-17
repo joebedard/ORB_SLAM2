@@ -46,6 +46,8 @@ namespace ORB_SLAM2
 
       MapperClient(cv::FileStorage & settings, ORBVocabulary & vocab, const bool bMonocular);
 
+      ~MapperClient();
+
       virtual long unsigned  KeyFramesInMap();
 
       virtual void Reset();
@@ -112,6 +114,10 @@ namespace ORB_SLAM2
 
       std::mutex mMutexSocketSub;
 
+      mutex mMutexPause;
+
+      mutex mMutexAccept;
+
       ORBVocabulary & mVocab;
 
       bool mbMonocular;
@@ -120,7 +126,9 @@ namespace ORB_SLAM2
 
       bool mInitialized;
 
-      //MapperServer mServer;
+      bool mPauseRequested;
+
+      bool mAcceptKeyFrames;
 
       string mServerAddress;
 
@@ -131,6 +139,21 @@ namespace ORB_SLAM2
       zmq::socket_t mSocketReq;
 
       zmq::socket_t mSocketSub;
+
+      std::thread * mThreadSub;
+
+      bool mShouldRun;
+
+      // array of function pointer
+      void (MapperClient::*mMessageProc[MessageId::quantityMessageId])(zmq::message_t & message);
+
+      void ReceiveMapChange(zmq::message_t & message);
+
+      void ReceivePauseRequested(zmq::message_t & message);
+
+      void ReceiveAcceptKeyFrames(zmq::message_t & message);
+
+      void RunSubscriber();
 
       zmq::message_t RequestReply(zmq::message_t & request);
 
@@ -156,16 +179,6 @@ namespace ORB_SLAM2
 
       void MapperServerObserverMapChanged(MapChangeEvent & mce);
 
-      class MapperServerObserver : public MapObserver
-      {
-         MapperClient * mpMapperClient;
-      public:
-         MapperServerObserver(MapperClient * pMapperClient) : mpMapperClient(pMapperClient) {};
-         virtual void HandleReset() { mpMapperClient->MapperServerObserverReset(); };
-         virtual void HandleMapChanged(MapChangeEvent & mce) { mpMapperClient->MapperServerObserverMapChanged(mce); }
-      };
-
-      MapperServerObserver mMapperServerObserver;
    };
 
 }

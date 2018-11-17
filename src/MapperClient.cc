@@ -22,6 +22,7 @@
 #include "MapperClient.h"
 #include "Optimizer.h"
 #include "Messages.h"
+#include "Sleep.h"
 
 namespace ORB_SLAM2
 {
@@ -31,10 +32,13 @@ namespace ORB_SLAM2
       , mVocab(vocab)
       , mbMonocular(bMonocular)
       , mInitialized(false)
-      , mMapperServerObserver(this)
+      , mPauseRequested(false)
+      , mAcceptKeyFrames(true)
       , mContext(2)
       , mSocketReq(mContext, ZMQ_REQ)
       , mSocketSub(mContext, ZMQ_SUB)
+      , mShouldRun(false)
+      , mMessageProc{&MapperClient::ReceiveMapChange, &MapperClient::ReceivePauseRequested, &MapperClient::ReceiveAcceptKeyFrames}
    {
       mServerAddress.append(settings["Server.Address"]);
       if (0 == mServerAddress.length())
@@ -57,7 +61,20 @@ namespace ORB_SLAM2
       mSocketSub.connect(mPublisherAddress);
       mSocketSub.setsockopt<unsigned int>(ZMQ_SUBSCRIBE, -1); // -1 is for broadcast messages
 
+      //Initialize and start the Subscriber thread
+      mThreadSub = new thread(&ORB_SLAM2::MapperClient::RunSubscriber, this);
+
       GreetServer();
+   }
+
+   MapperClient::~MapperClient()
+   {
+      if (mThreadSub)
+      {
+         mShouldRun = false;
+         mThreadSub->join();
+         delete mThreadSub;
+      }
    }
 
    long unsigned MapperClient::KeyFramesInMap()
@@ -98,16 +115,16 @@ namespace ORB_SLAM2
 
    bool MapperClient::GetPauseRequested()
    {
-      //return mServer.GetPauseRequested();
-      // TODO - temporary until network synchronization
-      return false;
+      // TODO - send message from server
+      unique_lock<mutex> lock(mMutexPause);
+      return mPauseRequested;
    }
 
    bool MapperClient::AcceptKeyFrames()
    {
-      //return mServer.AcceptKeyFrames();
-      // TODO - temporary until network synchronization
-      return true;
+      // TODO - send message from server
+      unique_lock<mutex> lock(mMutexAccept);
+      return mAcceptKeyFrames;
    }
 
    void MapperClient::InitializeMono(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2)
@@ -208,6 +225,7 @@ namespace ORB_SLAM2
       }
 
       GetMapFromServer(trackerId);
+      mInitialized = true;
 
       Print("end LoginTracker");
    }
@@ -314,6 +332,77 @@ namespace ORB_SLAM2
    std::mutex & MapperClient::GetMutexMapUpdate()
    {
       return mMutexMapUpdate;
+   }
+
+   void MapperClient::ReceiveMapChange(zmq::message_t & message)
+   {
+      GeneralMessage * pMsgData = message.data<GeneralMessage>();
+      MapChangeEvent mce;
+      unique_lock<mutex> lock(mMutexMapUpdate);
+      mce.ReadBytes(pMsgData + 1, mMap);
+      MapperServerObserverMapChanged(mce);
+   }
+
+   void MapperClient::ReceivePauseRequested(zmq::message_t & message)
+   {
+      GeneralMessage * pMsgData = message.data<GeneralMessage>();
+      unique_lock<mutex> lock(mMutexPause);
+      mPauseRequested = *(bool *)(pMsgData + 1);
+   }
+
+   void MapperClient::ReceiveAcceptKeyFrames(zmq::message_t & message)
+   {
+      GeneralMessage * pMsgData = message.data<GeneralMessage>();
+      unique_lock<mutex> lock(mMutexAccept);
+      mAcceptKeyFrames = *(bool *)(pMsgData + 1);
+   }
+
+   void MapperClient::RunSubscriber() try
+   {
+      zmq::message_t message;
+      while (mShouldRun)
+      {
+         if (mSocketSub.recv(&message, ZMQ_NOBLOCK))
+         {
+            GeneralMessage * pReqData = message.data<GeneralMessage>();
+            try 
+            {
+               if (pReqData->messageId < MessageId::quantityMessageId)
+               {
+                  (this->*mMessageProc[pReqData->messageId])(message);
+               }
+               else
+               {
+                  stringstream ss; 
+                  ss << "RunSubscriber received an unknown message with id=" << pReqData->messageId;
+                  Print(ss);
+               }
+            } 
+            catch (std::exception & e)
+            {
+               stringstream ss;
+               ss << "RunSubscriber exception in message procedure id="  << pReqData->messageId;
+               ss << ": " << e.what();
+               Print(ss);
+            }
+         }
+         else
+         {
+            sleep(1000);
+         }
+      }
+   }
+   catch (zmq::error_t & e)
+   {
+      Print(string("RunSubscriber: error_t: ") + e.what());
+   }
+   catch (const std::exception & e)
+   {
+      Print(string("RunSubscriber: exception: ") + e.what());
+   }
+   catch (...)
+   {
+      Print("RunSubscriber: an exception was not caught");
    }
 
    zmq::message_t MapperClient::RequestReply(zmq::message_t & request)
@@ -469,7 +558,7 @@ namespace ORB_SLAM2
       Print(ss2);
       for (KeyFrame * kf : mce.updatedKeyFrames)
       {
-         stringstream ss; ss << "kf->GetId() == " << kf->GetId(); Print(ss);
+         //stringstream ss; ss << "kf->GetId() == " << kf->GetId(); Print(ss);
          KeyFrame * pKF = mMap.GetKeyFrame(kf->GetId());
          if (pKF == NULL)
          {
@@ -478,7 +567,6 @@ namespace ORB_SLAM2
          }
          else
          {
-            Print("pKF == NULL");
             //pKF->Update(kf);
          }
       }
@@ -497,7 +585,6 @@ namespace ORB_SLAM2
          mMap.EraseMapPoint(id);
       }
 
-      mInitialized = true;
       NotifyMapChanged(mce);
       Print("end MapperServerObserverMapChanged");
    }

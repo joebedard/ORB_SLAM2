@@ -283,9 +283,9 @@ zmq::message_t GetMap(zmq::message_t & request)
       mce.updatedMapPoints = gMapper->GetMap().GetMapPointSet();
       mce.deletedMapPoints = noDeletes;
 
-      size_t msgSize = sizeof(MapMessage) + mce.GetBufferSize();
+      size_t msgSize = sizeof(GeneralMessage) + mce.GetBufferSize();
       zmq::message_t message(msgSize);
-      MapMessage * pMsgData = message.data<MapMessage>();
+      GeneralMessage * pMsgData = message.data<GeneralMessage>();
       pMsgData->trackerId = pReqData->trackerId;
       pMsgData->messageId = MessageId::MAP_CHANGE;
       char * pData = (char *)(pMsgData + 1);

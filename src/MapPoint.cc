@@ -488,8 +488,8 @@ namespace ORB_SLAM2
                newMapPoints[id] = pMP;
             }
          }
-         mpv[i] = pMP;
          pData = (char *)pMP->ReadBytes(pData, map, newKeyFrames);
+         mpv[i] = pMP;
       }
       return pData;
    }
@@ -537,8 +537,8 @@ namespace ORB_SLAM2
                newMapPoints[id] = pMP;
             }
          }
-         mps.insert(pMP);
          pData = (char *)pMP->ReadBytes(pData, map, newKeyFrames);
+         mps.insert(pMP);
       }
       return pData;
    }

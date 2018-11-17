@@ -131,10 +131,6 @@ namespace ORB_SLAM2
 
       bool mbAbortBA;
 
-      bool mbAcceptKeyFrames;
-
-      mutex mMutexAccept;
-
    private:
 
       mutex & mMutexMapUpdate;
@@ -150,6 +146,10 @@ namespace ORB_SLAM2
       bool mbNotPause;
 
       mutex mMutexPause;
+
+      bool mbAcceptKeyFrames;
+
+      mutex mMutexAccept;
 
       unsigned long NewMapPointId();
    };
