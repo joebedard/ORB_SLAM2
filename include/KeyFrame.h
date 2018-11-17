@@ -324,36 +324,36 @@ namespace ORB_SLAM2
       static id_type PeekId(const void * data);
 
       static void * ReadMapPointIds(
-         const void * buffer, 
+         void * const buffer, 
          const Map & map, 
          std::unordered_map<id_type, MapPoint *> & newMapPoints, 
          std::vector<MapPoint *> & mpv);
 
-      static void * WriteMapPointIds(const void * buffer, const std::vector<MapPoint *> & mpv);
+      static void * WriteMapPointIds(void * const buffer, const std::vector<MapPoint *> & mpv);
 
       static void * ReadKeyFrameWeights(
-         const void * buffer, 
+         void * const buffer, 
          const Map & map, 
          std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
          std::map<KeyFrame *, int> & kfWeights);
     
-      static void * WriteKeyFrameWeights(const void * buffer, const std::map<KeyFrame *, int> & kfWeights);
+      static void * WriteKeyFrameWeights(void * const buffer, const std::map<KeyFrame *, int> & kfWeights);
 
       static void * ReadKeyFrameIds(
-         const void * buffer, 
+         void * const buffer, 
          const Map & map, 
          std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
          std::vector<KeyFrame *> & kfv);
 
-      static void * WriteKeyFrameIds(const void * buffer, const std::vector<KeyFrame *> & kfv);
+      static void * WriteKeyFrameIds(void * const buffer, const std::vector<KeyFrame *> & kfv);
 
       static void * ReadKeyFrameIds(
-         const void * buffer, 
+         void * const buffer, 
          const Map & map, 
          std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
          std::set<KeyFrame *> & kfs);
 
-      static void * WriteKeyFrameIds(const void * buffer, const std::set<KeyFrame *> & kfs);
+      static void * WriteKeyFrameIds(void * const buffer, const std::set<KeyFrame *> & kfs);
 
       bool PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY);
       void AssignFeaturesToGrid();

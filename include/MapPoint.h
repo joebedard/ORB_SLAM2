@@ -119,9 +119,9 @@ namespace ORB_SLAM2
 
       size_t GetBufferSize();
 
-      void * ReadBytes(const void * buffer, const Map & map, std::unordered_map<id_type, KeyFrame *> & newKeyFrames);
+      void * ReadBytes(void * const buffer, const Map & map, std::unordered_map<id_type, KeyFrame *> & newKeyFrames);
 
-      void * WriteBytes(const void * buffer);
+      void * WriteBytes(void * const buffer);
 
    public:
       id_type mnFirstKFid;
@@ -205,15 +205,15 @@ namespace ORB_SLAM2
          size_t index;
       };
 
-      static id_type PeekId(const void * buffer);
+      static id_type PeekId(void * const buffer);
 
       static void * ReadObservations(
-         const void * buffer,
+         void * const buffer,
          const Map & map,
          std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
          std::map<KeyFrame *, size_t> & observations);
 
-      static void * WriteObservations(const void * buffer, std::map<KeyFrame *, size_t> & observations);
+      static void * WriteObservations(void * const buffer, std::map<KeyFrame *, size_t> & observations);
 
    };
 

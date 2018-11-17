@@ -451,7 +451,7 @@ namespace ORB_SLAM2
       return pMP;
    }
 
-   id_type MapPoint::PeekId(const void * buffer)
+   id_type MapPoint::PeekId(void * const buffer)
    {
       MapPoint::Header * pHeader = (MapPoint::Header *)buffer;
       return pHeader->mnId;
@@ -473,7 +473,7 @@ namespace ORB_SLAM2
       std::vector<MapPoint *> & mpv)
    {
       size_t quantityMPs;
-      char * pData = (char *)Serializer::ReadValue<size_t>(buffer, quantityMPs);
+      void * pData = Serializer::ReadValue<size_t>(buffer, quantityMPs);
       mpv.resize(quantityMPs);
       for (int i = 0; i < quantityMPs; ++i)
       {
@@ -488,7 +488,7 @@ namespace ORB_SLAM2
                newMapPoints[id] = pMP;
             }
          }
-         pData = (char *)pMP->ReadBytes(pData, map, newKeyFrames);
+         pData = pMP->ReadBytes(pData, map, newKeyFrames);
          mpv[i] = pMP;
       }
       return pData;
@@ -498,10 +498,10 @@ namespace ORB_SLAM2
       void * buffer,
       std::vector<MapPoint *> & mpv)
    {
-      char * pData = (char *)Serializer::WriteValue<size_t>(buffer, mpv.size());
+      void * pData = Serializer::WriteValue<size_t>(buffer, mpv.size());
       for (MapPoint * pMP : mpv)
       {
-         pData = (char *)pMP->WriteBytes(pData);
+         pData = pMP->WriteBytes(pData);
       }
       return pData;
    }
@@ -522,7 +522,7 @@ namespace ORB_SLAM2
       std::set<MapPoint *> & mps)
    {
       size_t quantityMPs;
-      char * pData = (char *)Serializer::ReadValue<size_t>(buffer, quantityMPs);
+      void * pData = Serializer::ReadValue<size_t>(buffer, quantityMPs);
       mps.clear();
       for (int i = 0; i < quantityMPs; ++i)
       {
@@ -537,7 +537,7 @@ namespace ORB_SLAM2
                newMapPoints[id] = pMP;
             }
          }
-         pData = (char *)pMP->ReadBytes(pData, map, newKeyFrames);
+         pData = pMP->ReadBytes(pData, map, newKeyFrames);
          mps.insert(pMP);
       }
       return pData;
@@ -547,10 +547,10 @@ namespace ORB_SLAM2
       void * buffer,
       std::set<MapPoint *> & mps)
    {
-      char * pData = (char *)Serializer::WriteValue<size_t>(buffer, mps.size());
+      void * pData = Serializer::WriteValue<size_t>(buffer, mps.size());
       for (MapPoint * pMP : mps)
       {
-         pData = (char *)pMP->WriteBytes(pData);
+         pData = pMP->WriteBytes(pData);
       }
       return pData;
    }
@@ -566,7 +566,7 @@ namespace ORB_SLAM2
    }
 
    void * MapPoint::ReadBytes(
-      const void * buffer, 
+      void * const buffer, 
       const Map & map, 
       std::unordered_map<id_type, KeyFrame *> & newKeyFrames)
    {
@@ -595,15 +595,15 @@ namespace ORB_SLAM2
       mfMaxDistance = pHeader->mfMaxDistance;
 
       // read variable-length data
-      char * pData = (char *)(pHeader + 1);
-      pData = (char *)Serializer::ReadMatrix(pData, mWorldPos);
-      pData = (char *)Serializer::ReadMatrix(pData, mNormalVector);
-      pData = (char *)Serializer::ReadMatrix(pData, mDescriptor);
-      pData = (char *)ReadObservations(pData, map, newKeyFrames, mObservations);
+      void * pData = pHeader + 1;
+      pData = Serializer::ReadMatrix(pData, mWorldPos);
+      pData = Serializer::ReadMatrix(pData, mNormalVector);
+      pData = Serializer::ReadMatrix(pData, mDescriptor);
+      pData = ReadObservations(pData, map, newKeyFrames, mObservations);
       return pData;
    }
 
-   void * MapPoint::WriteBytes(const void * buffer)
+   void * MapPoint::WriteBytes(void * const buffer)
    {
       MapPoint::Header * pHeader = (MapPoint::Header *)buffer;
       pHeader->mnId = mnId;
@@ -618,16 +618,16 @@ namespace ORB_SLAM2
       pHeader->mfMaxDistance = mfMaxDistance;
 
       // write variable-length data
-      char * pData = (char *)(pHeader + 1);
-      pData = (char *)Serializer::WriteMatrix(pData, mWorldPos);
-      pData = (char *)Serializer::WriteMatrix(pData, mNormalVector);
-      pData = (char *)Serializer::WriteMatrix(pData, mDescriptor);
-      pData = (char *)WriteObservations(pData, mObservations);
+      void * pData = pHeader + 1;
+      pData = Serializer::WriteMatrix(pData, mWorldPos);
+      pData = Serializer::WriteMatrix(pData, mNormalVector);
+      pData = Serializer::WriteMatrix(pData, mDescriptor);
+      pData = WriteObservations(pData, mObservations);
       return pData;
    }
 
    void * MapPoint::ReadObservations(
-      const void * buffer,
+      void * const buffer,
       const Map & map,
       std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
       std::map<KeyFrame *, size_t> & observations)
@@ -653,7 +653,7 @@ namespace ORB_SLAM2
       return pData;
    }
 
-   void * MapPoint::WriteObservations(const void * buffer, std::map<KeyFrame *, size_t> & observations)
+   void * MapPoint::WriteObservations(void * const buffer, std::map<KeyFrame *, size_t> & observations)
    {
       size_t * pQuantity = (size_t *)buffer;
       *pQuantity = observations.size();

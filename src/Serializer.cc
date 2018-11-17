@@ -32,7 +32,7 @@ namespace ORB_SLAM2
       return sizeof(MatrixHeader) + mat.rows * mat.cols * mat.elemSize();
    }
 
-   void * Serializer::ReadMatrix(const void * buffer, cv::Mat & mat)
+   void * Serializer::ReadMatrix(void * const buffer, cv::Mat & mat)
    {
       assert(mat.dims == 2);
       MatrixHeader * pMH = (MatrixHeader *)buffer;
@@ -56,7 +56,7 @@ namespace ORB_SLAM2
       return pData;
    }
 
-   void * Serializer::WriteMatrix(const void * buffer, const cv::Mat & mat)
+   void * Serializer::WriteMatrix(void * const buffer, const cv::Mat & mat)
    {
       assert(mat.dims == 2);
       MatrixHeader * pMH = (MatrixHeader *)buffer;
@@ -87,7 +87,7 @@ namespace ORB_SLAM2
       return sizeof(size_t) + kpv.size() * sizeof(KeyPointItem);
    }
 
-   void * Serializer::ReadKeyPointVector(const void * buffer, std::vector<cv::KeyPoint> & kpv)
+   void * Serializer::ReadKeyPointVector(void * const buffer, std::vector<cv::KeyPoint> & kpv)
    {
       size_t * pQuantity = (size_t *)buffer;
       kpv.resize(*pQuantity);
@@ -107,7 +107,7 @@ namespace ORB_SLAM2
       return pData;
    }
 
-   void * Serializer::WriteKeyPointVector(const void * buffer, const std::vector<cv::KeyPoint> & kpv)
+   void * Serializer::WriteKeyPointVector(void * const buffer, const std::vector<cv::KeyPoint> & kpv)
    {
       size_t * pQuantity = (size_t *)buffer;
       *pQuantity = kpv.size();

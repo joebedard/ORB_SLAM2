@@ -189,19 +189,19 @@ zmq::message_t InitializeMono(zmq::message_t & request)
    std::unordered_map<id_type, MapPoint *> newMapPoints;
 
    InitializeMonoRequest * pReqHead = request.data<InitializeMonoRequest>();
-   char * pData = (char *)(pReqHead + 1);
+   void * pData = pReqHead + 1;
 
    // read KeyFrames
    KeyFrame * pKF1 = NULL;
    KeyFrame * pKF2 = NULL;
-   pData = (char *)KeyFrame::Read(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, &pKF1);
-   pData = (char *)KeyFrame::Read(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, &pKF2);
+   pData = KeyFrame::Read(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, &pKF1);
+   pData = KeyFrame::Read(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, &pKF2);
    if (newKeyFrames.size() != 2)
       throw exception("InitializeMono newKeyFrames.size() != 2");
 
    // read MapPoints 
    std::vector<MapPoint*> mapPoints;
-   pData = (char *)MapPoint::ReadVector(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, mapPoints);
+   pData = MapPoint::ReadVector(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, mapPoints);
    if (newMapPoints.size() != mapPoints.size())
       throw exception("InitializeMono newMapPoints.size() != mapPoints.size()");
 
@@ -233,17 +233,17 @@ zmq::message_t InitializeStereo(zmq::message_t & request)
    std::unordered_map<id_type, MapPoint *> newMapPoints;
 
    InitializeStereoRequest * pReqHead = request.data<InitializeStereoRequest>();
-   char * pData = (char *)(pReqHead + 1);
+   void * pData = pReqHead + 1;
 
    // read KeyFrame
    KeyFrame * pKF = NULL;
-   pData = (char *)KeyFrame::Read(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, &pKF);
+   pData = KeyFrame::Read(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, &pKF);
    if (newKeyFrames.size() != 1)
       throw exception("InitializeStereo newKeyFrames.size() != 1");
    
    // read MapPoints
    std::vector<MapPoint*> mapPoints;
-   pData = (char *)MapPoint::ReadVector(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, mapPoints);
+   pData = MapPoint::ReadVector(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, mapPoints);
    if (newMapPoints.size() != mapPoints.size())
       throw exception("InitializeStereo newMapPoints.size() != mapPoints.size()");
 
@@ -288,8 +288,8 @@ zmq::message_t GetMap(zmq::message_t & request)
       GeneralMessage * pMsgData = message.data<GeneralMessage>();
       pMsgData->trackerId = pReqData->trackerId;
       pMsgData->messageId = MessageId::MAP_CHANGE;
-      char * pData = (char *)(pMsgData + 1);
-      pData = (char *)mce.WriteBytes(pData);
+      void * pData = pMsgData + 1;
+      pData = mce.WriteBytes(pData);
       gSocketPub->send(message);
    }
 
@@ -308,17 +308,17 @@ zmq::message_t InsertKeyFrame(zmq::message_t & request)
    std::unordered_map<id_type, MapPoint *> newMapPoints;
 
    InsertKeyFrameRequest * pReqHead = request.data<InsertKeyFrameRequest>();
-   char * pData = (char *)(pReqHead + 1);
+   void * pData = pReqHead + 1;
 
    // read KeyFrame
    KeyFrame * pKF = NULL;
-   pData = (char *)KeyFrame::Read(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, &pKF);
+   pData = KeyFrame::Read(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, &pKF);
    if (newKeyFrames.size() != 1)
       throw exception("InsertKeyFrame newKeyFrames.size() != 1");
 
    // read MapPoints
    std::vector<MapPoint*> mapPoints;
-   pData = (char *)MapPoint::ReadVector(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, mapPoints);
+   pData = MapPoint::ReadVector(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, mapPoints);
    if (newMapPoints.size() != mapPoints.size())
       throw exception("InsertKeyFrame newMapPoints.size() != mapPoints.size()");
 

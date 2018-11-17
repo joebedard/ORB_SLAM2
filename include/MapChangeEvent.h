@@ -50,9 +50,9 @@ namespace ORB_SLAM2
 
       size_t GetBufferSize();
 
-      void * ReadBytes(const void * buffer, Map & map);
+      void * ReadBytes(void * const buffer, Map & map);
 
-      void * WriteBytes(const void * buffer);
+      void * WriteBytes(void * const buffer);
    };
 
 }

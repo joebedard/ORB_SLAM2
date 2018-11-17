@@ -91,8 +91,8 @@ namespace ORB_SLAM2
          const float & thDepth);
 
       size_t GetBufferSize() const;
-      void * ReadBytes(const void * buffer);
-      void * WriteBytes(const void * buffer) const;
+      void * ReadBytes(void * const buffer);
+      void * WriteBytes(void * const buffer) const;
 
 
    private:

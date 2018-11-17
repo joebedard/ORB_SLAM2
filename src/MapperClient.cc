@@ -466,10 +466,10 @@ namespace ORB_SLAM2
       InitializeMonoRequest * pReqHead = request.data<InitializeMonoRequest>();
       pReqHead->serviceId = ServiceId::INITIALIZE_MONO;
       pReqHead->trackerId = trackerId;
-      char * pData = (char *)(pReqHead + 1);
-      pData = (char *)pKF1->WriteBytes(pData);
-      pData = (char *)pKF2->WriteBytes(pData);
-      pData = (char *)MapPoint::WriteVector(pData, mapPoints);
+      void * pData = pReqHead + 1;
+      pData = pKF1->WriteBytes(pData);
+      pData = pKF2->WriteBytes(pData);
+      pData = MapPoint::WriteVector(pData, mapPoints);
 
       Print("sending InitializeMonoRequest");
       zmq::message_t reply = RequestReply(request);
@@ -489,9 +489,9 @@ namespace ORB_SLAM2
       InitializeStereoRequest * pReqHead = request.data<InitializeStereoRequest>();
       pReqHead->serviceId = ServiceId::INITIALIZE_STEREO;
       pReqHead->trackerId = trackerId;
-      char * pData = (char *)(pReqHead + 1);
-      pData = (char *)pKF->WriteBytes(pData);
-      pData = (char *)MapPoint::WriteVector(pData, mapPoints);
+      void * pData = pReqHead + 1;
+      pData = pKF->WriteBytes(pData);
+      pData = MapPoint::WriteVector(pData, mapPoints);
 
       Print("sending InitializeStereoRequest");
       zmq::message_t reply = RequestReply(request);
@@ -512,9 +512,9 @@ namespace ORB_SLAM2
       InsertKeyFrameRequest * pReqHead = (InsertKeyFrameRequest *)request.data();
       pReqHead->serviceId = ServiceId::INSERT_KEYFRAME;
       pReqHead->trackerId = trackerId;
-      char * pData = (char *)(pReqHead + 1);
-      pData = (char *)pKF->WriteBytes(pData);
-      pData = (char *)MapPoint::WriteVector(pData, mapPoints);
+      void * pData = pReqHead + 1;
+      pData = pKF->WriteBytes(pData);
+      pData = MapPoint::WriteVector(pData, mapPoints);
 
       Print("sending InsertKeyFrameRequest");
       zmq::message_t reply = RequestReply(request);

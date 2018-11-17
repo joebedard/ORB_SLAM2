@@ -124,7 +124,7 @@ namespace ORB_SLAM2
       return size;
    }
 
-   void * FrameCalibration::ReadBytes(const void * buffer)
+   void * FrameCalibration::ReadBytes(void * const buffer)
    {
       FrameCalibration::Header * pHeader = (FrameCalibration::Header *)buffer;
       int width = pHeader->mWidth;
@@ -134,16 +134,16 @@ namespace ORB_SLAM2
 
       // read variable-length data
       cv::Mat K, distCoef;
-      char * pData = (char *)(pHeader + 1);
-      pData = (char *)Serializer::ReadMatrix(pData, K);
-      pData = (char *)Serializer::ReadMatrix(pData, distCoef);
+      void * pData = pHeader + 1;
+      pData = Serializer::ReadMatrix(pData, K);
+      pData = Serializer::ReadMatrix(pData, distCoef);
 
       Initialize(K, distCoef, width, height, bl, thDepth);
 
       return pData;
    }
 
-   void * FrameCalibration::WriteBytes(const void * buffer) const
+   void * FrameCalibration::WriteBytes(void * const buffer) const
    {
       FrameCalibration::Header * pHeader = (FrameCalibration::Header *)buffer;
       pHeader->mWidth = mWidth;
@@ -152,9 +152,9 @@ namespace ORB_SLAM2
       pHeader->mThDepth = mThDepth;
 
       // write variable-length data
-      char * pData = (char *)(pHeader + 1);
-      pData = (char *)Serializer::WriteMatrix(pData, mK);
-      pData = (char *)Serializer::WriteMatrix(pData, mDistCoef);
+      void * pData = pHeader + 1;
+      pData = Serializer::WriteMatrix(pData, mK);
+      pData = Serializer::WriteMatrix(pData, mDistCoef);
       return pData;
    }
 

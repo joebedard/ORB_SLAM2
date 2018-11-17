@@ -43,35 +43,35 @@ namespace ORB_SLAM2
       return msgSize;
    }
 
-   void * MapChangeEvent::ReadBytes(const void * buffer, Map & map)
+   void * MapChangeEvent::ReadBytes(void * const buffer, Map & map)
    {
       std::unordered_map<id_type, KeyFrame *> newKeyFrames;
       std::unordered_map<id_type, MapPoint *> newMapPoints;
 
-      char * pData = (char *)buffer;
+      void * pData = buffer;
 
-      pData = (char *)KeyFrame::ReadSet(pData, map, newKeyFrames, newMapPoints, updatedKeyFrames);
+      pData = KeyFrame::ReadSet(pData, map, newKeyFrames, newMapPoints, updatedKeyFrames);
 
-      pData = (char *)Serializer::ReadSet<id_type>(pData, deletedKeyFrames);
+      pData = Serializer::ReadSet<id_type>(pData, deletedKeyFrames);
 
-      pData = (char *)MapPoint::ReadSet(pData, map, newKeyFrames, newMapPoints, updatedMapPoints);
+      pData = MapPoint::ReadSet(pData, map, newKeyFrames, newMapPoints, updatedMapPoints);
 
-      pData = (char *)Serializer::ReadSet<id_type>(pData, deletedMapPoints);
+      pData = Serializer::ReadSet<id_type>(pData, deletedMapPoints);
 
       return pData;
    }
 
-   void * MapChangeEvent::WriteBytes(const void * buffer)
+   void * MapChangeEvent::WriteBytes(void * const buffer)
    {
-      char * pData = (char *)buffer;
+      void * pData = (void *)buffer;
 
-      pData = (char *)KeyFrame::WriteSet(pData, updatedKeyFrames);
+      pData = KeyFrame::WriteSet(pData, updatedKeyFrames);
 
-      pData = (char *)Serializer::WriteSet<id_type>(pData, deletedKeyFrames);
+      pData = Serializer::WriteSet<id_type>(pData, deletedKeyFrames);
 
-      pData = (char *)MapPoint::WriteSet(pData, updatedMapPoints);
+      pData = MapPoint::WriteSet(pData, updatedMapPoints);
 
-      pData = (char *)Serializer::WriteSet<id_type>(pData, deletedMapPoints);
+      pData = Serializer::WriteSet<id_type>(pData, deletedMapPoints);
 
       return pData;
    }

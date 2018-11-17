@@ -129,7 +129,7 @@ namespace ORB_SLAM2
    }
 
    void * KeyFrame::ReadMapPointIds(
-      const void * buffer, 
+      void * const buffer, 
       const Map & map, 
       std::unordered_map<id_type, MapPoint *> & newMapPoints,
       std::vector<MapPoint *> & mpv)
@@ -151,7 +151,7 @@ namespace ORB_SLAM2
       return pData;
    }
 
-   void * KeyFrame::WriteMapPointIds(const void * buffer, const std::vector<MapPoint *> & mpv)
+   void * KeyFrame::WriteMapPointIds(void * const buffer, const std::vector<MapPoint *> & mpv)
    {
       size_t * pQuantity = (size_t *)buffer;
       *pQuantity = mpv.size();
@@ -165,7 +165,7 @@ namespace ORB_SLAM2
    }
 
    void * KeyFrame::ReadKeyFrameWeights(
-      const void * buffer, 
+      void * const buffer, 
       const Map & map, 
       std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
       std::map<KeyFrame *, int> & kfWeights)
@@ -188,7 +188,7 @@ namespace ORB_SLAM2
       return pData;
    }
 
-   void * KeyFrame::WriteKeyFrameWeights(const void * buffer, const std::map<KeyFrame *, int> & kfWeights)
+   void * KeyFrame::WriteKeyFrameWeights(void * const buffer, const std::map<KeyFrame *, int> & kfWeights)
    {
       size_t * pQuantity = (size_t *)buffer;
       *pQuantity = kfWeights.size();
@@ -203,7 +203,7 @@ namespace ORB_SLAM2
    }
 
    void * KeyFrame::ReadKeyFrameIds(
-      const void * buffer, 
+      void * const buffer, 
       const Map & map, 
       std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
       std::vector<KeyFrame *> & kfv)
@@ -225,7 +225,7 @@ namespace ORB_SLAM2
       return pData;
    }
 
-   void * KeyFrame::WriteKeyFrameIds(const void * buffer, const std::vector<KeyFrame *> & kfv)
+   void * KeyFrame::WriteKeyFrameIds(void * const buffer, const std::vector<KeyFrame *> & kfv)
    {
       size_t * pQuantity = (size_t *)buffer;
       *pQuantity = kfv.size();
@@ -239,7 +239,7 @@ namespace ORB_SLAM2
    }
 
    void * KeyFrame::ReadKeyFrameIds(
-      const void * buffer, 
+      void * const buffer, 
       const Map & map, 
       std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
       std::set<KeyFrame *> & kfs)
@@ -261,7 +261,7 @@ namespace ORB_SLAM2
       return pData;
    }
 
-   void * KeyFrame::WriteKeyFrameIds(const void * buffer, const std::set<KeyFrame *> & kfs)
+   void * KeyFrame::WriteKeyFrameIds(void * const buffer, const std::set<KeyFrame *> & kfs)
    {
       size_t * pQuantity = (size_t *)buffer;
       *pQuantity = kfs.size();
@@ -933,7 +933,7 @@ namespace ORB_SLAM2
          pKF = new KeyFrame(id);
          newKeyFrames[id] = pKF;
       }
-      char * pData = (char *)pKF->ReadBytes(buffer, map, newKeyFrames, newMapPoints);
+      void * pData = pKF->ReadBytes(buffer, map, newKeyFrames, newMapPoints);
       if (ppKF) *ppKF = pKF;
       return pData;
    }
@@ -954,7 +954,7 @@ namespace ORB_SLAM2
       std::vector<KeyFrame *> & kfv)
    {
       size_t quantityKFs;
-      char * pData = (char *)Serializer::ReadValue<size_t>(buffer, quantityKFs);
+      void * pData = Serializer::ReadValue<size_t>(buffer, quantityKFs);
       kfv.resize(quantityKFs);
       for (int i = 0; i < quantityKFs; ++i)
       {
@@ -965,7 +965,7 @@ namespace ORB_SLAM2
             pKF = new KeyFrame(id);
             newKeyFrames[id] = pKF;
          }
-         pData = (char *)pKF->ReadBytes(pData, map, newKeyFrames, newMapPoints);
+         pData = pKF->ReadBytes(pData, map, newKeyFrames, newMapPoints);
          kfv[i] = pKF;
       }
       return pData;
@@ -987,7 +987,7 @@ namespace ORB_SLAM2
       std::set<KeyFrame *> & kfs)
    {
       size_t quantityKFs;
-      char * pData = (char *)Serializer::ReadValue<size_t>(buffer, quantityKFs);
+      void * pData = Serializer::ReadValue<size_t>(buffer, quantityKFs);
       kfs.clear();
       for (int i = 0; i < quantityKFs; ++i)
       {
@@ -998,7 +998,7 @@ namespace ORB_SLAM2
             pKF = new KeyFrame(id);
             newKeyFrames[id] = pKF;
          }
-         pData = (char *)pKF->ReadBytes(pData, map, newKeyFrames, newMapPoints);
+         pData = pKF->ReadBytes(pData, map, newKeyFrames, newMapPoints);
          kfs.insert(pKF);
       }
       return pData;
@@ -1008,10 +1008,10 @@ namespace ORB_SLAM2
       void * buffer,
       std::set<KeyFrame *> & kfs)
    {
-      char * pData = (char *)Serializer::WriteValue<size_t>(buffer, kfs.size());
+      void * pData = Serializer::WriteValue<size_t>(buffer, kfs.size());
       for (KeyFrame * pKF : kfs)
       {
-         pData = (char *)pKF->WriteBytes(pData);
+         pData = pKF->WriteBytes(pData);
       }
       return pData;
    }
@@ -1067,25 +1067,25 @@ namespace ORB_SLAM2
       mbBad = pHeader->mbBad;
 
       // read variable-length data
-      char * pData = (char *)(pHeader + 1);
-      pData = (char *)Serializer::ReadKeyPointVector(pData, mvKeys);
-      pData = (char *)Serializer::ReadKeyPointVector(pData, mvKeysUn);
-      pData = (char *)Serializer::ReadVector<float>(pData, mvuRight);
-      pData = (char *)Serializer::ReadVector<float>(pData, mvDepth);
-      pData = (char *)Serializer::ReadMatrix(pData, mDescriptors);
-      pData = (char *)Serializer::ReadMatrix(pData, mTcp);
-      pData = (char *)Serializer::ReadVector<float>(pData, mvScaleFactors);
-      pData = (char *)Serializer::ReadVector<float>(pData, mvLevelSigma2);
-      pData = (char *)Serializer::ReadVector<float>(pData, mvInvLevelSigma2);
-      pData = (char *)Serializer::ReadMatrix(pData, Tcw);
-      pData = (char *)Serializer::ReadMatrix(pData, Twc);
-      pData = (char *)Serializer::ReadMatrix(pData, Ow);
-      pData = (char *)ReadMapPointIds(pData, map, newMapPoints, mvpMapPoints);
-      pData = (char *)ReadKeyFrameWeights(pData, map, newKeyFrames, mConnectedKeyFrameWeights);
-      pData = (char *)ReadKeyFrameIds(pData, map, newKeyFrames, mvpOrderedConnectedKeyFrames);
-      pData = (char *)Serializer::ReadVector<int>(pData, mvOrderedWeights);
-      pData = (char *)ReadKeyFrameIds(pData, map, newKeyFrames, mspChildrens);
-      pData = (char *)ReadKeyFrameIds(pData, map, newKeyFrames, mspLoopEdges);
+      void * pData = pHeader + 1;
+      pData = Serializer::ReadKeyPointVector(pData, mvKeys);
+      pData = Serializer::ReadKeyPointVector(pData, mvKeysUn);
+      pData = Serializer::ReadVector<float>(pData, mvuRight);
+      pData = Serializer::ReadVector<float>(pData, mvDepth);
+      pData = Serializer::ReadMatrix(pData, mDescriptors);
+      pData = Serializer::ReadMatrix(pData, mTcp);
+      pData = Serializer::ReadVector<float>(pData, mvScaleFactors);
+      pData = Serializer::ReadVector<float>(pData, mvLevelSigma2);
+      pData = Serializer::ReadVector<float>(pData, mvInvLevelSigma2);
+      pData = Serializer::ReadMatrix(pData, Tcw);
+      pData = Serializer::ReadMatrix(pData, Twc);
+      pData = Serializer::ReadMatrix(pData, Ow);
+      pData = ReadMapPointIds(pData, map, newMapPoints, mvpMapPoints);
+      pData = ReadKeyFrameWeights(pData, map, newKeyFrames, mConnectedKeyFrameWeights);
+      pData = ReadKeyFrameIds(pData, map, newKeyFrames, mvpOrderedConnectedKeyFrames);
+      pData = Serializer::ReadVector<int>(pData, mvOrderedWeights);
+      pData = ReadKeyFrameIds(pData, map, newKeyFrames, mspChildrens);
+      pData = ReadKeyFrameIds(pData, map, newKeyFrames, mspLoopEdges);
 
       // rebuild mGrid
       AssignFeaturesToGrid();
@@ -1107,25 +1107,25 @@ namespace ORB_SLAM2
       pHeader->mbBad = mbBad;
 
       // write variable-length data
-      char * pData = (char *)(pHeader + 1);
-      pData = (char *)Serializer::WriteKeyPointVector(pData, mvKeys);
-      pData = (char *)Serializer::WriteKeyPointVector(pData, mvKeysUn);
-      pData = (char *)Serializer::WriteVector<float>(pData, mvuRight);
-      pData = (char *)Serializer::WriteVector<float>(pData, mvDepth);
-      pData = (char *)Serializer::WriteMatrix(pData, mDescriptors);
-      pData = (char *)Serializer::WriteMatrix(pData, mTcp);
-      pData = (char *)Serializer::WriteVector<float>(pData, mvScaleFactors);
-      pData = (char *)Serializer::WriteVector<float>(pData, mvLevelSigma2);
-      pData = (char *)Serializer::WriteVector<float>(pData, mvInvLevelSigma2);
-      pData = (char *)Serializer::WriteMatrix(pData, Tcw);
-      pData = (char *)Serializer::WriteMatrix(pData, Twc);
-      pData = (char *)Serializer::WriteMatrix(pData, Ow);
-      pData = (char *)WriteMapPointIds(pData, mvpMapPoints);
-      pData = (char *)WriteKeyFrameWeights(pData, mConnectedKeyFrameWeights);
-      pData = (char *)WriteKeyFrameIds(pData, mvpOrderedConnectedKeyFrames);
-      pData = (char *)Serializer::WriteVector<int>(pData, mvOrderedWeights);
-      pData = (char *)WriteKeyFrameIds(pData, mspChildrens);
-      pData = (char *)WriteKeyFrameIds(pData, mspLoopEdges);
+      void * pData = pHeader + 1;
+      pData = Serializer::WriteKeyPointVector(pData, mvKeys);
+      pData = Serializer::WriteKeyPointVector(pData, mvKeysUn);
+      pData = Serializer::WriteVector<float>(pData, mvuRight);
+      pData = Serializer::WriteVector<float>(pData, mvDepth);
+      pData = Serializer::WriteMatrix(pData, mDescriptors);
+      pData = Serializer::WriteMatrix(pData, mTcp);
+      pData = Serializer::WriteVector<float>(pData, mvScaleFactors);
+      pData = Serializer::WriteVector<float>(pData, mvLevelSigma2);
+      pData = Serializer::WriteVector<float>(pData, mvInvLevelSigma2);
+      pData = Serializer::WriteMatrix(pData, Tcw);
+      pData = Serializer::WriteMatrix(pData, Twc);
+      pData = Serializer::WriteMatrix(pData, Ow);
+      pData = WriteMapPointIds(pData, mvpMapPoints);
+      pData = WriteKeyFrameWeights(pData, mConnectedKeyFrameWeights);
+      pData = WriteKeyFrameIds(pData, mvpOrderedConnectedKeyFrames);
+      pData = Serializer::WriteVector<int>(pData, mvOrderedWeights);
+      pData = WriteKeyFrameIds(pData, mspChildrens);
+      pData = WriteKeyFrameIds(pData, mspLoopEdges);
       return pData;
    }
 
