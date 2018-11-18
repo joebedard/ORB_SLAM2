@@ -41,6 +41,7 @@ using namespace ORB_SLAM2;
 // logging variables
 SyncPrint gOutMain("main: ");
 SyncPrint gOutServ("server: ");
+SyncPrint gOutPub("publisher: ");
 
 // command line parameters
 char * gVocabFilename = NULL;
@@ -400,6 +401,103 @@ catch (...)
    serverParam->returnCode = EXIT_FAILURE;
 }
 
+class PrivateMapperObserver : public MapperObserver
+{
+public:
+   PrivateMapperObserver() {}
+
+   virtual void HandleMapReset() try
+   {
+      zmq::message_t message(sizeof(GeneralMessage));
+      GeneralMessage * pMsgData = message.data<GeneralMessage>();
+      pMsgData->trackerId = -1; // all trackers
+      pMsgData->messageId = MessageId::MAP_RESET;
+      gSocketPub->send(message);
+   }
+   catch (zmq::error_t & e)
+   {
+      gOutPub.Print(string("HandleMapReset error_t: ") + e.what());
+   }
+   catch (const std::exception & e)
+   {
+      gOutPub.Print(string("HandleMapReset exception: ") + e.what());
+   }
+   catch (...)
+   {
+      gOutPub.Print("HandleMapReset: an exception was not caught");
+   }
+
+   virtual void HandleMapChanged(MapChangeEvent & mce) try
+   {
+      zmq::message_t message(sizeof(GeneralMessage) + mce.GetBufferSize());
+      GeneralMessage * pMsgData = message.data<GeneralMessage>();
+      pMsgData->trackerId = -1; // all trackers
+      pMsgData->messageId = MessageId::MAP_CHANGE;
+      mce.WriteBytes(pMsgData + 1);
+      gSocketPub->send(message);
+   }
+   catch (zmq::error_t & e)
+   {
+      gOutPub.Print(string("HandleMapChanged error_t: ") + e.what());
+   }
+   catch (const std::exception & e)
+   {
+      gOutPub.Print(string("HandleMapChanged exception: ") + e.what());
+   }
+   catch (...)
+   {
+      gOutPub.Print("HandleMapChanged: an exception was not caught");
+   }
+
+   virtual void HandlePauseRequested(bool b) try
+   {
+      zmq::message_t message(sizeof(GeneralMessage) + sizeof(bool));
+      GeneralMessage * pMsgData = message.data<GeneralMessage>();
+      pMsgData->trackerId = -1; // all trackers
+      pMsgData->messageId = MessageId::PAUSE_REQUESTED;
+      bool * pBool = (bool *)(pMsgData + 1);
+      *pBool = b;
+      gSocketPub->send(message);
+   }
+   catch (zmq::error_t & e)
+   {
+      gOutPub.Print(string("HandlePauseRequested error_t: ") + e.what());
+   }
+   catch (const std::exception & e)
+   {
+      gOutPub.Print(string("HandlePauseRequested exception: ") + e.what());
+   }
+   catch (...)
+   {
+      gOutPub.Print("HandlePauseRequested: an exception was not caught");
+   }
+
+   virtual void HandleAcceptKeyFrames(bool b) try
+   {
+      zmq::message_t message(sizeof(GeneralMessage) + sizeof(bool));
+      GeneralMessage * pMsgData = message.data<GeneralMessage>();
+      pMsgData->trackerId = -1; // all trackers
+      pMsgData->messageId = MessageId::ACCEPT_KEYFRAMES;
+      bool * pBool = (bool *)(pMsgData + 1);
+      *pBool = b;
+      gSocketPub->send(message);
+   }
+   catch (zmq::error_t & e)
+   {
+      gOutPub.Print(string("HandleAcceptKeyFrames error_t: ") + e.what());
+   }
+   catch (const std::exception & e)
+   {
+      gOutPub.Print(string("HandleAcceptKeyFrames exception: ") + e.what());
+   }
+   catch (...)
+   {
+      gOutPub.Print("HandleAcceptKeyFrames: an exception was not caught");
+   }
+};
+
+PrivateMapperObserver gServerObserver;
+
 int main(int argc, char * argv[]) try
 {
    ParseParams(argc, argv);
@@ -448,6 +546,7 @@ int main(int argc, char * argv[]) try
    SyncPrint::Print(NULL, "Vocabulary loaded!");
 
    MapperServer mapperServer(vocab, false);
+   mapperServer.AddObserver(&gServerObserver);
    gMapper = &mapperServer;
    thread serverThread(RunServer, &param);
    MapDrawer mapDrawer(mapperFile, mapperServer);

@@ -667,6 +667,7 @@ namespace ORB_SLAM2
       Print("begin RequestPause");
       unique_lock<mutex> lock(mMutexPause);
       mbPauseRequested = true;
+      NotifyPauseRequested(mbPauseRequested);
       unique_lock<mutex> lock2(mMutexNewKFs);
       mbAbortBA = true;
       Print("end RequestPause");
@@ -705,6 +706,7 @@ namespace ORB_SLAM2
          return;
       mbPaused = false;
       mbPauseRequested = false;
+      NotifyPauseRequested(mbPauseRequested);
       for (list<KeyFrame *>::iterator lit = mlNewKeyFrames.begin(), lend = mlNewKeyFrames.end(); lit != lend; lit++)
          delete *lit;
       mlNewKeyFrames.clear();
@@ -722,6 +724,7 @@ namespace ORB_SLAM2
    {
       unique_lock<mutex> lock(mMutexAccept);
       mbAcceptKeyFrames = flag;
+      NotifyAcceptKeyFrames(flag);
    }
 
    bool LocalMapping::SetNotPause(bool flag)

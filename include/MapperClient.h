@@ -118,9 +118,9 @@ namespace ORB_SLAM2
 
       mutex mMutexAccept;
 
-      ORBVocabulary & mVocab;
-
       bool mbMonocular;
+
+      KeyFrameDatabase mKeyFrameDB;
 
       Map mMap;
 
@@ -146,6 +146,8 @@ namespace ORB_SLAM2
 
       // array of function pointer
       void (MapperClient::*mMessageProc[MessageId::quantityMessageId])(zmq::message_t & message);
+
+      void ReceiveMapReset(zmq::message_t & message);
 
       void ReceiveMapChange(zmq::message_t & message);
 
@@ -175,7 +177,7 @@ namespace ORB_SLAM2
 
       bool InsertKeyFrameServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF);
 
-      void MapperServerObserverReset();
+      void MapperServerObserverMapReset();
 
       void MapperServerObserverMapChanged(MapChangeEvent & mce);
 

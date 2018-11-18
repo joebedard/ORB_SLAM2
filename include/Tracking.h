@@ -29,7 +29,6 @@
 
 #include "Mapper.h"
 #include "MapChangeEvent.h"
-#include "MapObserver.h"
 #include "Viewer.h"
 #include "FrameDrawer.h"
 #include "Frame.h"
@@ -242,18 +241,15 @@ namespace ORB_SLAM2
 
       void MapperObserverReset();
 
-      void MapperObserverMapChanged();
-
-      class MapperObserver : public MapObserver
+      class PrivateMapperObserver : public MapperObserver
       {
          Tracking * mpTracker;
       public:
-         MapperObserver(Tracking * pTracker) : mpTracker(pTracker) {};
-         virtual void HandleReset() { mpTracker->MapperObserverReset(); };
-         virtual void HandleMapChanged(MapChangeEvent & mce) { mpTracker->MapperObserverMapChanged(); }
+         PrivateMapperObserver(Tracking * pTracker) : mpTracker(pTracker) {};
+         virtual void HandleMapReset() { mpTracker->MapperObserverReset(); };
       };
 
-      MapperObserver mMapperObserver;
+      PrivateMapperObserver mMapperObserver;
 
    };
 

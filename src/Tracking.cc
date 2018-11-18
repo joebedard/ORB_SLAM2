@@ -1683,11 +1683,4 @@ namespace ORB_SLAM2
       mState = NOT_INITIALIZED;
    }
 
-   void Tracking::MapperObserverMapChanged()
-   {
-      Print("begin MapperObserverMapChanged");
-      // TODO - complete this
-      Print("end MapperObserverMapChanged");
-   }
-
 } //namespace ORB_SLAM2

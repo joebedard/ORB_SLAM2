@@ -61,10 +61,11 @@ namespace ORB_SLAM2
 
    enum MessageId
    {
-      MAP_CHANGE = 0,
-      PAUSE_REQUESTED = 1,
-      ACCEPT_KEYFRAMES = 2,
-      quantityMessageId = 3
+      MAP_RESET = 0,
+      MAP_CHANGE = 1,
+      PAUSE_REQUESTED = 2,
+      ACCEPT_KEYFRAMES = 3,
+      quantityMessageId = 4
    };
 
 }

@@ -22,7 +22,7 @@
 #define MAPPER_H
 
 #include "Map.h"
-#include "MapSubject.h"
+#include "MapperSubject.h"
 #include "KeyFrame.h"
 
 namespace ORB_SLAM2
@@ -32,7 +32,7 @@ namespace ORB_SLAM2
    base interface for all Mapping functionality as in the Proxy design pattern
    see https://sourcemaking.com/design_patterns/proxy
    */
-   class Mapper : public MapSubject
+   class Mapper : public MapperSubject
    {
    public:
 

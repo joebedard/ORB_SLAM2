@@ -26,6 +26,8 @@
 #include "Mapper.h"
 #include "KeyFrame.h"
 #include "KeyFrameDatabase.h"
+#include "MapperObserver.h"
+#include "MapperSubject.h"
 #include "LocalMapping.h"
 #include "LoopClosing.h"
 #include "Enums.h"
@@ -138,27 +140,29 @@ namespace ORB_SLAM2
 
       void ValidateTracker(unsigned int trackerId);
 
-      class LocalMappingObserver : public MapObserver
+      class PrivateMapperObserver : public MapperObserver
       {
          MapperServer * mpMapperServer;
       public:
-         LocalMappingObserver(MapperServer * pMapperServer) : mpMapperServer(pMapperServer) {};
-         virtual void HandleReset() { mpMapperServer->NotifyReset(); };
+         PrivateMapperObserver(MapperServer * pMapperServer) : mpMapperServer(pMapperServer) {}
+         virtual void HandleMapReset() { mpMapperServer->NotifyMapReset(); }
          virtual void HandleMapChanged(MapChangeEvent & mce) { mpMapperServer->NotifyMapChanged(mce); }
+         virtual void HandlePauseRequested(bool b) { mpMapperServer->NotifyPauseRequested(b); }
+         virtual void HandleAcceptKeyFrames(bool b) { mpMapperServer->NotifyAcceptKeyFrames(b); }
       };
 
-      LocalMappingObserver mLocalMappingObserver;
+      PrivateMapperObserver mLocalMappingObserver;
 
-      class LoopClosingObserver : public MapObserver
+      class PrivateMapObserver : public MapObserver
       {
          MapperServer * mpMapperServer;
       public:
-         LoopClosingObserver(MapperServer * pMapperServer) : mpMapperServer(pMapperServer) {};
-         virtual void HandleReset() { mpMapperServer->NotifyReset(); };
+         PrivateMapObserver(MapperServer * pMapperServer) : mpMapperServer(pMapperServer) {}
+         virtual void HandleMapReset() { mpMapperServer->NotifyMapReset(); }
          virtual void HandleMapChanged(MapChangeEvent & mce) { mpMapperServer->NotifyMapChanged(mce); }
       };
 
-      LoopClosingObserver mLoopClosingObserver;
+      PrivateMapObserver mLoopClosingObserver;
    };
 
 }

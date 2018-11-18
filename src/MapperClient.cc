@@ -29,7 +29,7 @@ namespace ORB_SLAM2
 
    MapperClient::MapperClient(cv::FileStorage & settings, ORBVocabulary & vocab, const bool bMonocular) 
       : SyncPrint("MapperClient: ")
-      , mVocab(vocab)
+      , mKeyFrameDB(vocab)
       , mbMonocular(bMonocular)
       , mInitialized(false)
       , mPauseRequested(false)
@@ -38,7 +38,7 @@ namespace ORB_SLAM2
       , mSocketReq(mContext, ZMQ_REQ)
       , mSocketSub(mContext, ZMQ_SUB)
       , mShouldRun(false)
-      , mMessageProc{&MapperClient::ReceiveMapChange, &MapperClient::ReceivePauseRequested, &MapperClient::ReceiveAcceptKeyFrames}
+      , mMessageProc{&MapperClient::ReceiveMapReset, &MapperClient::ReceiveMapChange, &MapperClient::ReceivePauseRequested, &MapperClient::ReceiveAcceptKeyFrames}
    {
       mServerAddress.append(settings["Server.Address"]);
       if (0 == mServerAddress.length())
@@ -103,9 +103,7 @@ namespace ORB_SLAM2
 
    std::vector<KeyFrame *> MapperClient::DetectRelocalizationCandidates(Frame * F)
    {
-      // TODO - call server relocalization
-      return std::vector<KeyFrame *>();
-      //return mServer.DetectRelocalizationCandidates(F);
+      return mKeyFrameDB.DetectRelocalizationCandidates(F);
    }
 
    bool MapperClient::GetInitialized()
@@ -334,6 +332,11 @@ namespace ORB_SLAM2
       return mMutexMapUpdate;
    }
 
+   void MapperClient::ReceiveMapReset(zmq::message_t & message)
+   {
+      MapperServerObserverMapReset();
+   }
+
    void MapperClient::ReceiveMapChange(zmq::message_t & message)
    {
       GeneralMessage * pMsgData = message.data<GeneralMessage>();
@@ -526,10 +529,10 @@ namespace ORB_SLAM2
       return pRepData->inserted;
    }
 
-   void MapperClient::MapperServerObserverReset()
+   void MapperClient::MapperServerObserverMapReset()
    {
       // TODO - reset map
-      NotifyReset();
+      NotifyMapReset();
    }
 
    void MapperClient::MapperServerObserverMapChanged(MapChangeEvent & mce)
@@ -564,6 +567,7 @@ namespace ORB_SLAM2
          {
             Print("pKF == NULL");
             mMap.AddKeyFrame(kf);
+            mKeyFrameDB.add(kf);
          }
          else
          {
@@ -575,7 +579,12 @@ namespace ORB_SLAM2
       Print(ss3);
       for (unsigned long int id : mce.deletedKeyFrames)
       {
-         mMap.EraseKeyFrame(id);
+         KeyFrame * pKF = mMap.GetKeyFrame(id);
+         if (pKF)
+         {
+            mMap.EraseKeyFrame(id);
+            mKeyFrameDB.erase(pKF);
+         }
       }
 
       stringstream ss4; ss4 << "mce.deletedMapPoints.size() == " << mce.deletedMapPoints.size();

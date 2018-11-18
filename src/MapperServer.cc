@@ -82,7 +82,7 @@ namespace ORB_SLAM2
       mLoopCloser.RequestReset();
       Print("End Loop Closing Reset");
 
-      NotifyReset();
+      NotifyMapReset();
 
       // Clear BoW Database
       Print("Begin Database Reset");

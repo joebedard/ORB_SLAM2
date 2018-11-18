@@ -80,11 +80,13 @@ include/Map.h
 include/MapChangeEvent.h
 include/MapDrawer.h
 include/MapObserver.h
-include/Mapper.h
-include/MapperClient.h
-include/MapperServer.h
 include/MapPoint.h
 include/MapSubject.h
+include/Mapper.h
+include/MapperClient.h
+include/MapperObserver.h
+include/MapperServer.h
+include/MapperSubject.h
 include/Messages.h
 include/Optimizer.h
 include/ORBextractor.h

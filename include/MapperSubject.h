@@ -18,12 +18,12 @@
 * along with ORB-SLAM2-TEAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MAPSUBJECT_H
-#define MAPSUBJECT_H
+#ifndef MAPPERSUBJECT_H
+#define MAPPERSUBJECT_H
 
 #include <set>
 #include <mutex>
-#include "MapObserver.h"
+#include "MapperObserver.h"
 
 namespace ORB_SLAM2
 {
@@ -33,26 +33,26 @@ namespace ORB_SLAM2
        thread-safe methods encapsulate a collection of observers
        see https://sourcemaking.com/design_patterns/observer
    */
-   class MapSubject
+   class MapperSubject
    {
    public:
 
-      MapSubject()
+      MapperSubject()
       {
 
       }
 
-      void AddObserver(MapObserver * ob)
-      {  
+      void AddObserver(MapperObserver * ob)
+      {
          if (!ob) return;
-         unique_lock<mutex> lock(mMutex);
+         std::unique_lock<std::mutex> lock(mMutex);
          mObservers.insert(ob);
       }
 
-      void RemoveObserver(MapObserver * ob)
+      void RemoveObserver(MapperObserver * ob)
       {
          if (!ob) return;
-         unique_lock<mutex> lock(mMutex);
+         std::unique_lock<std::mutex> lock(mMutex);
          mObservers.erase(ob);
       }
 
@@ -79,14 +79,34 @@ namespace ORB_SLAM2
          }
       }
 
+      void NotifyPauseRequested(bool b)
+      {
+         std::unique_lock<std::mutex> lock(mMutex);
+
+         for (auto it : mObservers)
+         {
+            it->HandlePauseRequested(b);
+         }
+      }
+
+      void NotifyAcceptKeyFrames(bool b)
+      {
+         std::unique_lock<std::mutex> lock(mMutex);
+
+         for (auto it : mObservers)
+         {
+            it->HandleAcceptKeyFrames(b);
+         }
+      }
+
    private:
 
       std::mutex mMutex;
 
-      std::set<MapObserver *> mObservers;
+      std::set<MapperObserver *> mObservers;
 
    };
 
 }
 
-#endif // MAPSUBJECT_H
+#endif // MAPPERSUBJECT_H

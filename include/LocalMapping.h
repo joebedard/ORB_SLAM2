@@ -29,19 +29,19 @@
 #include "MapSubject.h"
 #include "LoopClosing.h"
 #include "KeyFrameDatabase.h"
+#include "MapperSubject.h"
 #include "SyncPrint.h"
 
 #include <mutex>
 
 namespace ORB_SLAM2
 {
-
    class Tracking;
    class LoopClosing;
    class Map;
    class MapperServer;
 
-   class LocalMapping : public MapSubject, protected SyncPrint
+   class LocalMapping : public MapperSubject, protected SyncPrint
    {
    public:
       LocalMapping(

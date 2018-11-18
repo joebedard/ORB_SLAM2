@@ -18,8 +18,8 @@
 * along with ORB-SLAM2-TEAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MAPOBSERVER_H
-#define MAPOBSERVER_H
+#ifndef MAPPEROBSERVER_H
+#define MAPPEROBSERVER_H
 
 #include "MapChangeEvent.h"
 
@@ -30,7 +30,7 @@ namespace ORB_SLAM2
        base class for Observer class from the Observer Pattern
        see https://sourcemaking.com/design_patterns/observer
    */
-   class MapObserver
+   class MapperObserver
    {
    public:
 
@@ -38,8 +38,12 @@ namespace ORB_SLAM2
 
       virtual void HandleMapChanged(MapChangeEvent & mce) {}
 
+      virtual void HandlePauseRequested(bool b) {}
+
+      virtual void HandleAcceptKeyFrames(bool b) {}
+
    };
 
 }
 
-#endif // MAPOBSERVER_H
+#endif // MAPPEROBSERVER_H
