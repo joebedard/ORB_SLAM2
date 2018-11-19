@@ -58,18 +58,6 @@ namespace ORB_SLAM2
 
       virtual bool AcceptKeyFrames();
 
-      virtual bool InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF);
-
-      virtual void InitializeMono(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2);
-
-      virtual void InitializeStereo(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF);
-
-      virtual bool GetInitialized();
-
-      virtual Map & GetMap();
-
-      virtual std::mutex & GetMutexMapUpdate();
-
       virtual void LoginTracker(
          const cv::Mat & pivotCalib,
          unsigned int & trackerId,
@@ -86,6 +74,18 @@ namespace ORB_SLAM2
 
       virtual vector<cv::Mat> GetTrackerPivots();
 
+      virtual bool InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF);
+
+      virtual void InitializeMono(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2);
+
+      virtual void InitializeStereo(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF);
+
+      virtual bool GetInitialized();
+
+      virtual Map & GetMap();
+
+      virtual std::mutex & GetMutexMapUpdate();
+
    private:
       static const unsigned int MAX_TRACKERS = 2;
 
@@ -100,15 +100,11 @@ namespace ORB_SLAM2
 
       static const unsigned long FIRST_MAPPOINT_ID_LOCALMAPPER = MAX_TRACKERS;
 
-      struct TrackerStatus {
-         bool connected;
-         unsigned long nextKeyFrameId;
-         unsigned long nextMapPointId;
-      };
+      cv::Mat mPivotCalib[MAX_TRACKERS];
 
-      TrackerStatus mTrackers[MAX_TRACKERS];
+      cv::Mat mPoseTcw[MAX_TRACKERS];
 
-      std::mutex mMutexLogin;
+      std::mutex mMutexTrackerStatus;
 
       std::mutex mMutexMapUpdate;
 
@@ -155,6 +151,10 @@ namespace ORB_SLAM2
 
       void ReceiveAcceptKeyFrames(zmq::message_t & message);
 
+      void ReceivePivotUpdate(zmq::message_t & message);
+
+      void ReceivePoseUpdate(zmq::message_t & message);
+
       void RunSubscriber();
 
       zmq::message_t RequestReply(zmq::message_t & request);
@@ -170,6 +170,8 @@ namespace ORB_SLAM2
          unsigned int & mapPointIdSpan);
 
       void GetMapFromServer(const unsigned int trackerId);
+
+      void UpdatePoseServer(unsigned int trackerId, const cv::Mat & poseTcw);
 
       void InitializeMonoServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2);
 

@@ -27,7 +27,7 @@
 namespace ORB_SLAM2
 {
 
-   struct GeneralRequest
+   struct GreetRequest
    {
       ServiceId serviceId;
       char message[1];
@@ -39,31 +39,7 @@ namespace ORB_SLAM2
       float pivotCalib[16];
    };
 
-   struct GetMapRequest
-   {
-      ServiceId serviceId;
-      unsigned int trackerId;
-   };
-
-   struct LogoutTrackerRequest
-   {
-      ServiceId serviceId;
-      unsigned int trackerId;
-   };
-
-   struct InitializeMonoRequest
-   {
-      ServiceId serviceId;
-      unsigned int trackerId;
-   };
-
-   struct InitializeStereoRequest
-   {
-      ServiceId serviceId;
-      unsigned int trackerId;
-   };
-
-   struct InsertKeyFrameRequest
+   struct GeneralRequest
    {
       ServiceId serviceId;
       unsigned int trackerId;
@@ -85,16 +61,23 @@ namespace ORB_SLAM2
       unsigned int mapPointIdSpan;
    };
 
-   struct GeneralMessage
-   {
-      unsigned int trackerId;
-      MessageId messageId;
-   };
-
    struct InsertKeyFrameReply
    {
       ReplyCode replyCode;
       bool inserted;
+   };
+
+   struct GeneralMessage
+   {
+      int subscribeId;
+      MessageId messageId;
+   };
+
+   struct UpdateTrackerMessage
+   {
+      int subscribeId;
+      MessageId messageId;
+      unsigned int trackerId;
    };
 }
 

@@ -55,8 +55,9 @@ namespace ORB_SLAM2
       INITIALIZE_MONO = 3,
       INITIALIZE_STEREO = 4,
       GET_MAP = 5,
-      INSERT_KEYFRAME = 6,
-      quantityServiceId = 7
+      UPDATE_POSE = 6,
+      INSERT_KEYFRAME = 7,
+      quantityServiceId = 8
    };
 
    enum MessageId
@@ -65,7 +66,9 @@ namespace ORB_SLAM2
       MAP_CHANGE = 1,
       PAUSE_REQUESTED = 2,
       ACCEPT_KEYFRAMES = 3,
-      quantityMessageId = 4
+      PIVOT_UPDATE = 4,
+      POSE_UPDATE = 5,
+      quantityMessageId = 6
    };
 
 }

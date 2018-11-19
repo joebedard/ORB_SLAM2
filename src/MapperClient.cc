@@ -23,6 +23,7 @@
 #include "Optimizer.h"
 #include "Messages.h"
 #include "Sleep.h"
+#include "Serializer.h"
 
 namespace ORB_SLAM2
 {
@@ -38,7 +39,13 @@ namespace ORB_SLAM2
       , mSocketReq(mContext, ZMQ_REQ)
       , mSocketSub(mContext, ZMQ_SUB)
       , mShouldRun(false)
-      , mMessageProc{&MapperClient::ReceiveMapReset, &MapperClient::ReceiveMapChange, &MapperClient::ReceivePauseRequested, &MapperClient::ReceiveAcceptKeyFrames}
+      , mMessageProc{
+         &MapperClient::ReceiveMapReset, 
+         &MapperClient::ReceiveMapChange, 
+         &MapperClient::ReceivePauseRequested, 
+         &MapperClient::ReceiveAcceptKeyFrames,
+         &MapperClient::ReceivePivotUpdate,
+         &MapperClient::ReceivePoseUpdate}
    {
       mServerAddress.append(settings["Server.Address"]);
       if (0 == mServerAddress.length())
@@ -113,14 +120,12 @@ namespace ORB_SLAM2
 
    bool MapperClient::GetPauseRequested()
    {
-      // TODO - send message from server
       unique_lock<mutex> lock(mMutexPause);
       return mPauseRequested;
    }
 
    bool MapperClient::AcceptKeyFrames()
    {
-      // TODO - send message from server
       unique_lock<mutex> lock(mMutexAccept);
       return mAcceptKeyFrames;
    }
@@ -228,70 +233,12 @@ namespace ORB_SLAM2
       Print("end LoginTracker");
    }
 
-   void MapperClient::LoginTrackerServer(
-      const cv::Mat & pivotCalib,
-      unsigned int & trackerId,
-      id_type  & firstKeyFrameId,
-      unsigned int & keyFrameIdSpan,
-      id_type & firstMapPointId,
-      unsigned int & mapPointIdSpan)
-   {
-      Print("begin LoginTrackerServer");
-
-      zmq::message_t request(sizeof(LoginTrackerRequest));
-      LoginTrackerRequest * pReqData = request.data<LoginTrackerRequest>();
-      pReqData->serviceId = ServiceId::LOGIN_TRACKER;
-      pReqData->pivotCalib[0] = pivotCalib.at<float>(0, 0);
-      pReqData->pivotCalib[1] = pivotCalib.at<float>(0, 1);
-      pReqData->pivotCalib[2] = pivotCalib.at<float>(0, 2);
-      pReqData->pivotCalib[3] = pivotCalib.at<float>(0, 3);
-      pReqData->pivotCalib[4] = pivotCalib.at<float>(1, 0);
-      pReqData->pivotCalib[5] = pivotCalib.at<float>(1, 1);
-      pReqData->pivotCalib[6] = pivotCalib.at<float>(1, 2);
-      pReqData->pivotCalib[7] = pivotCalib.at<float>(1, 3);
-      pReqData->pivotCalib[8] = pivotCalib.at<float>(2, 0);
-      pReqData->pivotCalib[9] = pivotCalib.at<float>(2, 1);
-      pReqData->pivotCalib[10] = pivotCalib.at<float>(2, 2);
-      pReqData->pivotCalib[11] = pivotCalib.at<float>(2, 3);
-      pReqData->pivotCalib[12] = pivotCalib.at<float>(3, 0);
-      pReqData->pivotCalib[13] = pivotCalib.at<float>(3, 1);
-      pReqData->pivotCalib[14] = pivotCalib.at<float>(3, 2);
-      pReqData->pivotCalib[15] = pivotCalib.at<float>(3, 3);
-
-      // login and get Id values and return them
-      Print("sending LoginTrackerRequest");
-      zmq::message_t reply = RequestReply(request);
-      LoginTrackerReply * pRepData = reply.data<LoginTrackerReply>();
-      trackerId = pRepData->trackerId;
-      firstKeyFrameId = pRepData->firstKeyFrameId;
-      keyFrameIdSpan = pRepData->keyFrameIdSpan;
-      firstMapPointId = pRepData->firstMapPointId;
-      mapPointIdSpan = pRepData->mapPointIdSpan;
-
-      Print("end LoginTrackerServer");
-   }
-
-   void MapperClient::GetMapFromServer(const unsigned int trackerId)
-   {
-      Print("begin GetMapFromServer");
-
-      zmq::message_t request(sizeof(GetMapRequest));
-      GetMapRequest * pReqData = request.data<GetMapRequest>();
-      pReqData->serviceId = ServiceId::GET_MAP;
-      pReqData->trackerId = trackerId;
-
-      Print("sending GetMapRequest");
-      zmq::message_t reply = RequestReply(request);
-
-      Print("end GetMapFromServer");
-   }
-
    void MapperClient::LogoutTracker(unsigned int id)
    {
       Print("begin LogoutTracker");
 
-      zmq::message_t request(sizeof(LogoutTrackerRequest));
-      LogoutTrackerRequest * pReqData = request.data<LogoutTrackerRequest>();
+      zmq::message_t request(sizeof(GeneralRequest));
+      GeneralRequest * pReqData = request.data<GeneralRequest>();
       pReqData->serviceId = ServiceId::LOGOUT_TRACKER;
       pReqData->trackerId = id;
 
@@ -303,27 +250,37 @@ namespace ORB_SLAM2
 
    void MapperClient::UpdatePose(unsigned int trackerId, const cv::Mat & poseTcw)
    {
-      // TODO - serialize trackerId, pose and send to server
-      //mServer.UpdatePose(trackerId, poseTcw);
+      unique_lock<mutex> lock(mMutexTrackerStatus);
+      mPoseTcw[trackerId] = poseTcw.clone();
+      UpdatePoseServer(trackerId, poseTcw);
    }
 
    vector<cv::Mat> MapperClient::GetTrackerPoses()
    {
-      // TODO - pose synchronization between client(s) and server
-      //return mServer.GetTrackerPoses();
-      return vector<cv::Mat>();
+      unique_lock<mutex> lock(mMutexTrackerStatus);
+
+      vector<cv::Mat> poses;
+      for (int i = 0; i < MAX_TRACKERS; i++)
+      {
+         poses.push_back(mPoseTcw[i].clone());
+      }
+      return poses;
    }
 
    vector<cv::Mat> MapperClient::GetTrackerPivots()
    {
-      // TODO - pivot synchronization between client(s) and server
-      //return mServer.GetTrackerPivots();
-      return vector<cv::Mat>();
+      unique_lock<mutex> lock(mMutexTrackerStatus);
+
+      vector<cv::Mat> poses;
+      for (int i = 0; i < MAX_TRACKERS; i++)
+      {
+         poses.push_back(mPivotCalib[i].clone());
+      }
+      return poses;
    }
 
    Map & MapperClient::GetMap()
    {
-      // TODO - map synchronization between client(s) and server
       return mMap;
    }
 
@@ -360,12 +317,35 @@ namespace ORB_SLAM2
       mAcceptKeyFrames = *(bool *)(pMsgData + 1);
    }
 
+   void MapperClient::ReceivePivotUpdate(zmq::message_t & message)
+   {
+      UpdateTrackerMessage * pMsgData = message.data<UpdateTrackerMessage>();
+      unique_lock<mutex> lock(mMutexTrackerStatus);
+      cv::Mat pivotCalib;
+      void * pData = Serializer::ReadMatrix(pMsgData + 1, pivotCalib);
+      mPivotCalib[pMsgData->trackerId] = pivotCalib.clone();
+   }
+
+   void MapperClient::ReceivePoseUpdate(zmq::message_t & message)
+   {
+      UpdateTrackerMessage * pMsgData = message.data<UpdateTrackerMessage>();
+      unique_lock<mutex> lock(mMutexTrackerStatus);
+      cv::Mat poseTcw;
+      void * pData = Serializer::ReadMatrix(pMsgData + 1, poseTcw);
+      mPoseTcw[pMsgData->trackerId] = poseTcw.clone();
+   }
+
    void MapperClient::RunSubscriber() try
    {
       zmq::message_t message;
       while (mShouldRun)
       {
-         if (mSocketSub.recv(&message, ZMQ_NOBLOCK))
+         bool received = false;
+         {
+            unique_lock<mutex> lock(mMutexSocketSub);
+            received = mSocketSub.recv(&message, ZMQ_NOBLOCK);
+         }
+         if (received)
          {
             GeneralMessage * pReqData = message.data<GeneralMessage>();
             try 
@@ -437,9 +417,9 @@ namespace ORB_SLAM2
    void MapperClient::GreetServer()
    {
       const char * HELLO = "Hello";
-      size_t sizeMsg = sizeof(GeneralRequest) + strlen(HELLO);
+      size_t sizeMsg = sizeof(GreetRequest) + strlen(HELLO);
       zmq::message_t request(sizeMsg);
-      GeneralRequest * pReqData = request.data<GeneralRequest>();
+      GreetRequest * pReqData = request.data<GreetRequest>();
       pReqData->serviceId = ServiceId::HELLO;
       strcpy(pReqData->message, HELLO);
 
@@ -457,19 +437,95 @@ namespace ORB_SLAM2
       }
    }
 
+   void MapperClient::LoginTrackerServer(
+      const cv::Mat & pivotCalib,
+      unsigned int & trackerId,
+      id_type  & firstKeyFrameId,
+      unsigned int & keyFrameIdSpan,
+      id_type & firstMapPointId,
+      unsigned int & mapPointIdSpan)
+   {
+      Print("begin LoginTrackerServer");
+
+      zmq::message_t request(sizeof(LoginTrackerRequest));
+      LoginTrackerRequest * pReqData = request.data<LoginTrackerRequest>();
+      pReqData->serviceId = ServiceId::LOGIN_TRACKER;
+      pReqData->pivotCalib[0] = pivotCalib.at<float>(0, 0);
+      pReqData->pivotCalib[1] = pivotCalib.at<float>(0, 1);
+      pReqData->pivotCalib[2] = pivotCalib.at<float>(0, 2);
+      pReqData->pivotCalib[3] = pivotCalib.at<float>(0, 3);
+      pReqData->pivotCalib[4] = pivotCalib.at<float>(1, 0);
+      pReqData->pivotCalib[5] = pivotCalib.at<float>(1, 1);
+      pReqData->pivotCalib[6] = pivotCalib.at<float>(1, 2);
+      pReqData->pivotCalib[7] = pivotCalib.at<float>(1, 3);
+      pReqData->pivotCalib[8] = pivotCalib.at<float>(2, 0);
+      pReqData->pivotCalib[9] = pivotCalib.at<float>(2, 1);
+      pReqData->pivotCalib[10] = pivotCalib.at<float>(2, 2);
+      pReqData->pivotCalib[11] = pivotCalib.at<float>(2, 3);
+      pReqData->pivotCalib[12] = pivotCalib.at<float>(3, 0);
+      pReqData->pivotCalib[13] = pivotCalib.at<float>(3, 1);
+      pReqData->pivotCalib[14] = pivotCalib.at<float>(3, 2);
+      pReqData->pivotCalib[15] = pivotCalib.at<float>(3, 3);
+
+      // login and get Id values and return them
+      Print("sending LoginTrackerRequest");
+      zmq::message_t reply = RequestReply(request);
+      LoginTrackerReply * pRepData = reply.data<LoginTrackerReply>();
+      trackerId = pRepData->trackerId;
+      firstKeyFrameId = pRepData->firstKeyFrameId;
+      keyFrameIdSpan = pRepData->keyFrameIdSpan;
+      firstMapPointId = pRepData->firstMapPointId;
+      mapPointIdSpan = pRepData->mapPointIdSpan;
+
+      Print("end LoginTrackerServer");
+   }
+
+   void MapperClient::GetMapFromServer(const unsigned int trackerId)
+   {
+      Print("begin GetMapFromServer");
+
+      zmq::message_t request(sizeof(GeneralRequest));
+      GeneralRequest * pReqData = request.data<GeneralRequest>();
+      pReqData->serviceId = ServiceId::GET_MAP;
+      pReqData->trackerId = trackerId;
+
+      Print("sending GetMapRequest");
+      zmq::message_t reply = RequestReply(request);
+
+      Print("end GetMapFromServer");
+   }
+
+   void MapperClient::UpdatePoseServer(unsigned int trackerId, const cv::Mat & poseTcw)
+   {
+      Print("begin UpdatePoseServer");
+      size_t sizeMsg = sizeof(GeneralRequest);
+      sizeMsg += Serializer::GetMatBufferSize(poseTcw);
+
+      zmq::message_t request(sizeMsg);
+      GeneralRequest * pReqData = request.data<GeneralRequest>();
+      pReqData->serviceId = ServiceId::UPDATE_POSE;
+      pReqData->trackerId = trackerId;
+      Serializer::WriteMatrix(pReqData + 1, poseTcw);
+
+      Print("sending UpdatePose");
+      zmq::message_t reply = RequestReply(request);
+
+      Print("end UpdatePoseServer");
+   }
+
    void MapperClient::InitializeMonoServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2)
    {
       Print("begin InitializeMonoServer");
-      size_t sizeMsg = sizeof(InitializeMonoRequest);
+      size_t sizeMsg = sizeof(GeneralRequest);
       sizeMsg += pKF1->GetBufferSize();
       sizeMsg += pKF2->GetBufferSize();
       sizeMsg += MapPoint::GetVectorBufferSize(mapPoints);
 
       zmq::message_t request(sizeMsg);
-      InitializeMonoRequest * pReqHead = request.data<InitializeMonoRequest>();
-      pReqHead->serviceId = ServiceId::INITIALIZE_MONO;
-      pReqHead->trackerId = trackerId;
-      void * pData = pReqHead + 1;
+      GeneralRequest * pReqData = request.data<GeneralRequest>();
+      pReqData->serviceId = ServiceId::INITIALIZE_MONO;
+      pReqData->trackerId = trackerId;
+      void * pData = pReqData + 1;
       pData = pKF1->WriteBytes(pData);
       pData = pKF2->WriteBytes(pData);
       pData = MapPoint::WriteVector(pData, mapPoints);
@@ -484,15 +540,15 @@ namespace ORB_SLAM2
    void MapperClient::InitializeStereoServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF)
    {
       Print("begin InitializeStereoServer");
-      size_t sizeMsg = sizeof(InitializeStereoRequest);
+      size_t sizeMsg = sizeof(GeneralRequest);
       sizeMsg += pKF->GetBufferSize();
       sizeMsg += MapPoint::GetVectorBufferSize(mapPoints);
 
       zmq::message_t request(sizeMsg);
-      InitializeStereoRequest * pReqHead = request.data<InitializeStereoRequest>();
-      pReqHead->serviceId = ServiceId::INITIALIZE_STEREO;
-      pReqHead->trackerId = trackerId;
-      void * pData = pReqHead + 1;
+      GeneralRequest * pReqData = request.data<GeneralRequest>();
+      pReqData->serviceId = ServiceId::INITIALIZE_STEREO;
+      pReqData->trackerId = trackerId;
+      void * pData = pReqData + 1;
       pData = pKF->WriteBytes(pData);
       pData = MapPoint::WriteVector(pData, mapPoints);
 
@@ -507,15 +563,15 @@ namespace ORB_SLAM2
    {
       Print("begin InsertKeyFrameServer");
 
-      size_t sizeMsg = sizeof(InsertKeyFrameRequest);
+      size_t sizeMsg = sizeof(GeneralRequest);
       sizeMsg += pKF->GetBufferSize();
       sizeMsg += MapPoint::GetVectorBufferSize(mapPoints);
 
       zmq::message_t request(sizeMsg);
-      InsertKeyFrameRequest * pReqHead = (InsertKeyFrameRequest *)request.data();
-      pReqHead->serviceId = ServiceId::INSERT_KEYFRAME;
-      pReqHead->trackerId = trackerId;
-      void * pData = pReqHead + 1;
+      GeneralRequest * pReqData = request.data<GeneralRequest>();
+      pReqData->serviceId = ServiceId::INSERT_KEYFRAME;
+      pReqData->trackerId = trackerId;
+      void * pData = pReqData + 1;
       pData = pKF->WriteBytes(pData);
       pData = MapPoint::WriteVector(pData, mapPoints);
 

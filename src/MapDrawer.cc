@@ -28,7 +28,7 @@ namespace ORB_SLAM2
 
 
    MapDrawer::MapDrawer(cv::FileStorage & settings, Mapper & mapper) :
-      SyncPrint("MapDrawer: ", false),
+      SyncPrint("MapDrawer: "),
       mMapper(mapper),
       mMap(mapper.GetMap())
    {

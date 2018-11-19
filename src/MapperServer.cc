@@ -198,6 +198,7 @@ namespace ORB_SLAM2
 
    bool MapperServer::InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF)
    {
+      Print("begin InsertKeyFrame");
       ValidateTracker(trackerId);
 
       if (mLocalMapper.InsertKeyFrame(pKF))
@@ -214,10 +215,14 @@ namespace ORB_SLAM2
          UpdateTrackerStatus(trackerId, mapPoints);
          UpdateTrackerStatus(trackerId, pKF);
 
+         Print("end InsertKeyFrame 1");
          return true;
       }
       else
+      {
+         Print("end InsertKeyFrame 2");
          return false;
+      }
    }
 
    void MapperServer::UpdateTrackerStatus(unsigned int trackerId, KeyFrame * pKF)
@@ -228,9 +233,9 @@ namespace ORB_SLAM2
       if (pKF)
       {
          assert((pKF->GetId() - trackerId) % KEYFRAME_ID_SPAN == 0);
-         if (mTrackers[trackerId].nextKeyFrameId <= pKF->GetId())
+         if (mTrackerStatus[trackerId].nextKeyFrameId <= pKF->GetId())
          {
-            mTrackers[trackerId].nextKeyFrameId = pKF->GetId() + KEYFRAME_ID_SPAN;
+            mTrackerStatus[trackerId].nextKeyFrameId = pKF->GetId() + KEYFRAME_ID_SPAN;
          }
       }
    }
@@ -242,9 +247,9 @@ namespace ORB_SLAM2
       for (auto pMP : mapPoints)
       {
          assert((pMP->GetId() - trackerId) % MAPPOINT_ID_SPAN == 0);
-         if (mTrackers[trackerId].nextMapPointId <= pMP->GetId())
+         if (mTrackerStatus[trackerId].nextMapPointId <= pMP->GetId())
          {
-            mTrackers[trackerId].nextMapPointId = pMP->GetId() + MAPPOINT_ID_SPAN;
+            mTrackerStatus[trackerId].nextMapPointId = pMP->GetId() + MAPPOINT_ID_SPAN;
          }
       }
    }
@@ -257,15 +262,16 @@ namespace ORB_SLAM2
       id_type & firstMapPointId,
       unsigned int & mapPointIdSpan)
    {
+      Print("begin LoginTracker");
       unique_lock<mutex> lock(mMutexTrackerStatus);
 
       unsigned int id;
       for (id = 0; id < MAX_TRACKERS; ++id)
       {
-         if (!mTrackers[id].connected)
+         if (!mTrackerStatus[id].connected)
          {
-            mTrackers[id].connected = true;
-            mTrackers[id].pivotCalib = pivotCalib;
+            mTrackerStatus[id].connected = true;
+            mPivotCalib[id] = pivotCalib;
             break;
          }
       }
@@ -274,38 +280,43 @@ namespace ORB_SLAM2
          throw std::exception("Maximum number of trackers reached. Additional trackers are not supported.");
 
       trackerId = id;
-      firstKeyFrameId = mTrackers[id].nextKeyFrameId;
+      firstKeyFrameId = mTrackerStatus[id].nextKeyFrameId;
       keyFrameIdSpan = KEYFRAME_ID_SPAN;
-      firstMapPointId = mTrackers[id].nextMapPointId;
+      firstMapPointId = mTrackerStatus[id].nextMapPointId;
       mapPointIdSpan = MAPPOINT_ID_SPAN;
+      Print("end LoginTracker");
    }
 
    void MapperServer::LogoutTracker(unsigned int id)
    {
       unique_lock<mutex> lock(mMutexTrackerStatus);
 
-      mTrackers[id].connected = false;
+      mTrackerStatus[id].connected = false;
    }
 
    void MapperServer::UpdatePose(unsigned int trackerId, const cv::Mat & poseTcw)
    {
+      Print("begin UpdatePose");
       unique_lock<mutex> lock(mMutexTrackerStatus);
 
       ValidateTracker(trackerId);
 
-      mTrackers[trackerId].poseTcw = poseTcw.clone();
+      mPoseTcw[trackerId] = poseTcw.clone();
+      Print("end UpdatePose");
    }
 
    vector<cv::Mat> MapperServer::GetTrackerPoses()
    {
+      Print("begin GetTrackerPoses");
       unique_lock<mutex> lock(mMutexTrackerStatus);
 
       vector<cv::Mat> poses;
       for (int i = 0; i < MAX_TRACKERS; i++)
       {
-         if (mTrackers[i].connected)
-            poses.push_back(mTrackers[i].poseTcw.clone());
+         poses.push_back(mPoseTcw[i].clone());
       }
+
+      Print("end GetTrackerPoses");
       return poses;
    }
 
@@ -316,8 +327,7 @@ namespace ORB_SLAM2
       vector<cv::Mat> poses;
       for (int i = 0; i < MAX_TRACKERS; i++)
       {
-         if (mTrackers[i].connected)
-            poses.push_back(mTrackers[i].pivotCalib.clone());
+         poses.push_back(mPivotCalib[i].clone());
       }
       return poses;
    }
@@ -334,21 +344,23 @@ namespace ORB_SLAM2
 
    void MapperServer::ResetTrackerStatus()
    {
+      Print("begin ResetTrackerStatus");
       unique_lock<mutex> lock(mMutexTrackerStatus);
 
       for (int i = 0; i < MAX_TRACKERS; ++i)
       {
-         mTrackers[i].connected = false;
-         mTrackers[i].nextKeyFrameId = i;
-         mTrackers[i].nextMapPointId = i;
-         mTrackers[i].pivotCalib = cv::Mat::eye(4, 4, CV_32F);
-         mTrackers[i].poseTcw = cv::Mat::eye(4, 4, CV_32F);
+         mTrackerStatus[i].connected = false;
+         mTrackerStatus[i].nextKeyFrameId = i;
+         mTrackerStatus[i].nextMapPointId = i;
+         mPivotCalib[i] = cv::Mat::eye(4, 4, CV_32F);
+         mPoseTcw[i] = cv::Mat::eye(4, 4, CV_32F);
       }
+      Print("end ResetTrackerStatus");
    }
 
    void MapperServer::ValidateTracker(unsigned int trackerId)
    {
-      if (!mTrackers[trackerId].connected)
+      if (!mTrackerStatus[trackerId].connected)
          throw exception(string("Tracker is not logged in! Id=").append(to_string(trackerId)).c_str());
    }
 

@@ -104,11 +104,13 @@ namespace ORB_SLAM2
          bool connected;
          unsigned long nextKeyFrameId;
          unsigned long nextMapPointId;
-         cv::Mat pivotCalib;
-         cv::Mat poseTcw;
       };
 
-      TrackerStatus mTrackers[MAX_TRACKERS];
+      TrackerStatus mTrackerStatus[MAX_TRACKERS];
+
+      cv::Mat mPivotCalib[MAX_TRACKERS];
+
+      cv::Mat mPoseTcw[MAX_TRACKERS];
 
       std::mutex mMutexTrackerStatus;
 

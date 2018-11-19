@@ -119,7 +119,7 @@ zmq::message_t BuildReplyString(ReplyCode code, const char * str)
 
 zmq::message_t HelloService(zmq::message_t & request)
 {
-   GeneralRequest * pReqData = request.data<GeneralRequest>();
+   GreetRequest * pReqData = request.data<GreetRequest>();
    gOutServ.Print(string("Received ") + pReqData->message);
    if (0 == strcmp(pReqData->message, "Hello"))
    {
@@ -163,6 +163,20 @@ zmq::message_t LoginTracker(zmq::message_t & request)
       pRepData->keyFrameIdSpan,
       pRepData->firstMapPointId, 
       pRepData->mapPointIdSpan);
+
+   {
+      // re-send pivot calibration via pub-sub to all tracking clients
+      size_t msgSize = sizeof(UpdateTrackerMessage);
+      msgSize += Serializer::GetMatBufferSize(pivotCalib);
+      zmq::message_t message(msgSize);
+      UpdateTrackerMessage * pMsgData = message.data<UpdateTrackerMessage>();
+      pMsgData->subscribeId = -1; // all tracking clients
+      pMsgData->messageId = MessageId::PIVOT_UPDATE;
+      pMsgData->trackerId = pRepData->trackerId;
+      Serializer::WriteMatrix(pMsgData + 1, pivotCalib);
+      gSocketPub->send(message);
+   }
+
    pRepData->replyCode = ReplyCode::SUCCEEDED;
 
    gOutServ.Print("end LoginTracker");
@@ -172,14 +186,46 @@ zmq::message_t LoginTracker(zmq::message_t & request)
 zmq::message_t LogoutTracker(zmq::message_t & request)
 {
    gOutServ.Print("begin LogoutTracker");
-   LogoutTrackerRequest * pReqData = request.data<LogoutTrackerRequest>();
+   GeneralRequest * pReqData = request.data<GeneralRequest>();
+
+   gMapper->LogoutTracker(pReqData->trackerId);
 
    zmq::message_t reply(sizeof(GeneralReply));
    GeneralReply * pRepData = reply.data<GeneralReply>();
-   gMapper->LogoutTracker(pReqData->trackerId);
    pRepData->replyCode = ReplyCode::SUCCEEDED;
 
    gOutServ.Print("end LogoutTracker");
+   return reply;
+}
+
+zmq::message_t UpdatePose(zmq::message_t & request)
+{
+   gOutServ.Print("begin UpdatePose");
+   GeneralRequest * pReqData = request.data<GeneralRequest>();
+   void * pData = pReqData + 1;
+   cv::Mat poseTcw;
+   pData = Serializer::ReadMatrix(pData, poseTcw);
+
+   gMapper->UpdatePose(pReqData->trackerId, poseTcw);
+
+   {
+      // re-send pose via pub-sub to all tracking clients
+      size_t msgSize = sizeof(UpdateTrackerMessage);
+      msgSize += Serializer::GetMatBufferSize(poseTcw);
+      zmq::message_t message(msgSize);
+      UpdateTrackerMessage * pMsgData = message.data<UpdateTrackerMessage>();
+      pMsgData->subscribeId = -1; // all tracking clients
+      pMsgData->messageId = MessageId::POSE_UPDATE;
+      pMsgData->trackerId = pReqData->trackerId;
+      Serializer::WriteMatrix(pMsgData + 1, poseTcw);
+      gSocketPub->send(message);
+   }
+
+   zmq::message_t reply(sizeof(GeneralReply));
+   GeneralReply * pRepData = reply.data<GeneralReply>();
+   pRepData->replyCode = ReplyCode::SUCCEEDED;
+
+   gOutServ.Print("end UpdatePose");
    return reply;
 }
 
@@ -189,8 +235,8 @@ zmq::message_t InitializeMono(zmq::message_t & request)
    std::unordered_map<id_type, KeyFrame *> newKeyFrames;
    std::unordered_map<id_type, MapPoint *> newMapPoints;
 
-   InitializeMonoRequest * pReqHead = request.data<InitializeMonoRequest>();
-   void * pData = pReqHead + 1;
+   GeneralRequest * pReqData = request.data<GeneralRequest>();
+   void * pData = pReqData + 1;
 
    // read KeyFrames
    KeyFrame * pKF1 = NULL;
@@ -208,7 +254,7 @@ zmq::message_t InitializeMono(zmq::message_t & request)
 
    try
    {
-      gMapper->InitializeMono(pReqHead->trackerId, mapPoints, pKF1, pKF2);
+      gMapper->InitializeMono(pReqData->trackerId, mapPoints, pKF1, pKF2);
    }
    catch (exception & e)
    {
@@ -233,8 +279,8 @@ zmq::message_t InitializeStereo(zmq::message_t & request)
    std::unordered_map<id_type, KeyFrame *> newKeyFrames;
    std::unordered_map<id_type, MapPoint *> newMapPoints;
 
-   InitializeStereoRequest * pReqHead = request.data<InitializeStereoRequest>();
-   void * pData = pReqHead + 1;
+   GeneralRequest * pReqData = request.data<GeneralRequest>();
+   void * pData = pReqData + 1;
 
    // read KeyFrame
    KeyFrame * pKF = NULL;
@@ -250,7 +296,7 @@ zmq::message_t InitializeStereo(zmq::message_t & request)
 
    try
    {
-      gMapper->InitializeStereo(pReqHead->trackerId, mapPoints, pKF);
+      gMapper->InitializeStereo(pReqData->trackerId, mapPoints, pKF);
    }
    catch (exception & e)
    {
@@ -272,10 +318,10 @@ zmq::message_t GetMap(zmq::message_t & request)
 {
    gOutServ.Print("begin GetMap");
 
-   GetMapRequest * pReqData = request.data<GetMapRequest>();
+   GeneralRequest * pReqData = request.data<GeneralRequest>();
 
    {
-      // TODO - lock map and send it via pub-sub to the tracking client
+      // lock map and send it via pub-sub to the tracking client
       unique_lock<mutex> lock(gMapper->GetMutexMapUpdate());
       std::set<id_type> noDeletes; // no deleted MapPoints or KeyFrames
       MapChangeEvent mce;
@@ -287,7 +333,7 @@ zmq::message_t GetMap(zmq::message_t & request)
       size_t msgSize = sizeof(GeneralMessage) + mce.GetBufferSize();
       zmq::message_t message(msgSize);
       GeneralMessage * pMsgData = message.data<GeneralMessage>();
-      pMsgData->trackerId = pReqData->trackerId;
+      pMsgData->subscribeId = pReqData->trackerId;
       pMsgData->messageId = MessageId::MAP_CHANGE;
       void * pData = pMsgData + 1;
       pData = mce.WriteBytes(pData);
@@ -308,8 +354,8 @@ zmq::message_t InsertKeyFrame(zmq::message_t & request)
    std::unordered_map<id_type, KeyFrame *> newKeyFrames;
    std::unordered_map<id_type, MapPoint *> newMapPoints;
 
-   InsertKeyFrameRequest * pReqHead = request.data<InsertKeyFrameRequest>();
-   void * pData = pReqHead + 1;
+   GeneralRequest * pReqData = request.data<GeneralRequest>();
+   void * pData = pReqData + 1;
 
    // read KeyFrame
    KeyFrame * pKF = NULL;
@@ -323,7 +369,7 @@ zmq::message_t InsertKeyFrame(zmq::message_t & request)
    if (newMapPoints.size() != mapPoints.size())
       throw exception("InsertKeyFrame newMapPoints.size() != mapPoints.size()");
 
-   bool inserted = gMapper->InsertKeyFrame(pReqHead->trackerId, mapPoints, pKF);
+   bool inserted = gMapper->InsertKeyFrame(pReqData->trackerId, mapPoints, pKF);
    if (!inserted)
    {
       delete pKF;
@@ -342,7 +388,7 @@ zmq::message_t InsertKeyFrame(zmq::message_t & request)
 
 // array of function pointer
 zmq::message_t (*gServices[ServiceId::quantityServiceId])(zmq::message_t & request) = {
-   HelloService, LoginTracker, LogoutTracker, InitializeMono, InitializeStereo, GetMap, InsertKeyFrame};
+   HelloService, LoginTracker, LogoutTracker, InitializeMono, InitializeStereo, GetMap, UpdatePose, InsertKeyFrame};
 
 void RunServer(void * param) try
 {
@@ -410,7 +456,7 @@ public:
    {
       zmq::message_t message(sizeof(GeneralMessage));
       GeneralMessage * pMsgData = message.data<GeneralMessage>();
-      pMsgData->trackerId = -1; // all trackers
+      pMsgData->subscribeId = -1; // all trackers
       pMsgData->messageId = MessageId::MAP_RESET;
       gSocketPub->send(message);
    }
@@ -431,7 +477,7 @@ public:
    {
       zmq::message_t message(sizeof(GeneralMessage) + mce.GetBufferSize());
       GeneralMessage * pMsgData = message.data<GeneralMessage>();
-      pMsgData->trackerId = -1; // all trackers
+      pMsgData->subscribeId = -1; // all trackers
       pMsgData->messageId = MessageId::MAP_CHANGE;
       mce.WriteBytes(pMsgData + 1);
       gSocketPub->send(message);
@@ -453,7 +499,7 @@ public:
    {
       zmq::message_t message(sizeof(GeneralMessage) + sizeof(bool));
       GeneralMessage * pMsgData = message.data<GeneralMessage>();
-      pMsgData->trackerId = -1; // all trackers
+      pMsgData->subscribeId = -1; // all trackers
       pMsgData->messageId = MessageId::PAUSE_REQUESTED;
       bool * pBool = (bool *)(pMsgData + 1);
       *pBool = b;
@@ -476,7 +522,7 @@ public:
    {
       zmq::message_t message(sizeof(GeneralMessage) + sizeof(bool));
       GeneralMessage * pMsgData = message.data<GeneralMessage>();
-      pMsgData->trackerId = -1; // all trackers
+      pMsgData->subscribeId = -1; // all trackers
       pMsgData->messageId = MessageId::ACCEPT_KEYFRAMES;
       bool * pBool = (bool *)(pMsgData + 1);
       *pBool = b;
