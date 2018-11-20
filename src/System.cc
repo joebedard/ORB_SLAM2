@@ -95,7 +95,7 @@ namespace ORB_SLAM2
       //Initialize the Viewer thread and launch
       if (bUseViewer)
       {
-         mpViewer = new Viewer(mpFrameDrawer, mpMapDrawer, mpTracker, mpMapper);
+         mpViewer = new Viewer(mpFrameDrawer, mpMapDrawer, mpTracker, *mpMapper);
          mptViewer = new thread(&Viewer::Run, mpViewer);
          mpTracker->SetViewer(mpViewer);
       }

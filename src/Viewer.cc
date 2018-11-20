@@ -30,9 +30,9 @@
 namespace ORB_SLAM2
 {
 
-   Viewer::Viewer(FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, Mapper * pMapper, bool embeddedFrameDrawer) :
+   Viewer::Viewer(FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, Mapper & mapper, bool embeddedFrameDrawer) :
       SyncPrint("Viewer: "),
-      mpMapper(pMapper),
+      mMapper(mapper),
       mEmbeddedFrameDrawers(embeddedFrameDrawer),
       mbFinishRequested(false),
       mbFinished(true),
@@ -51,12 +51,12 @@ namespace ORB_SLAM2
          mvTrackers.push_back(pTracking);
    }
 
-   Viewer::Viewer(vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers, Mapper * pMapper, bool embeddedFrameDrawers) :
+   Viewer::Viewer(vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers, Mapper & mapper, bool embeddedFrameDrawers) :
       SyncPrint("Viewer: "),
       mvFrameDrawers(vFrameDrawers),
       mvMapDrawers(vMapDrawers),
       mvTrackers(vTrackers),
-      mpMapper(pMapper),
+      mMapper(mapper),
       mEmbeddedFrameDrawers(embeddedFrameDrawers),
       mbFinishRequested(false),
       mbFinished(true),
@@ -293,7 +293,7 @@ namespace ORB_SLAM2
                }
             }
             menuFollowCamera = true;
-            mpMapper->Reset();
+            mMapper.Reset();
             mbResetting = false;
             menuReset = false;
          }

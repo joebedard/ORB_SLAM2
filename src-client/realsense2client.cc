@@ -233,7 +233,7 @@ int main(int paramc, char * paramv[]) try
 
    {
       //Initialize and start the Viewer thread
-      Viewer viewer(&frameDrawer, &mapDrawer, &tracker, &mapperClient);
+      Viewer viewer(&frameDrawer, &mapDrawer, &tracker, mapperClient);
       tracker.SetViewer(&viewer);
       viewer.Run(); //ends when window is closed
       gShouldRun = false; //signal tracking threads to stop

@@ -248,7 +248,7 @@ int main(int paramc, char * paramv[]) try
 
    {
       //Initialize and start the Viewer thread
-      Viewer viewer(vFrameDrawers, vMapDrawers, vTrackers, &mapperServer, false);
+      Viewer viewer(vFrameDrawers, vMapDrawers, vTrackers, mapperServer, false);
       for (Tracking * tracker : vTrackers)
       {
          tracker->SetViewer(&viewer);
