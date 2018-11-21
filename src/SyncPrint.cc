@@ -20,6 +20,7 @@
 
 
 #include "SyncPrint.h"
+#include <thread>
 
 #ifdef ENABLE_SYNCPRINT
 
@@ -40,6 +41,8 @@ namespace ORB_SLAM2
    void SyncPrint::Print(const char * prefix, const char * message)
    {
       unique_lock<mutex> lock(mMutexOutput);
+
+      cout << this_thread::get_id() << ": ";
 
       if (prefix)
          cout << prefix;
@@ -78,6 +81,8 @@ namespace ORB_SLAM2
    {
       if (!mEnable) return;
       unique_lock<mutex> lock(mMutexOutput);
+
+      cout << this_thread::get_id() << ": ";
 
       PrintPrefix(cout);
 
