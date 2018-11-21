@@ -70,7 +70,7 @@ namespace ORB_SLAM2
 
    void MapperServer::Reset()
    {
-      ResetTrackerStatus();
+      Print("Begin Reset");
 
       // Reset Local Mapping
       Print("Begin Local Mapper Reset");
@@ -81,6 +81,10 @@ namespace ORB_SLAM2
       Print("Begin Loop Closing Reset");
       mLoopCloser.RequestReset();
       Print("End Loop Closing Reset");
+
+      Print("unique_lock<mutex> lock(mMutexMapUpdate);");
+      unique_lock<mutex> lock(mMutexMapUpdate);
+      ResetTrackerStatus();
 
       NotifyMapReset();
 

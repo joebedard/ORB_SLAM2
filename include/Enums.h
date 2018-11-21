@@ -57,7 +57,8 @@ namespace ORB_SLAM2
       GET_MAP = 5,
       UPDATE_POSE = 6,
       INSERT_KEYFRAME = 7,
-      quantityServiceId = 8
+      RESET = 8,
+      quantityServiceId = 9
    };
 
    enum MessageId

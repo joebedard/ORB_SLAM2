@@ -386,9 +386,23 @@ zmq::message_t InsertKeyFrame(zmq::message_t & request)
    return reply;
 }
 
+zmq::message_t Reset(zmq::message_t & request)
+{
+   gOutServ.Print("begin Reset");
+
+   gMapper->Reset();
+
+   zmq::message_t reply(sizeof(GeneralReply));
+   GeneralReply * pRepData = reply.data<GeneralReply>();
+   pRepData->replyCode = ReplyCode::SUCCEEDED;
+
+   gOutServ.Print("end Reset");
+   return reply;
+}
+
 // array of function pointer
 zmq::message_t (*gServices[ServiceId::quantityServiceId])(zmq::message_t & request) = {
-   HelloService, LoginTracker, LogoutTracker, InitializeMono, InitializeStereo, GetMap, UpdatePose, InsertKeyFrame};
+   HelloService, LoginTracker, LogoutTracker, InitializeMono, InitializeStereo, GetMap, UpdatePose, InsertKeyFrame, Reset};
 
 void RunServer(void * param) try
 {
@@ -598,7 +612,7 @@ int main(int argc, char * argv[]) try
    MapDrawer mapDrawer(mapperFile, mapperServer);
 
    //Initialize and start the Viewer thread
-   Viewer viewer(NULL, &mapDrawer, NULL, &mapperServer);
+   Viewer viewer(NULL, &mapDrawer, NULL, mapperServer);
    viewer.Run(); //ends when window is closed
    gShouldRun = false; //signal server threads to stop
 

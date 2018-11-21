@@ -239,14 +239,14 @@ namespace ORB_SLAM2
 
       void RotationsYXZtoMat(double y, double x, double z, cv::Mat & m);
 
-      void MapperObserverReset();
+      void HandleMapReset();
 
       class PrivateMapperObserver : public MapperObserver
       {
          Tracking * mpTracker;
       public:
          PrivateMapperObserver(Tracking * pTracker) : mpTracker(pTracker) {};
-         virtual void HandleMapReset() { mpTracker->MapperObserverReset(); };
+         virtual void HandleMapReset() { mpTracker->HandleMapReset(); };
       };
 
       PrivateMapperObserver mMapperObserver;

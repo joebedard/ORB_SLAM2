@@ -179,10 +179,6 @@ namespace ORB_SLAM2
 
       bool InsertKeyFrameServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF);
 
-      void MapperServerObserverMapReset();
-
-      void MapperServerObserverMapChanged(MapChangeEvent & mce);
-
    };
 
 }

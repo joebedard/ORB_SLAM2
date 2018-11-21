@@ -91,21 +91,17 @@ namespace ORB_SLAM2
 
    void MapperClient::Reset()
    {
-      // TODO - call server reset
-      Print("Begin Server Reset");
-      //mServer.Reset();
-      Print("End Server Reset");
+      Print("begin Reset");
+      unique_lock<mutex> lock(mMutexMapUpdate);
+
+      zmq::message_t request(sizeof(GeneralRequest));
+      GeneralRequest * pReqData = request.data<GeneralRequest>();
+      pReqData->serviceId = ServiceId::RESET;
+
+      zmq::message_t reply = RequestReply(request);
 
       // Reset will be received asynchronously from server
-      //NotifyReset();
-
-      // Clear Map (this erase MapPoints and KeyFrames)
-      Print("Begin Map Reset");
-      mMap.Clear();
-      Print("End Map Reset");
-
-      mInitialized = false;
-      Print("Reset Complete");
+      Print("end Reset");
    }
 
    std::vector<KeyFrame *> MapperClient::DetectRelocalizationCandidates(Frame * F)
@@ -291,16 +287,88 @@ namespace ORB_SLAM2
 
    void MapperClient::ReceiveMapReset(zmq::message_t & message)
    {
-      MapperServerObserverMapReset();
+      unique_lock<mutex> lock(mMutexMapUpdate);
+      NotifyMapReset();
+
+      // Clear BoW Database
+      Print("Begin Database Reset");
+      mKeyFrameDB.clear();
+      Print("End Database Reset");
+
+      // Clear Map (this erase MapPoints and KeyFrames)
+      Print("Begin Map Reset");
+      mMap.Clear();
+      Print("End Map Reset");
+
+      mInitialized = false;
+      Print("Reset Complete");
    }
 
    void MapperClient::ReceiveMapChange(zmq::message_t & message)
    {
+      Print("begin ReceiveMapChange");
+
       GeneralMessage * pMsgData = message.data<GeneralMessage>();
       MapChangeEvent mce;
       unique_lock<mutex> lock(mMutexMapUpdate);
       mce.ReadBytes(pMsgData + 1, mMap);
-      MapperServerObserverMapChanged(mce);
+
+      // be careful - process map changes in the best order
+
+      stringstream ss1; ss1 << "mce.updatedMapPoints.size() == " << mce.updatedMapPoints.size();
+      Print(ss1);
+      for (MapPoint * mp : mce.updatedMapPoints)
+      {
+         MapPoint * pMP = mMap.GetMapPoint(mp->GetId());
+         if (pMP == NULL)
+         {
+            mMap.AddMapPoint(mp);
+         }
+         else
+         {
+            //pMP->Update(mp);
+         }
+      }
+
+      stringstream ss2; ss2 << "mce.updatedKeyFrames.size() == " << mce.updatedKeyFrames.size();
+      Print(ss2);
+      for (KeyFrame * kf : mce.updatedKeyFrames)
+      {
+         //stringstream ss; ss << "kf->GetId() == " << kf->GetId(); Print(ss);
+         KeyFrame * pKF = mMap.GetKeyFrame(kf->GetId());
+         if (pKF == NULL)
+         {
+            Print("pKF == NULL");
+            mMap.AddKeyFrame(kf);
+            mKeyFrameDB.add(kf);
+         }
+         else
+         {
+            //pKF->Update(kf);
+         }
+      }
+
+      stringstream ss3; ss3 << "mce.deletedKeyFrames.size() == " << mce.deletedKeyFrames.size();
+      Print(ss3);
+      for (unsigned long int id : mce.deletedKeyFrames)
+      {
+         KeyFrame * pKF = mMap.GetKeyFrame(id);
+         if (pKF)
+         {
+            mMap.EraseKeyFrame(id);
+            mKeyFrameDB.erase(pKF);
+         }
+      }
+
+      stringstream ss4; ss4 << "mce.deletedMapPoints.size() == " << mce.deletedMapPoints.size();
+      Print(ss4);
+      for (unsigned long int id : mce.deletedMapPoints)
+      {
+         mMap.EraseMapPoint(id);
+      }
+
+      NotifyMapChanged(mce);
+      Print("end ReceiveMapChange");
    }
 
    void MapperClient::ReceivePauseRequested(zmq::message_t & message)
@@ -583,75 +651,6 @@ namespace ORB_SLAM2
 
       Print("end InsertKeyFrameServer");
       return pRepData->inserted;
-   }
-
-   void MapperClient::MapperServerObserverMapReset()
-   {
-      // TODO - reset map
-      NotifyMapReset();
-   }
-
-   void MapperClient::MapperServerObserverMapChanged(MapChangeEvent & mce)
-   {
-      Print("begin MapperServerObserverMapChanged");
-      unique_lock<mutex> lock(mMutexMapUpdate);
-
-      // be careful - process map changes in the best order
-
-      stringstream ss1; ss1 << "mce.updatedMapPoints.size() == " << mce.updatedMapPoints.size();
-      Print(ss1);
-      for (MapPoint * mp : mce.updatedMapPoints)
-      {
-         MapPoint * pMP = mMap.GetMapPoint(mp->GetId());
-         if (pMP == NULL)
-         {
-            mMap.AddMapPoint(mp);
-         }
-         else
-         {
-            //pMP->Update(mp);
-         }
-      }
-
-      stringstream ss2; ss2 << "mce.updatedKeyFrames.size() == " << mce.updatedKeyFrames.size();
-      Print(ss2);
-      for (KeyFrame * kf : mce.updatedKeyFrames)
-      {
-         //stringstream ss; ss << "kf->GetId() == " << kf->GetId(); Print(ss);
-         KeyFrame * pKF = mMap.GetKeyFrame(kf->GetId());
-         if (pKF == NULL)
-         {
-            Print("pKF == NULL");
-            mMap.AddKeyFrame(kf);
-            mKeyFrameDB.add(kf);
-         }
-         else
-         {
-            //pKF->Update(kf);
-         }
-      }
-
-      stringstream ss3; ss3 << "mce.deletedKeyFrames.size() == " << mce.deletedKeyFrames.size();
-      Print(ss3);
-      for (unsigned long int id : mce.deletedKeyFrames)
-      {
-         KeyFrame * pKF = mMap.GetKeyFrame(id);
-         if (pKF)
-         {
-            mMap.EraseKeyFrame(id);
-            mKeyFrameDB.erase(pKF);
-         }
-      }
-
-      stringstream ss4; ss4 << "mce.deletedMapPoints.size() == " << mce.deletedMapPoints.size();
-      Print(ss4);
-      for (unsigned long int id : mce.deletedMapPoints)
-      {
-         mMap.EraseMapPoint(id);
-      }
-
-      NotifyMapChanged(mce);
-      Print("end MapperServerObserverMapChanged");
    }
 
 }

@@ -1474,13 +1474,9 @@ namespace ORB_SLAM2
             sleep(3000);
       }
 
-      {
-         unique_lock<mutex> lock(mMapper.GetMutexMapUpdate());
-         mMapper.Reset();
-      }
+      mMapper.Reset();
 
-
-      Frame::nNextId = 0;
+      //Frame::nNextId = 0;
 
       if (mpViewer)
          mpViewer->Resume();
@@ -1659,14 +1655,16 @@ namespace ORB_SLAM2
       Print(ss);
    }
 
-   void Tracking::MapperObserverReset()
+   void Tracking::HandleMapReset()
    {
+      Print("begin HandleMapReset");
+
       if (mpFrameDrawer)
          mpFrameDrawer->Reset();
       if (mpMapDrawer)
          mpMapDrawer->Reset();
 
-      Logout();
+      //Logout();
       Login();
 
       if (mpInitializer)
@@ -1680,7 +1678,9 @@ namespace ORB_SLAM2
       mlFrameTimes.clear();
       mlbLost.clear();
 
+      Frame::nNextId = 0;
       mState = NOT_INITIALIZED;
+      Print("end HandleMapReset");
    }
 
 } //namespace ORB_SLAM2
