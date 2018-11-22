@@ -87,6 +87,7 @@ namespace ORB_SLAM2
       virtual std::mutex & GetMutexMapUpdate();
 
    private:
+
       static const unsigned int MAX_TRACKERS = 2;
 
       static const unsigned int KEYFRAME_ID_SPAN = MAX_TRACKERS;

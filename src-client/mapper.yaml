@@ -7,6 +7,8 @@ Server.Address: "tcp://localhost:5000"
 Server.Timeout: 2000
 Server.Linger: -1
 Publisher.Address: "tcp://localhost:6000"
+Publisher.Timeout: 2000
+Publisher.Linger: -1
 
 #--------------------------------------------------------------------------------------------
 # Map Viewer Parameters

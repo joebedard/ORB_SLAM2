@@ -41,7 +41,6 @@ using namespace ORB_SLAM2;
 // logging variables
 SyncPrint gOutMain("main: ");
 SyncPrint gOutServ("server: ");
-SyncPrint gOutPub("publisher: ");
 
 // command line parameters
 char * gVocabFilename = NULL;
@@ -65,6 +64,7 @@ struct ServerParam
    zmq::socket_t * socket;
 };
 bool gShouldRun = true;
+std::mutex gMutexPub;
 zmq::socket_t * gSocketPub;
 MapperServer * gMapper = NULL;
 
@@ -174,6 +174,7 @@ zmq::message_t LoginTracker(zmq::message_t & request)
       pMsgData->messageId = MessageId::PIVOT_UPDATE;
       pMsgData->trackerId = pRepData->trackerId;
       Serializer::WriteMatrix(pMsgData + 1, pivotCalib);
+      unique_lock<mutex> lock(gMutexPub);
       gSocketPub->send(message);
    }
 
@@ -218,6 +219,7 @@ zmq::message_t UpdatePose(zmq::message_t & request)
       pMsgData->messageId = MessageId::POSE_UPDATE;
       pMsgData->trackerId = pReqData->trackerId;
       Serializer::WriteMatrix(pMsgData + 1, poseTcw);
+      unique_lock<mutex> lock(gMutexPub);
       gSocketPub->send(message);
    }
 
@@ -322,7 +324,7 @@ zmq::message_t GetMap(zmq::message_t & request)
 
    {
       // lock map and send it via pub-sub to the tracking client
-      unique_lock<mutex> lock(gMapper->GetMutexMapUpdate());
+      unique_lock<mutex> lock1(gMapper->GetMutexMapUpdate());
       std::set<id_type> noDeletes; // no deleted MapPoints or KeyFrames
       MapChangeEvent mce;
       mce.updatedKeyFrames = gMapper->GetMap().GetKeyFrameSet();
@@ -337,6 +339,7 @@ zmq::message_t GetMap(zmq::message_t & request)
       pMsgData->messageId = MessageId::MAP_CHANGE;
       void * pData = pMsgData + 1;
       pData = mce.WriteBytes(pData);
+      unique_lock<mutex> lock2(gMutexPub);
       gSocketPub->send(message);
    }
 
@@ -461,98 +464,110 @@ catch (...)
    serverParam->returnCode = EXIT_FAILURE;
 }
 
-class PrivateMapperObserver : public MapperObserver
+class PrivateMapperObserver : public MapperObserver, protected SyncPrint
 {
 public:
-   PrivateMapperObserver() {}
+   PrivateMapperObserver() : SyncPrint("MapperObserver: ") {}
 
    virtual void HandleMapReset() try
    {
+      Print("begin HandleMapReset");
       zmq::message_t message(sizeof(GeneralMessage));
       GeneralMessage * pMsgData = message.data<GeneralMessage>();
       pMsgData->subscribeId = -1; // all trackers
       pMsgData->messageId = MessageId::MAP_RESET;
+      unique_lock<mutex> lock(gMutexPub);
       gSocketPub->send(message);
+      Print("end HandleMapReset");
    }
    catch (zmq::error_t & e)
    {
-      gOutPub.Print(string("HandleMapReset error_t: ") + e.what());
+      Print(string("HandleMapReset error_t: ") + e.what());
    }
    catch (const std::exception & e)
    {
-      gOutPub.Print(string("HandleMapReset exception: ") + e.what());
+      Print(string("HandleMapReset exception: ") + e.what());
    }
    catch (...)
    {
-      gOutPub.Print("HandleMapReset: an exception was not caught");
+      Print("HandleMapReset: an exception was not caught");
    }
 
    virtual void HandleMapChanged(MapChangeEvent & mce) try
    {
+      Print("begin HandleMapChanged");
       zmq::message_t message(sizeof(GeneralMessage) + mce.GetBufferSize());
       GeneralMessage * pMsgData = message.data<GeneralMessage>();
       pMsgData->subscribeId = -1; // all trackers
       pMsgData->messageId = MessageId::MAP_CHANGE;
       mce.WriteBytes(pMsgData + 1);
+      unique_lock<mutex> lock(gMutexPub);
       gSocketPub->send(message);
+      Print("end HandleMapChanged");
    }
    catch (zmq::error_t & e)
    {
-      gOutPub.Print(string("HandleMapChanged error_t: ") + e.what());
+      Print(string("HandleMapChanged error_t: ") + e.what());
    }
    catch (const std::exception & e)
    {
-      gOutPub.Print(string("HandleMapChanged exception: ") + e.what());
+      Print(string("HandleMapChanged exception: ") + e.what());
    }
    catch (...)
    {
-      gOutPub.Print("HandleMapChanged: an exception was not caught");
+      Print("HandleMapChanged: an exception was not caught");
    }
 
    virtual void HandlePauseRequested(bool b) try
    {
+      Print("begin HandlePauseRequested");
       zmq::message_t message(sizeof(GeneralMessage) + sizeof(bool));
       GeneralMessage * pMsgData = message.data<GeneralMessage>();
       pMsgData->subscribeId = -1; // all trackers
       pMsgData->messageId = MessageId::PAUSE_REQUESTED;
       bool * pBool = (bool *)(pMsgData + 1);
       *pBool = b;
+      unique_lock<mutex> lock(gMutexPub);
       gSocketPub->send(message);
+      Print("end HandlePauseRequested");
    }
    catch (zmq::error_t & e)
    {
-      gOutPub.Print(string("HandlePauseRequested error_t: ") + e.what());
+      Print(string("HandlePauseRequested error_t: ") + e.what());
    }
    catch (const std::exception & e)
    {
-      gOutPub.Print(string("HandlePauseRequested exception: ") + e.what());
+      Print(string("HandlePauseRequested exception: ") + e.what());
    }
    catch (...)
    {
-      gOutPub.Print("HandlePauseRequested: an exception was not caught");
+      Print("HandlePauseRequested: an exception was not caught");
    }
 
    virtual void HandleAcceptKeyFrames(bool b) try
    {
+      Print("begin HandleAcceptKeyFrames");
       zmq::message_t message(sizeof(GeneralMessage) + sizeof(bool));
       GeneralMessage * pMsgData = message.data<GeneralMessage>();
       pMsgData->subscribeId = -1; // all trackers
       pMsgData->messageId = MessageId::ACCEPT_KEYFRAMES;
       bool * pBool = (bool *)(pMsgData + 1);
       *pBool = b;
+      unique_lock<mutex> lock(gMutexPub);
       gSocketPub->send(message);
+      Print("end HandleAcceptKeyFrames");
    }
    catch (zmq::error_t & e)
    {
-      gOutPub.Print(string("HandleAcceptKeyFrames error_t: ") + e.what());
+      Print(string("HandleAcceptKeyFrames error_t: ") + e.what());
    }
    catch (const std::exception & e)
    {
-      gOutPub.Print(string("HandleAcceptKeyFrames exception: ") + e.what());
+      Print(string("HandleAcceptKeyFrames exception: ") + e.what());
    }
    catch (...)
    {
-      gOutPub.Print("HandleAcceptKeyFrames: an exception was not caught");
+      Print("HandleAcceptKeyFrames: an exception was not caught");
    }
 };
 

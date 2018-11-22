@@ -88,6 +88,7 @@ namespace ORB_SLAM2
       , mbNotErase(false)
       , mbToBeErased(false)
       , mbBad(false)
+      , mTcp(cv::Mat::eye(4, 4, CV_32F))
 
       // public constants
       , mnGridCols(FRAME_GRID_COLS)
@@ -139,11 +140,15 @@ namespace ORB_SLAM2
       id_type * pData = (id_type *)(pQuantity + 1);
       for (int i = 0; i < *pQuantity; ++i)
       {
-         MapPoint * pMP = MapPoint::Find(*pData, map, newMapPoints);
-         if (pMP == NULL)
+         MapPoint * pMP = NULL;
+         if (*pData != (id_type)-1)
          {
-            pMP = new MapPoint(*pData);
-            newMapPoints[*pData] = pMP;
+            pMP = MapPoint::Find(*pData, map, newMapPoints);
+            if (pMP == NULL)
+            {
+               pMP = new MapPoint(*pData);
+               newMapPoints[*pData] = pMP;
+            }
          }
          mpv.at(i) = pMP;
          ++pData;
@@ -158,7 +163,11 @@ namespace ORB_SLAM2
       id_type * pData = (id_type *)(pQuantity + 1);
       for (MapPoint * pMP : mpv)
       {
-         *pData = pMP->GetId();
+         SyncPrint::Print("KeyFrame: ", pMP ? "pMP != NULL" : "pMP == NULL");
+         if (pMP)
+            *pData = pMP->GetId();
+         else
+            *pData = (id_type)-1;
          ++pData;
       }
       return pData;
@@ -1058,11 +1067,16 @@ namespace ORB_SLAM2
       mfScaleFactor = pHeader->mfScaleFactor;
       mfLogScaleFactor = pHeader->mfLogScaleFactor;
       mbFirstConnection = pHeader->mbFirstConnection;
-      mpParent = map.GetKeyFrame(pHeader->parentKeyFrameId);
-      if (mpParent == NULL)
+      if (pHeader->parentKeyFrameId == (id_type)-1)
+         mpParent = NULL;
+      else
       {
-         mpParent = new KeyFrame(pHeader->parentKeyFrameId);
-         newKeyFrames[pHeader->parentKeyFrameId] = mpParent;
+         mpParent = map.GetKeyFrame(pHeader->parentKeyFrameId);
+         if (mpParent == NULL)
+         {
+            mpParent = new KeyFrame(pHeader->parentKeyFrameId);
+            newKeyFrames[pHeader->parentKeyFrameId] = mpParent;
+         }
       }
       mbBad = pHeader->mbBad;
 
@@ -1103,7 +1117,10 @@ namespace ORB_SLAM2
       pHeader->mfScaleFactor = mfScaleFactor;
       pHeader->mfLogScaleFactor = mfLogScaleFactor;
       pHeader->mbFirstConnection = mbFirstConnection;
-      pHeader->parentKeyFrameId = mpParent->GetId();
+      if (mpParent)
+         pHeader->parentKeyFrameId = mpParent->GetId();
+      else
+         pHeader->parentKeyFrameId = (id_type)-1;
       pHeader->mbBad = mbBad;
 
       // write variable-length data

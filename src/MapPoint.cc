@@ -32,7 +32,8 @@ namespace ORB_SLAM2
    mutex MapPoint::mGlobalMutex;
 
    MapPoint::MapPoint(id_type id)
-      : mnId(id)
+      : SyncPrint("MapPoint: ")
+      , mnId(id)
       , mnFirstKFid(-1)
       , nObs(0)
       , mnTrackReferenceForFrame(0)
@@ -54,7 +55,8 @@ namespace ORB_SLAM2
    }
 
    MapPoint::MapPoint(id_type id, const cv::Mat & worldPos, KeyFrame *pRefKF) 
-      : mnId(id)
+      : SyncPrint("MapPoint: ")
+      , mnId(id)
       , mnFirstKFid(pRefKF->GetId())
       , nObs(0)
       , mnTrackReferenceForFrame(0)
@@ -472,6 +474,7 @@ namespace ORB_SLAM2
       std::unordered_map<id_type, MapPoint *> & newMapPoints, 
       std::vector<MapPoint *> & mpv)
    {
+      SyncPrint::Print("MapPoint: ", "begin ReadVector");
       size_t quantityMPs;
       void * pData = Serializer::ReadValue<size_t>(buffer, quantityMPs);
       mpv.resize(quantityMPs);
@@ -488,9 +491,10 @@ namespace ORB_SLAM2
                newMapPoints[id] = pMP;
             }
          }
-         pData = pMP->ReadBytes(pData, map, newKeyFrames);
+         pData = pMP->ReadBytes(pData, map, newKeyFrames, newMapPoints);
          mpv[i] = pMP;
       }
+      SyncPrint::Print("MapPoint: ", "end ReadVector");
       return pData;
    }
 
@@ -537,7 +541,7 @@ namespace ORB_SLAM2
                newMapPoints[id] = pMP;
             }
          }
-         pData = pMP->ReadBytes(pData, map, newKeyFrames);
+         pData = pMP->ReadBytes(pData, map, newKeyFrames, newMapPoints);
          mps.insert(pMP);
       }
       return pData;
@@ -568,7 +572,8 @@ namespace ORB_SLAM2
    void * MapPoint::ReadBytes(
       void * const buffer, 
       const Map & map, 
-      std::unordered_map<id_type, KeyFrame *> & newKeyFrames)
+      std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
+      std::unordered_map<id_type, MapPoint *> & newMapPoints)
    {
       MapPoint::Header * pHeader = (MapPoint::Header *)buffer;
       if (mnId != pHeader->mnId)
@@ -590,7 +595,17 @@ namespace ORB_SLAM2
       mnVisible = pHeader->mnVisible;
       mnFound = pHeader->mnFound;
       mbBad = pHeader->mbBad;
-      mpReplaced = map.GetMapPoint(pHeader->mpReplacedId);
+      if (pHeader->mpReplacedId == (id_type)-1)
+         mpReplaced = NULL;
+      else
+      {
+         mpReplaced = MapPoint::Find(pHeader->mpReplacedId, map, newMapPoints);
+         if (mpReplaced == NULL)
+         {
+            mpReplaced = new MapPoint(pHeader->mpReplacedId);
+            newMapPoints[pHeader->mpReplacedId] = mpReplaced;
+         }
+      }
       mfMinDistance = pHeader->mfMinDistance;
       mfMaxDistance = pHeader->mfMaxDistance;
 
@@ -613,7 +628,10 @@ namespace ORB_SLAM2
       pHeader->mnVisible = mnVisible;
       pHeader->mnFound = mnFound;
       pHeader->mbBad = mbBad;
-      pHeader->mpReplacedId = mpReplaced->GetId();
+      if (mpReplaced)
+         pHeader->mpReplacedId = mpReplaced->GetId();
+      else
+         pHeader->mpReplacedId = (id_type)-1;
       pHeader->mfMinDistance = mfMinDistance;
       pHeader->mfMaxDistance = mfMaxDistance;
 

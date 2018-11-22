@@ -38,7 +38,7 @@ namespace ORB_SLAM2
    class Map;
    class Frame;
 
-   class MapPoint
+   class MapPoint : protected SyncPrint
    {
    public:
 
@@ -119,7 +119,11 @@ namespace ORB_SLAM2
 
       size_t GetBufferSize();
 
-      void * ReadBytes(void * const buffer, const Map & map, std::unordered_map<id_type, KeyFrame *> & newKeyFrames);
+      void * ReadBytes(
+         void * const buffer, 
+         const Map & map, 
+         std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
+         std::unordered_map<id_type, MapPoint *> & newMapPoints);
 
       void * WriteBytes(void * const buffer);
 

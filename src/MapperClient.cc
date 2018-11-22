@@ -57,13 +57,19 @@ namespace ORB_SLAM2
          throw std::exception("Publisher.Address property is not set or value is not in quotes.");
       Print(string("mPublisherAddress=") + mPublisherAddress);
 
-      int timeout = settings["Server.Timeout"];
-      mSocketReq.setsockopt(ZMQ_RCVTIMEO, &timeout, sizeof(timeout));
+      int timeoutServer = settings["Server.Timeout"];
+      mSocketReq.setsockopt(ZMQ_RCVTIMEO, &timeoutServer, sizeof(timeoutServer));
 
-      int linger = settings["Server.Linger"];
-      mSocketReq.setsockopt(ZMQ_LINGER, &linger, sizeof(linger));
+      int lingerServer = settings["Server.Linger"];
+      mSocketReq.setsockopt(ZMQ_LINGER, &lingerServer, sizeof(lingerServer));
 
       mSocketReq.connect(mServerAddress);
+
+      int timeoutPub = settings["Publisher.Timeout"];
+      mSocketReq.setsockopt(ZMQ_RCVTIMEO, &timeoutPub, sizeof(timeoutPub));
+
+      int lingerPub = settings["Publisher.Linger"];
+      mSocketReq.setsockopt(ZMQ_LINGER, &lingerPub, sizeof(lingerPub));
 
       mSocketSub.connect(mPublisherAddress);
       mSocketSub.setsockopt<unsigned int>(ZMQ_SUBSCRIBE, -1); // -1 is for broadcast messages
@@ -223,8 +229,10 @@ namespace ORB_SLAM2
          mSocketSub.setsockopt<unsigned int>(ZMQ_SUBSCRIBE, trackerId);
       }
 
-      GetMapFromServer(trackerId);
-      mInitialized = true;
+      if (trackerId != 0)
+      {
+         GetMapFromServer(trackerId);
+      }
 
       Print("end LoginTracker");
    }
@@ -367,6 +375,7 @@ namespace ORB_SLAM2
          mMap.EraseMapPoint(id);
       }
 
+      mInitialized = true;
       NotifyMapChanged(mce);
       Print("end ReceiveMapChange");
    }
@@ -612,6 +621,7 @@ namespace ORB_SLAM2
       sizeMsg += pKF->GetBufferSize();
       sizeMsg += MapPoint::GetVectorBufferSize(mapPoints);
 
+      Print("create InitializeStereoServer");
       zmq::message_t request(sizeMsg);
       GeneralRequest * pReqData = request.data<GeneralRequest>();
       pReqData->serviceId = ServiceId::INITIALIZE_STEREO;
@@ -620,7 +630,7 @@ namespace ORB_SLAM2
       pData = pKF->WriteBytes(pData);
       pData = MapPoint::WriteVector(pData, mapPoints);
 
-      Print("sending InitializeStereoRequest");
+      Print("sending InitializeStereoServer");
       zmq::message_t reply = RequestReply(request);
       // map changes are received via the subscriber
 
