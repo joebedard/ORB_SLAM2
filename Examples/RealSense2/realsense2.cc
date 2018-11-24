@@ -160,6 +160,9 @@ int main(int argc, char * argv[]) try
    cout << "median tracking time: " << vTimesTrack[vTimesTrack.size() / 2] << endl;
    cout << "mean tracking time: " << totaltime / vTimesTrack.size() << endl;
 
+   // Save camera trajectory
+   SLAM.SaveTrajectoryKITTI("CameraTrajectory.txt");
+
    return EXIT_SUCCESS;
 }
 catch (const rs2::error & e)
