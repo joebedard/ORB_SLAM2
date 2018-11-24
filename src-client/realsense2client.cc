@@ -216,7 +216,7 @@ int main(int paramc, char * paramv[]) try
 
    //Load ORB Vocabulary
    SyncPrint::Print(NULL, "Loading ORB Vocabulary. This could take a while...");
-   bool bVocLoad = vocab.loadFromTextFile(gVocabFilename);
+   bool bVocLoad = vocab.loadFromFile(gVocabFilename);
    if (!bVocLoad)
    {
       SyncPrint::Print("Failed to open vocabulary file at: ", gVocabFilename);

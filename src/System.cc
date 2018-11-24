@@ -72,7 +72,7 @@ namespace ORB_SLAM2
       //Load ORB Vocabulary
       mpVocabulary = new ORBVocabulary();
       Print("Loading ORB Vocabulary. This could take a while...");
-      bool bVocLoad = mpVocabulary->loadFromTextFile(vocabFilename);
+      bool bVocLoad = mpVocabulary->loadFromFile(vocabFilename);
       if (!bVocLoad)
       {
          string m("Wrong path to vocabulary. Failed to open at: ");

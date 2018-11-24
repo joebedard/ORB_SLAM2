@@ -206,3 +206,10 @@ target_link_libraries(realsense2client ${PROJECT_NAME} ${RealSense2_LIBS})
 add_executable(ORB_SLAM2_server
 src-server/server.cc)
 target_link_libraries(ORB_SLAM2_server ${PROJECT_NAME})
+
+
+# build tools
+
+add_executable(bin_vocabulary
+tools/bin_vocabulary.cc)
+target_link_libraries(bin_vocabulary ${PROJECT_NAME})

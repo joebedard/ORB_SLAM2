@@ -38,9 +38,18 @@ namespace ORB_SLAM2
 
       bool GetIsLoaded() const { return isLoaded;}
 
-      bool loadFromTextFile(const std::string & filename)
+      bool hasSuffix(const std::string &str, const std::string &suffix) {
+         std::size_t index = str.find(suffix, str.size() - suffix.size());
+         return (index != std::string::npos);
+      }
+
+      bool loadFromFile(const std::string & filename)
       {
-         isLoaded = DBoW2::TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB>::loadFromTextFile(filename);
+         if (hasSuffix(filename, ".txt"))
+            isLoaded = loadFromTextFile(filename);
+         else
+            isLoaded = loadFromBinaryFile(filename);
+
          return isLoaded;
       }
 
