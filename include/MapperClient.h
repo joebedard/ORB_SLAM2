@@ -105,15 +105,17 @@ namespace ORB_SLAM2
 
       cv::Mat mPoseTcw[MAX_TRACKERS];
 
+      ORBVocabulary & mVocab;
+
       std::mutex mMutexTrackerStatus;
 
       std::mutex mMutexMapUpdate;
 
       std::mutex mMutexSocketSub;
 
-      mutex mMutexPause;
+      std::mutex mMutexPause;
 
-      mutex mMutexAccept;
+      std::mutex mMutexAccept;
 
       bool mbMonocular;
 

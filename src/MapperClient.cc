@@ -30,6 +30,7 @@ namespace ORB_SLAM2
 
    MapperClient::MapperClient(cv::FileStorage & settings, ORBVocabulary & vocab, const bool bMonocular) 
       : SyncPrint("MapperClient: ")
+      , mVocab(vocab)
       , mKeyFrameDB(vocab)
       , mbMonocular(bMonocular)
       , mInitialized(false)
@@ -38,7 +39,7 @@ namespace ORB_SLAM2
       , mContext(2)
       , mSocketReq(mContext, ZMQ_REQ)
       , mSocketSub(mContext, ZMQ_SUB)
-      , mShouldRun(false)
+      , mShouldRun(true)
       , mMessageProc{
          &MapperClient::ReceiveMapReset, 
          &MapperClient::ReceiveMapChange, 
@@ -47,6 +48,13 @@ namespace ORB_SLAM2
          &MapperClient::ReceivePivotUpdate,
          &MapperClient::ReceivePoseUpdate}
    {
+      // ResetTrackerStatus
+      for (int i = 0; i < MAX_TRACKERS; ++i)
+      {
+         mPivotCalib[i] = cv::Mat::eye(4, 4, CV_32F);
+         mPoseTcw[i] = cv::Mat::eye(4, 4, CV_32F);
+      }
+
       mServerAddress.append(settings["Server.Address"]);
       if (0 == mServerAddress.length())
          throw std::exception("Server.Address property is not set or value is not in quotes.");
@@ -141,6 +149,9 @@ namespace ORB_SLAM2
       if (trackerId != 0)
          throw exception("Only the first Tracker (id=0) may initialize the map.");
 
+      pKF1->ComputeBoW(mVocab);
+      pKF2->ComputeBoW(mVocab);
+
       // stereo and RGBD modes will create MapPoints
       for (auto it : mapPoints)
       {
@@ -169,6 +180,8 @@ namespace ORB_SLAM2
       if (trackerId != 0)
          throw exception("Only the first Tracker (id=0) may initialize the map.");
 
+      pKF->ComputeBoW(mVocab);
+
       // stereo and RGBD modes will create MapPoints
       for (auto it : mapPoints)
       {
@@ -193,6 +206,7 @@ namespace ORB_SLAM2
       // client: serialize KF and MPs and then send to server
       if (InsertKeyFrameServer(trackerId, mapPoints, pKF))
       {
+         pKF->ComputeBoW(mVocab);
          // add points and keyframes to allow for map synchronization with the server
          // which will happen after the Tracking client unlocks mMutexMapUpdate
          for (MapPoint * pMP : mapPoints)
@@ -295,6 +309,7 @@ namespace ORB_SLAM2
 
    void MapperClient::ReceiveMapReset(zmq::message_t & message)
    {
+      Print("begin ReceiveMapReset");
       unique_lock<mutex> lock(mMutexMapUpdate);
       NotifyMapReset();
 
@@ -310,6 +325,7 @@ namespace ORB_SLAM2
 
       mInitialized = false;
       Print("Reset Complete");
+      Print("end ReceiveMapReset");
    }
 
    void MapperClient::ReceiveMapChange(zmq::message_t & message)
@@ -382,38 +398,48 @@ namespace ORB_SLAM2
 
    void MapperClient::ReceivePauseRequested(zmq::message_t & message)
    {
+      Print("begin ReceivePauseRequested");
       GeneralMessage * pMsgData = message.data<GeneralMessage>();
       unique_lock<mutex> lock(mMutexPause);
       mPauseRequested = *(bool *)(pMsgData + 1);
+      Print("end ReceivePauseRequested");
    }
 
    void MapperClient::ReceiveAcceptKeyFrames(zmq::message_t & message)
    {
+      Print("begin ReceiveAcceptKeyFrames");
       GeneralMessage * pMsgData = message.data<GeneralMessage>();
       unique_lock<mutex> lock(mMutexAccept);
       mAcceptKeyFrames = *(bool *)(pMsgData + 1);
+      Print("end ReceiveAcceptKeyFrames");
    }
 
    void MapperClient::ReceivePivotUpdate(zmq::message_t & message)
    {
+      Print("begin ReceivePivotUpdate");
       UpdateTrackerMessage * pMsgData = message.data<UpdateTrackerMessage>();
       unique_lock<mutex> lock(mMutexTrackerStatus);
       cv::Mat pivotCalib;
       void * pData = Serializer::ReadMatrix(pMsgData + 1, pivotCalib);
       mPivotCalib[pMsgData->trackerId] = pivotCalib.clone();
+      Print("end ReceivePivotUpdate");
    }
 
    void MapperClient::ReceivePoseUpdate(zmq::message_t & message)
    {
+      Print("begin ReceivePoseUpdate");
       UpdateTrackerMessage * pMsgData = message.data<UpdateTrackerMessage>();
       unique_lock<mutex> lock(mMutexTrackerStatus);
       cv::Mat poseTcw;
       void * pData = Serializer::ReadMatrix(pMsgData + 1, poseTcw);
+      stringstream ss; ss << poseTcw; Print(ss);
       mPoseTcw[pMsgData->trackerId] = poseTcw.clone();
+      Print("end ReceivePoseUpdate");
    }
 
    void MapperClient::RunSubscriber() try
    {
+      Print("begin RunSubscriber");
       zmq::message_t message;
       while (mShouldRun)
       {
@@ -451,6 +477,7 @@ namespace ORB_SLAM2
             sleep(1000);
          }
       }
+      Print("end RunSubscriber");
    }
    catch (zmq::error_t & e)
    {

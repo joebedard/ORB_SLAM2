@@ -137,6 +137,8 @@ namespace ORB_SLAM2
 
       ValidateTracker(trackerId);
 
+      pKF1->ComputeBoW(mVocab);
+      pKF2->ComputeBoW(mVocab);
       for (MapPoint * pMP : mapPoints)
       {
          mMap.AddMapPoint(pMP);
@@ -177,6 +179,7 @@ namespace ORB_SLAM2
 
       ValidateTracker(trackerId);
 
+      pKF->ComputeBoW(mVocab);
       for (MapPoint * pMP : mapPoints)
       {
          mMap.AddMapPoint(pMP);
@@ -207,6 +210,7 @@ namespace ORB_SLAM2
 
       if (mLocalMapper.InsertKeyFrame(pKF))
       {
+         pKF->ComputeBoW(mVocab);
          for (auto pMP : mapPoints)
          {
             mMap.AddMapPoint(pMP);
@@ -311,7 +315,7 @@ namespace ORB_SLAM2
 
    vector<cv::Mat> MapperServer::GetTrackerPoses()
    {
-      Print("begin GetTrackerPoses");
+      //Print("begin GetTrackerPoses");
       unique_lock<mutex> lock(mMutexTrackerStatus);
 
       vector<cv::Mat> poses;
@@ -320,7 +324,7 @@ namespace ORB_SLAM2
          poses.push_back(mPoseTcw[i].clone());
       }
 
-      Print("end GetTrackerPoses");
+      //Print("end GetTrackerPoses");
       return poses;
    }
 
