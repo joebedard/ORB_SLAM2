@@ -187,6 +187,8 @@ namespace ORB_SLAM2
          //this causes freeze at shutdown. not sure why it was here.
          //pangolin::BindToContext("ORB-SLAM2-TEAM: Map Viewer");
       }
+
+      Print(to_string(mpTracker->quantityRelocalizations) + " relocalizations");
    }
 
    void System::SaveTrajectoryTUM(const string &filename)

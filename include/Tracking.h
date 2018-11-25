@@ -77,6 +77,8 @@ namespace ORB_SLAM2
       // This resumes local mapping thread and performs SLAM again.
       void DeactivateLocalizationMode();
 
+      // Reset the map
+      void RequestReset();
 
    public:
 
@@ -108,8 +110,8 @@ namespace ORB_SLAM2
       // in both cases, the map could still be updated by loop closure or bundle adjust
       bool mbOnlyTracking;
 
-      // Reset the map
-      void RequestReset();
+      // quantity of successful relocalizations (after a tracking failure)
+      unsigned int & quantityRelocalizations;
 
    protected:
 
@@ -214,6 +216,8 @@ namespace ORB_SLAM2
       FrameCalibration mFC;
 
       cv::Mat pivotCal;
+
+      unsigned int mQuantityRelocalizations;
 
       void LoadCameraParameters(cv::FileStorage & settings, SensorType sensor);
 

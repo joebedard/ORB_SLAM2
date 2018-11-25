@@ -31,7 +31,7 @@ namespace ORB_SLAM2
 
    using namespace std;
 
-//#define ENABLE_SYNCPRINT
+#define ENABLE_SYNCPRINT
 
 #ifdef ENABLE_SYNCPRINT
 

@@ -69,7 +69,8 @@ namespace ORB_SLAM2
       mNextMapPointId(0),
       mMapPointIdSpan(0),
       mMapperObserver(this),
-      pivotCal(4, 4, CV_32F)
+      pivotCal(4, 4, CV_32F),
+      quantityRelocalizations(mQuantityRelocalizations)
    {
       LoadCameraParameters(fSettings, sensor);
       Login();
@@ -452,6 +453,8 @@ namespace ORB_SLAM2
          else
          {
             bOK = Relocalization();
+            if (bOK)
+               ++mQuantityRelocalizations;
          }
 
          mCurrentFrame.mpReferenceKF = mpReferenceKF;

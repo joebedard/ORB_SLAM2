@@ -125,13 +125,14 @@ namespace ORB_SLAM2
          else if (Pause())
          {
             // Safe area to stop
-            Print("while(IsPaused() && !CheckFinish())");
+            Print("PAUSE");
             while (IsPaused() && !CheckFinish())
             {
                sleep(3000);
             }
             if (CheckFinish())
                break;
+            Print("CONTINUE");
          }
 
          //Print("ResetIfRequested();");
@@ -201,7 +202,7 @@ namespace ORB_SLAM2
 
       // TODO OK - move this to MapperServer::InsertKeyFrame ?
       // Compute Bags of Words structures
-      mpCurrentKeyFrame->ComputeBoW(mVocab);
+      //mpCurrentKeyFrame->ComputeBoW(mVocab);
 
       // Associate MapPoints to the new keyframe and update normal and descriptor
       const vector<MapPoint *> vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
@@ -677,7 +678,7 @@ namespace ORB_SLAM2
       if (mbPauseRequested && !mbNotPause)
       {
          mbPaused = true;
-         Print("PAUSE");
+         //Print("PAUSE");
          return true;
       }
 
