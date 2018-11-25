@@ -2,20 +2,31 @@
 
 #--------------------------------------------------------------------------------------------
 # Camera Parameters. Adjust them!
+# Camera.bf is baseline times fx (aprox.)
 #--------------------------------------------------------------------------------------------
 
-# Camera calibration and distortion parameters (OpenCV) 
-Camera.fx: 390.556549072266
-Camera.fy: 390.556549072266
-Camera.cx: 325.600799560547
-Camera.cy: 238.439743041992
+#Camera.serial: "733512070734"
+#Camera.fx: 390.556549072266
+#Camera.fy: 390.556549072266
+#Camera.cx: 325.600799560547
+#Camera.cy: 238.439743041992
+#Camera.k1: 0.0
+#Camera.k2: 0.0
+#Camera.p1: 0.0
+#Camera.p2: 0.0
+#Camera.bf: 19.455270060186
 
+Camera.serial: "727212070491"
+Camera.fx: 383.242828369141
+Camera.fy: 383.242828369141
+Camera.cx: 319.657806396484
+Camera.cy: 243.611282348633
 Camera.k1: 0.0
 Camera.k2: 0.0
 Camera.p1: 0.0
 Camera.p2: 0.0
+Camera.bf: 19.120788640248
 
-Camera.serial: "733512070734"
 Camera.width: 640
 Camera.height: 480
 

@@ -178,7 +178,9 @@ namespace ORB_SLAM2
    {
       if (mpViewer)
       {
-         mpViewer->RequestFinish();
+         //uncomment to force the viewer to close
+         //mpViewer->RequestFinish();
+
          while (!mpViewer->isFinished())
             sleep(5000);
 

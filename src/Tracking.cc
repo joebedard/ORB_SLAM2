@@ -1229,13 +1229,11 @@ namespace ORB_SLAM2
 
 
       // Include also some not-already-included keyframes that are neighbors to already-included keyframes
-      for (vector<KeyFrame *>::const_iterator itKF = mvpLocalKeyFrames.begin(), itEndKF = mvpLocalKeyFrames.end(); itKF != itEndKF; itKF++)
+      for (KeyFrame * pKF : mvpLocalKeyFrames)
       {
          // Limit the number of keyframes
          if (mvpLocalKeyFrames.size() > 80)
             break;
-
-         KeyFrame * pKF = *itKF;
 
          const vector<KeyFrame *> vNeighs = pKF->GetBestCovisibilityKeyFrames(10);
 
@@ -1594,16 +1592,19 @@ namespace ORB_SLAM2
       else
       {
          // delete MapPoints and KeyFrame
-         for (size_t j = 0; j < vDepthIdx.size();j++)
+         for (size_t j = 0; j < vDepthIdx.size(); j++)
          {
             int i = vDepthIdx[j].second;
             MapPoint * pMP = pKF->GetMapPoint(i);
-            if (!pMP)
+            if (pMP)
             {
                pMP->EraseObservation(pKF, &mMapper.GetMap());
                pKF->EraseMapPointMatch(i);
                if (pMP->Observations() < 1)
+               {
+                  Print(to_string(pMP->GetId()) + " MapPoint deleted");
                   delete pMP;
+               }
             }
             if (vDepthIdx[j].first > currentFrame.mFC->thDepth && j > 99)
                break;

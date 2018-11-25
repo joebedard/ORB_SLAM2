@@ -32,7 +32,7 @@ namespace ORB_SLAM2
 {
 
    FrameDrawer::FrameDrawer(cv::FileStorage & fSettings)
-      : SyncPrint("FrameDrawer: ")
+      : SyncPrint("FrameDrawer: ", false)
       , mnKFs(0)
       , mnMPs(0)
       , N(0)

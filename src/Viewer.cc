@@ -208,6 +208,7 @@ namespace ORB_SLAM2
             }
          }
 
+         Print("begin drawing maps and frames");
          for (int i = 0; i < mvMapDrawers.size(); ++i)
          {
             if (menuFollowCamera)
@@ -265,6 +266,7 @@ namespace ORB_SLAM2
                cv::imshow(vTrackerWindowNames[i], im);
             }
          }
+         Print("end drawing maps and frames");
 
          pangolin::FinishFrame();
          //CheckGlDieOnError();

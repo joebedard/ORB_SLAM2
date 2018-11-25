@@ -263,21 +263,21 @@ namespace ORB_SLAM2
             // TODO OK - add to deleted points
             mapChanges.deletedMapPoints.insert(pMP->GetId());
             lit = mlpRecentAddedMapPoints.erase(lit);
-            Print(to_string(pMP->GetId()) + "=MapPointId erased 1");
+            //Print(to_string(pMP->GetId()) + "=MapPointId erased 1");
          }
          else if (pMP->GetFoundRatio() < 0.25f)
          {
             pMP->SetBadFlag(&mMap); // TODO OK - add to deleted points
             mapChanges.deletedMapPoints.insert(pMP->GetId());
             lit = mlpRecentAddedMapPoints.erase(lit);
-            Print(to_string(pMP->GetId()) + "=MapPointId erased 2");
+            //Print(to_string(pMP->GetId()) + "=MapPointId erased 2");
          }
          else if (((int)nCurrentKFid - (int)pMP->mnFirstKFid) >= 2 && pMP->Observations() <= cnThObs)
          {
             pMP->SetBadFlag(&mMap); // TODO OK - add to deleted points
             mapChanges.deletedMapPoints.insert(pMP->GetId());
             lit = mlpRecentAddedMapPoints.erase(lit);
-            Print(to_string(pMP->GetId()) + "=MapPointId erased 3");
+            //Print(to_string(pMP->GetId()) + "=MapPointId erased 3");
          }
          else if (((int)nCurrentKFid - (int)pMP->mnFirstKFid) >= 3)
          {
@@ -285,7 +285,7 @@ namespace ORB_SLAM2
             // this point was created by the current keyframe (stereo)
             // add it to deleted points so that the tracker (that created it) will delete it
             mapChanges.deletedMapPoints.insert((*lit)->GetId());
-            Print(to_string((*lit)->GetId()) + "=MapPointId erased 4");
+            //Print(to_string((*lit)->GetId()) + "=MapPointId erased 4");
             lit = mlpRecentAddedMapPoints.erase(lit);
          }
          else
@@ -528,9 +528,7 @@ namespace ORB_SLAM2
 
             // Triangulation is succesfull
             MapPoint * pMP = new MapPoint(NewMapPointId(), x3D, mpCurrentKeyFrame);
-            stringstream ss;
-            ss << pMP->GetId() << "=MapPointId " << x3D;
-            Print(ss);
+            //stringstream ss; ss << pMP->GetId() << "=MapPointId " << x3D; Print(ss);
 
             pMP->AddObservation(mpCurrentKeyFrame, idx1);
             pMP->AddObservation(pKF2, idx2);

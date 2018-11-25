@@ -32,7 +32,7 @@ namespace ORB_SLAM2
       : SyncPrint("KeyFrame: ")
       , mnId(id)
 
-      // public constants
+      // public references
       , mnGridCols(FRAME_GRID_COLS)
       , mnGridRows(FRAME_GRID_ROWS)
       , timestamp(mTimestamp)
@@ -457,38 +457,35 @@ namespace ORB_SLAM2
    void KeyFrame::AddMapPoint(MapPoint *pMP, const size_t &idx)
    {
       unique_lock<mutex> lock(mMutexFeatures);
-      mvpMapPoints[idx] = pMP;
+      mvpMapPoints.at(idx) = pMP;
    }
 
    void KeyFrame::EraseMapPointMatch(const size_t &idx)
    {
       unique_lock<mutex> lock(mMutexFeatures);
-      mvpMapPoints[idx] = static_cast<MapPoint *>(NULL);
+      mvpMapPoints.at(idx) = static_cast<MapPoint *>(NULL);
    }
 
    void KeyFrame::EraseMapPointMatch(MapPoint * pMP)
    {
       int idx = pMP->GetIndexInKeyFrame(this);
       if (idx >= 0)
-         mvpMapPoints[idx] = static_cast<MapPoint *>(NULL);
+         mvpMapPoints.at(idx) = static_cast<MapPoint *>(NULL);
    }
 
 
    void KeyFrame::ReplaceMapPointMatch(const size_t &idx, MapPoint * pMP)
    {
-      mvpMapPoints[idx] = pMP;
+      mvpMapPoints.at(idx) = pMP;
    }
 
    set<MapPoint *> KeyFrame::GetMapPoints()
    {
       unique_lock<mutex> lock(mMutexFeatures);
       set<MapPoint *> s;
-      for (size_t i = 0, iend = mvpMapPoints.size(); i < iend; i++)
+      for (MapPoint * pMP : mvpMapPoints)
       {
-         if (!mvpMapPoints[i])
-            continue;
-         MapPoint * pMP = mvpMapPoints[i];
-         if (!pMP->isBad())
+         if (pMP && !pMP->isBad())
             s.insert(pMP);
       }
       return s;
@@ -502,14 +499,14 @@ namespace ORB_SLAM2
       const bool bCheckObs = minObs > 0;
       for (int i = 0; i < N; i++)
       {
-         MapPoint * pMP = mvpMapPoints[i];
+         MapPoint * pMP = mvpMapPoints.at(i);
          if (pMP)
          {
             if (!pMP->isBad())
             {
                if (bCheckObs)
                {
-                  if (mvpMapPoints[i]->Observations() >= minObs)
+                  if (mvpMapPoints.at(i)->Observations() >= minObs)
                      nPoints++;
                }
                else
@@ -530,7 +527,11 @@ namespace ORB_SLAM2
    MapPoint * KeyFrame::GetMapPoint(const size_t &idx)
    {
       unique_lock<mutex> lock(mMutexFeatures);
-      return mvpMapPoints[idx];
+      return mvpMapPoints.at(idx);
+      //if (idx >= mvpMapPoints.size())
+      //   return static_cast<MapPoint *>(NULL);
+      //else
+      //   return mvpMapPoints[idx];
    }
 
    void KeyFrame::UpdateConnections()
@@ -722,10 +723,10 @@ namespace ORB_SLAM2
       for (map<KeyFrame *, int>::iterator mit = mConnectedKeyFrameWeights.begin(), mend = mConnectedKeyFrameWeights.end(); mit != mend; mit++)
          mit->first->EraseConnection(this);
 
-      for (size_t i = 0; i < mvpMapPoints.size(); i++)
+      for (MapPoint * pMP : mvpMapPoints)
       {
-         if (mvpMapPoints[i])
-            mvpMapPoints[i]->EraseObservation(this, pMap);
+         if (pMP)
+            pMP->EraseObservation(this, pMap);
       }
 
       {
@@ -908,9 +909,9 @@ namespace ORB_SLAM2
       float zcw = Tcw_.at<float>(2, 3);
       for (int i = 0; i < N; i++)
       {
-         if (mvpMapPoints[i])
+         if (mvpMapPoints.at(i))
          {
-            MapPoint * pMP = mvpMapPoints[i];
+            MapPoint * pMP = mvpMapPoints.at(i);
             cv::Mat x3Dw = pMP->GetWorldPos();
             float z = Rcw2.dot(x3Dw) + zcw;
             vDepths.push_back(z);
