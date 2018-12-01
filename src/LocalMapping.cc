@@ -146,14 +146,24 @@ namespace ORB_SLAM2
       }
 
       SetFinish();
+      Print("end Run");
    }
-   catch (const exception& e)
+   catch(cv::Exception & e) {
+      string msg = string("Run: cv:Exception: ") + e.what();
+      cerr << "LocalMapping: " << msg << endl;
+      Print(msg);
+   }
+   catch (const exception & e)
    {
-      std::cerr << std::endl << e.what() << std::endl;
+      string msg = string("Run: exception: ") + e.what();
+      cerr << "LocalMapping: " << msg << endl;
+      Print(msg);
    }
    catch (...)
    {
-      std::cerr << std::endl << "An exception was not caught in the LocalMapping thread." << std::endl;
+      string msg = string("Run: an exception was not caught");
+      cerr << "LocalMapping: " << msg << endl;
+      Print(msg);
    }
 
    bool LocalMapping::InsertKeyFrame(KeyFrame * pKF)

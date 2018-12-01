@@ -97,16 +97,25 @@ namespace ORB_SLAM2
          sleep(5000);
       }
 
-      Print("SetFinish();");
       SetFinish();
+      Print("end Run");
    }
-   catch (const exception& e)
+   catch(cv::Exception & e) {
+      string msg = string("Run: cv:Exception: ") + e.what();
+      cerr << "LoopClosing: " << msg << endl;
+      Print(msg);
+   }
+   catch (const exception & e)
    {
-      std::cerr << std::endl << "exception in LoopClosing: " << e.what() << std::endl;
+      string msg = string("Run: exception: ") + e.what();
+      cerr << "LoopClosing: " << msg << endl;
+      Print(msg);
    }
    catch (...)
    {
-      std::cerr << std::endl << "An exception was not caught in the LoopClosing thread." << std::endl;
+      string msg = string("Run: an exception was not caught");
+      cerr << "LoopClosing: " << msg << endl;
+      Print(msg);
    }
 
    void LoopClosing::InsertKeyFrame(KeyFrame *pKF)

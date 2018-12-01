@@ -319,10 +319,24 @@ namespace ORB_SLAM2
          cv::destroyAllWindows();
       }
       pangolin::Quit();
+      Print("end Run");
+   }
+   catch(cv::Exception & e) {
+      string msg = string("RunViewer: cv::Exception: ") + e.what();
+      cerr << "Viewer: " << msg << endl;
+      Print(msg);
+      SetFinish();
+      if (!mEmbeddedFrameDrawers)
+      {
+         cv::destroyAllWindows();
+      }
+      pangolin::Quit();
    }
    catch (const exception & e)
    {
-      Print(string("Exception in Viewer thread: ") + e.what());
+      string msg = string("Run: exception: ") + e.what();
+      cerr << "Viewer: " << msg << endl;
+      Print(msg);
       SetFinish();
       if (!mEmbeddedFrameDrawers)
       {
@@ -332,7 +346,9 @@ namespace ORB_SLAM2
    }
    catch (...)
    {
-      Print("An exception was not caught in the Viewer thread.");
+      string msg = string("Run: an exception was not caught");
+      cerr << "Viewer: " << msg << endl;
+      Print(msg);
       SetFinish();
       if (!mEmbeddedFrameDrawers)
       {
