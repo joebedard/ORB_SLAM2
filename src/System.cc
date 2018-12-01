@@ -103,6 +103,12 @@ namespace ORB_SLAM2
 
    System::~System()
    {
+      if (mptViewer)
+      {
+         mpViewer->RequestFinish();
+         mptViewer->join();
+         delete mptViewer;
+      }
       delete mpViewer;
       delete mpFrameDrawer;
       delete mpMapDrawer;
@@ -176,13 +182,14 @@ namespace ORB_SLAM2
 
    void System::Shutdown()
    {
-      if (mpViewer)
+      if (mptViewer)
       {
          //uncomment to force the viewer to close
          //mpViewer->RequestFinish();
 
-         while (!mpViewer->isFinished())
-            sleep(5000);
+         mptViewer->join();
+         delete mptViewer;
+         mptViewer = NULL;
 
          //this causes freeze at shutdown. not sure why it was here.
          //pangolin::BindToContext("ORB-SLAM2-TEAM: Map Viewer");
