@@ -169,30 +169,24 @@ namespace ORB_SLAM2
 
    bool LocalMapping::InsertKeyFrame(KeyFrame * pKF)
    {
-      if (!SetNotPause(true))
-         return false;
-
-      InterruptBA();
-
-      // If the mapping accepts keyframes, insert keyframe.
-      // Otherwise send a signal to interrupt BA
-      if (!AcceptKeyFrames())
+      bool success = false;
+      if (SetNotPause(true))
       {
-         if (!mbMonocular)
+         // If the mapping accepts keyframes, insert keyframe.
+         // Otherwise send a signal to interrupt BA
+         if ( AcceptKeyFrames() || (!mbMonocular && KeyframesInQueue() < 3) )
          {
-            if (KeyframesInQueue() >= 3)
-               return false;
+            unique_lock<mutex> lock(mMutexNewKFs);
+            mlNewKeyFrames.push_back(pKF);
+            success = true;
          }
          else
-            return false;
+         {
+            InterruptBA();
+         }
+         SetNotPause(false);
       }
-
-      unique_lock<mutex> lock(mMutexNewKFs);
-      mlNewKeyFrames.push_back(pKF);
-
-      SetNotPause(false);
-
-      return true;
+      return success;
    }
 
 
@@ -722,15 +716,23 @@ namespace ORB_SLAM2
 
    void LocalMapping::Resume()
    {
-      unique_lock<mutex> lock(mMutexPause);
-      unique_lock<mutex> lock2(mMutexFinish);
+      unique_lock<mutex> lock1(mMutexFinish);
       if (mbFinished)
          return;
-      mbPaused = false;
-      mbPauseRequested = false;
-      NotifyPauseRequested(mbPauseRequested);
+
+      {
+         unique_lock<mutex> lock2(mMutexPause);
+         mbPaused = false;
+         mbPauseRequested = false;
+         NotifyPauseRequested(mbPauseRequested);
+      }
+
+      unique_lock<mutex> lock3(mMutexNewKFs);
       for (list<KeyFrame *>::iterator lit = mlNewKeyFrames.begin(), lend = mlNewKeyFrames.end(); lit != lend; lit++)
+      {
+         mMap.EraseKeyFrame(*lit);
          delete *lit;
+      }
       mlNewKeyFrames.clear();
 
       Print("RESUME");
