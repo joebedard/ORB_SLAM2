@@ -31,6 +31,8 @@ using namespace ORB_SLAM2;
 char * gVocabFilename = NULL;
 char * gSettingsFilename = NULL;
 
+SyncPrint gOutMain("main: ");
+
 void parseArgs(int argc, char * argv[])
 {
    if (argc != 3)
@@ -165,18 +167,30 @@ int main(int argc, char * argv[]) try
 
    return EXIT_SUCCESS;
 }
-catch (const rs2::error & e)
-{
-   std::cerr << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
+catch( cv::Exception & e ) {
+   string msg = string("cv::Exception: ") + e.what();
+   cerr << "main: " << msg << endl;
+   gOutMain.Print(msg);
    return EXIT_FAILURE;
 }
-catch (const exception& e)
+catch (const rs2::error & e)
 {
-   std::cerr << std::endl << e.what() << std::endl;
+   string msg = string("RealSense error calling ") + e.get_failed_function() + "(" + e.get_failed_args() + "): " + e.what();
+   cerr << "main: " << msg << endl;
+   gOutMain.Print(msg);
+   return EXIT_FAILURE;
+}
+catch (const exception & e)
+{
+   string msg = string("exception: ") + e.what();
+   cerr << "main: " << msg << endl;
+   gOutMain.Print(msg);
    return EXIT_FAILURE;
 }
 catch (...)
 {
-   std::cerr << std::endl << "An exception was not caught in the main thread." << std::endl;
+   string msg = string("There was an unknown exception in the main thread.");
+   cerr << "main: " << msg << endl;
+   gOutMain.Print(msg);
    return EXIT_FAILURE;
 }

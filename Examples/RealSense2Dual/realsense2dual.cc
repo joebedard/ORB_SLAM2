@@ -33,6 +33,10 @@
 
 using namespace ORB_SLAM2;
 
+// logging variables
+SyncPrint gOutMain("main: ");
+SyncPrint gOutTrak("RunTracker: ");
+
 const int TRACKER_QUANTITY = 2;
 struct ThreadParam
 {
@@ -91,15 +95,9 @@ void VerifyTrackerSettings(cv::FileStorage & settings, const char * settingsFile
 
 }
 
-void Print(int threadId, const char * s)
-{
-   /*stringstream ss; ss << "RunTracker" << threadId << ": ";
-   SyncPrint::Print(ss.str().c_str(), s);*/
-}
-
 void RunTracker(int threadId) try
 {
-   Print(threadId, "begin RunTracker");
+   gOutTrak.Print("begin RunTracker");
    int height = gThreadParams[threadId].height;
    int width = gThreadParams[threadId].width;
 
@@ -126,14 +124,14 @@ void RunTracker(int threadId) try
 
    std::chrono::steady_clock::time_point tStart = std::chrono::steady_clock::now();
 
-   Print(threadId, "while (gShouldRun)");
+   gOutTrak.Print("while (gShouldRun)");
    while (gShouldRun)
    {
-      Print(threadId, "rs2::frameset data = pipe.wait_for_frames();");
+      gOutTrak.Print("rs2::frameset data = pipe.wait_for_frames();");
       rs2::frameset data = pipe.wait_for_frames(); // Wait for next set of frames from the camera
-      Print(threadId, "rs2::video_frame irFrame1 = data.get_infrared_frame(1);");
+      gOutTrak.Print("rs2::video_frame irFrame1 = data.get_infrared_frame(1);");
       rs2::video_frame irFrame1 = data.get_infrared_frame(1);
-      Print(threadId, "rs2::video_frame irFrame2 = data.get_infrared_frame(2);");
+      gOutTrak.Print("rs2::video_frame irFrame2 = data.get_infrared_frame(2);");
       rs2::video_frame irFrame2 = data.get_infrared_frame(2);
 
       // Create OpenCV matrix of size (width, height)
@@ -154,22 +152,30 @@ void RunTracker(int threadId) try
    }
 
    gThreadParams[threadId].returnCode = EXIT_SUCCESS;
-   Print(threadId, "end RunTracker");
+   gOutTrak.Print("end RunTracker");
+}
+catch( cv::Exception & e ) {
+   string msg = string("cv::Exception: ") + e.what();
+   cerr << "RunTracker: " << msg << endl;
+   gOutMain.Print(msg);
 }
 catch (const rs2::error & e)
 {
-   SyncPrint::Print("RealSense error calling ", e.get_failed_function() + "(" + e.get_failed_args() + "):\n    " + e.what());
-   gThreadParams[threadId].returnCode = EXIT_FAILURE;
+   string msg = string("RealSense error calling ") + e.get_failed_function() + "(" + e.get_failed_args() + "): " + e.what();
+   cerr << "RunTracker: " << msg << endl;
+   gOutMain.Print(msg);
 }
 catch (const exception& e)
 {
-   SyncPrint::Print("Exception in RunTracker: ", e.what());
-   gThreadParams[threadId].returnCode = EXIT_FAILURE;
+   string msg = string("exception: ") + e.what();
+   cerr << "RunTracker: " << msg << endl;
+   gOutMain.Print(msg);
 }
 catch (...)
 {
-   SyncPrint::Print("An exception was not caught in RunTracker ", to_string(threadId));
-   gThreadParams[threadId].returnCode = EXIT_FAILURE;
+   string msg = string("There was an unknown exception in the main thread.");
+   cerr << "RunTracker: " << msg << endl;
+   gOutMain.Print(msg);
 }
 
 void printStatistics()
@@ -195,6 +201,47 @@ void printStatistics()
          SyncPrint::Print(NULL, ss);
       }
    }
+}
+
+int RunViewer(
+   vector<FrameDrawer *> & vFrameDrawers, 
+   vector<MapDrawer *> & vMapDrawers, 
+   vector<Tracking *> & vTrackers, 
+   Mapper & mapper, 
+   bool embeddedFrameDrawers) try
+{
+   //Initialize and start the Viewer thread
+   Viewer viewer(vFrameDrawers, vMapDrawers, vTrackers, mapper, embeddedFrameDrawers);
+   for (Tracking * tracker : vTrackers)
+   {
+      tracker->SetViewer(&viewer);
+   }
+   viewer.Run(); //ends when window is closed
+   gShouldRun = false; //signal tracking threads to stop
+   return EXIT_SUCCESS;
+}
+catch( cv::Exception & e ) {
+   gShouldRun = false; //signal tracking threads to stop
+   string msg = string("RunViewer: cv::Exception: ") + e.what();
+   cerr << "main: " << msg << endl;
+   gOutMain.Print(msg);
+   return EXIT_FAILURE;
+}
+catch (const exception & e)
+{
+   gShouldRun = false; //signal tracking threads to stop
+   string msg = string("RunViewer: exception: ") + e.what();
+   cerr << "main: " << msg << endl;
+   gOutMain.Print(msg);
+   return EXIT_FAILURE;
+}
+catch (...)
+{
+   gShouldRun = false; //signal tracking threads to stop
+   string msg = string("RunViewer: There was an unknown exception in RunViewer");
+   cerr << "main: " << msg << endl;
+   gOutMain.Print(msg);
+   return EXIT_FAILURE;
 }
 
 int main(int paramc, char * paramv[]) try
@@ -246,20 +293,9 @@ int main(int paramc, char * paramv[]) try
       gThreadParams[i].threadObj = new thread(RunTracker, i);
    }
 
-   {
-      //Initialize and start the Viewer thread
-      Viewer viewer(vFrameDrawers, vMapDrawers, vTrackers, mapperServer, true);
-      for (Tracking * tracker : vTrackers)
-      {
-         tracker->SetViewer(&viewer);
-      }
-      viewer.Run(); //ends when window is closed
-      gShouldRun = false; //signal tracking threads to stop
-      // implicit Viewer destruction
-   }
+   int returnCode = RunViewer(vFrameDrawers, vMapDrawers, vTrackers, mapperServer, true);
 
    // join threads and check return codes
-   int returnCode = EXIT_SUCCESS;
    for (int i = 0; i < TRACKER_QUANTITY; ++i)
    {
       gThreadParams[i].threadObj->join();
@@ -280,18 +316,30 @@ int main(int paramc, char * paramv[]) try
 
    return returnCode;
 }
-catch (const rs2::error & e)
-{
-   cout << "RealSense error calling " << e.get_failed_function() + "(" + e.get_failed_args() + "):\n    " + e.what();
+catch( cv::Exception & e ) {
+   string msg = string("cv::Exception: ") + e.what();
+   cerr << "main: " << msg << endl;
+   gOutMain.Print(msg);
    return EXIT_FAILURE;
 }
-catch (const exception& e)
+catch (const rs2::error & e)
 {
-   cout << "Exception in main thread: " << e.what();
+   string msg = string("RealSense error calling ") + e.get_failed_function() + "(" + e.get_failed_args() + "): " + e.what();
+   cerr << "main: " << msg << endl;
+   gOutMain.Print(msg);
+   return EXIT_FAILURE;
+}
+catch (const exception & e)
+{
+   string msg = string("exception: ") + e.what();
+   cerr << "main: " << msg << endl;
+   gOutMain.Print(msg);
    return EXIT_FAILURE;
 }
 catch (...)
 {
-   cout << "There was an unknown exception in the main thread.";
+   string msg = string("There was an unknown exception in the main thread.");
+   cerr << "main: " << msg << endl;
+   gOutMain.Print(msg);
    return EXIT_FAILURE;
 }

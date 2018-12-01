@@ -186,6 +186,39 @@ void printStatistics(vector<float> & vTimesTrack)
    }
 }
 
+int RunViewer(FrameDrawer & frameDrawer, MapDrawer & mapDrawer, Tracking & tracker, Mapper & mapper) try
+{
+   //Initialize and start the Viewer thread
+   Viewer viewer(&frameDrawer, &mapDrawer, &tracker, mapper);
+   tracker.SetViewer(&viewer);
+   viewer.Run(); //ends when window is closed
+   gShouldRun = false; //signal tracking threads to stop
+   return EXIT_SUCCESS;
+}
+catch( cv::Exception & e ) {
+   gShouldRun = false; //signal tracking threads to stop
+   string msg = string("RunViewer: cv::Exception: ") + e.what();
+   cerr << "main: " << msg << endl;
+   gOutMain.Print(msg);
+   return EXIT_FAILURE;
+}
+catch (const exception & e)
+{
+   gShouldRun = false; //signal tracking threads to stop
+   string msg = string("RunViewer: exception: ") + e.what();
+   cerr << "main: " << msg << endl;
+   gOutMain.Print(msg);
+   return EXIT_FAILURE;
+}
+catch (...)
+{
+   gShouldRun = false; //signal tracking threads to stop
+   string msg = string("RunViewer: There was an unknown exception in RunViewer");
+   cerr << "main: " << msg << endl;
+   gOutMain.Print(msg);
+   return EXIT_FAILURE;
+}
+
 int main(int paramc, char * paramv[]) try
 {
    ParseParams(paramc, paramv);
@@ -231,14 +264,7 @@ int main(int paramc, char * paramv[]) try
    threadParam.width = frameDrawer.GetImageWidth();
    thread trackerThread(RunTracker, &threadParam);
 
-   {
-      //Initialize and start the Viewer thread
-      Viewer viewer(&frameDrawer, &mapDrawer, &tracker, mapperClient);
-      tracker.SetViewer(&viewer);
-      viewer.Run(); //ends when window is closed
-      gShouldRun = false; //signal tracking threads to stop
-      // implicit Viewer destruction
-   }
+   int returnCode = RunViewer(frameDrawer, mapDrawer, tracker, mapperClient);
 
    trackerThread.join();
 
@@ -246,18 +272,30 @@ int main(int paramc, char * paramv[]) try
 
    return threadParam.returnCode;
 }
-catch (const rs2::error & e)
-{
-   std::cout << "RealSense error calling " << e.get_failed_function() + "(" + e.get_failed_args() + "):\n    " + e.what();
+catch( cv::Exception & e ) {
+   string msg = string("cv::Exception: ") + e.what();
+   cerr << "main: " << msg << endl;
+   gOutMain.Print(msg);
    return EXIT_FAILURE;
 }
-catch (const exception& e)
+catch (const rs2::error & e)
 {
-   std::cout << "Exception in main thread: " << e.what();
+   string msg = string("RealSense error calling ") + e.get_failed_function() + "(" + e.get_failed_args() + "): " + e.what();
+   cerr << "main: " << msg << endl;
+   gOutMain.Print(msg);
+   return EXIT_FAILURE;
+}
+catch (const exception & e)
+{
+   string msg = string("exception: ") + e.what();
+   cerr << "main: " << msg << endl;
+   gOutMain.Print(msg);
    return EXIT_FAILURE;
 }
 catch (...)
 {
-   std::cout << "There was an unknown exception in the main thread.";
+   string msg = string("There was an unknown exception in the main thread.");
+   cerr << "main: " << msg << endl;
+   gOutMain.Print(msg);
    return EXIT_FAILURE;
 }
