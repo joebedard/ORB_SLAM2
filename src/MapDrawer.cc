@@ -162,6 +162,8 @@ namespace ORB_SLAM2
 
       if (bDrawKF)
       {
+         glLineWidth(mKeyFrameLineWidth);
+         glColor3f(0.0f, 0.0f, 1.0f);
          for (size_t i = 0; i < vpKFs.size(); i++)
          {
             KeyFrame* pKF = vpKFs[i];
@@ -171,8 +173,6 @@ namespace ORB_SLAM2
 
             glMultMatrixf(Twc.ptr<GLfloat>(0));
 
-            glLineWidth(mKeyFrameLineWidth);
-            glColor3f(0.0f, 0.0f, 1.0f);
             glBegin(GL_LINES);
             glVertex3f(0, 0, 0);
             glVertex3f(w, h, z);
