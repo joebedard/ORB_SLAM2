@@ -457,11 +457,9 @@ namespace ORB_SLAM2
                ++mQuantityRelocalizations;
          }
 
-         mCurrentFrame.mpReferenceKF = mpReferenceKF;
-
          // If we have an initial estimation of the camera pose and matching. Track the local map.
          if (bOK)
-            bOK = TrackLocalMap();
+            bOK = TrackLocalMap(); // sets mCurrentFrame.mpReferenceKF
 
          if (bOK)
             mState = TRACKING_OK;
@@ -497,7 +495,6 @@ namespace ORB_SLAM2
                KeyFrame * pKF = CreateNewKeyFrame(mCurrentFrame, mSensor);
                if (pKF)
                {
-                  mpReferenceKF = pKF;
                   mCurrentFrame.mpReferenceKF = pKF;
                   mnLastFrameIdMadeIntoKeyFrame = mCurrentFrame.mnId;
                   mpLastKeyFrame = pKF;
@@ -528,9 +525,7 @@ namespace ORB_SLAM2
             }
          }
 
-         if (!mCurrentFrame.mpReferenceKF)
-            mCurrentFrame.mpReferenceKF = mpReferenceKF;
-
+         // NOTE - mCurrentFrame.mpReferenceKF could be NULL! This happens when tracking is lost.
          mLastFrame = Frame(mCurrentFrame);
       }
 
@@ -542,8 +537,8 @@ namespace ORB_SLAM2
          cv::Mat Tcr = mCurrentFrame.mTcw*mCurrentFrame.mpReferenceKF->GetPoseInverse();
          //Print("mlRelativeFramePoses.push_back(Tcr);");
          mlRelativeFramePoses.push_back(Tcr);
-         //Print("mlpReferences.push_back(mpReferenceKF);");
-         mlpReferences.push_back(mpReferenceKF);
+         //Print("mlpReferenceKFs.push_back(mCurrentFrame.mpReferenceKF);");
+         mlpReferenceKFs.push_back(mCurrentFrame.mpReferenceKF);
          //Print("mlFrameTimes.push_back(mCurrentFrame.mTimeStamp);");
          mlFrameTimes.push_back(mCurrentFrame.mTimeStamp);
          //Print("mlbLost.push_back(mState == TRACKING_LOST);");
@@ -609,7 +604,6 @@ namespace ORB_SLAM2
 
          mvpLocalKeyFrames.push_back(pKFini);
          mvpLocalMapPoints = points;
-         mpReferenceKF = pKFini;
 
          mMapper.InitializeStereo(mId, points, pKFini);
          mState = TRACKING_OK;
@@ -773,6 +767,7 @@ namespace ORB_SLAM2
             delete mpInitializer;
             mpInitializer = static_cast<Initializer*>(NULL);
          }
+         // TODO - delete MapPoints and KeyFrames
          return;
       }
 
@@ -801,7 +796,6 @@ namespace ORB_SLAM2
 
       mvpLocalKeyFrames.push_back(pKFcur);
       mvpLocalKeyFrames.push_back(pKFini);
-      mpReferenceKF = pKFcur;
       mCurrentFrame.mpReferenceKF = pKFcur;
 
       mLastFrame = Frame(mCurrentFrame);
@@ -847,7 +841,7 @@ namespace ORB_SLAM2
       ORBmatcher matcher(0.7, true);
       vector<MapPoint*> vpMapPointMatches;
 
-      int nmatches = matcher.SearchByBoW(mpReferenceKF, mCurrentFrame, vpMapPointMatches);
+      int nmatches = matcher.SearchByBoW(mLastFrame.mpReferenceKF, mCurrentFrame, vpMapPointMatches);
 
       if (nmatches < 15)
       {
@@ -885,14 +879,6 @@ namespace ORB_SLAM2
       return nmatchesMap >= 10;
    }
 
-   void Tracking::UpdateLastFrame()
-   {
-      // Update pose according to reference keyframe
-      KeyFrame * pRef = mLastFrame.mpReferenceKF;
-      cv::Mat Tlr = mlRelativeFramePoses.back();
-      mLastFrame.SetPose(Tlr*pRef->GetPose());
-   }
-
    bool Tracking::TrackWithMotionModel()
    {
       Print("begin TrackWithMotionModel");
@@ -900,8 +886,14 @@ namespace ORB_SLAM2
 
       // Update last frame pose according to its reference keyframe
       // Create "visual odometry" points if in Localization Mode
-      UpdateLastFrame();
 
+      Print("1");
+      // Update pose according to reference keyframe
+      KeyFrame * pRef = mLastFrame.mpReferenceKF;
+      cv::Mat Tlr = mlRelativeFramePoses.back();
+      mLastFrame.SetPose(Tlr*pRef->GetPose()); // rarely causes a cv::Exception in matmul, is pRef deleted? Was the pose changed b another thread?
+
+      Print("2");
       mCurrentFrame.SetPose(mVelocity*mLastFrame.mTcw);
 
       fill(mCurrentFrame.mvpMapPoints.begin(), mCurrentFrame.mvpMapPoints.end(), static_cast<MapPoint*>(NULL));
@@ -912,12 +904,15 @@ namespace ORB_SLAM2
          th = 15;
       else
          th = 7;
+      
+      Print("3");
       int nmatches = matcher.SearchByProjection(mCurrentFrame, mLastFrame, th, mSensor == MONOCULAR);
 
       // If few matches, uses a wider window search
       if (nmatches < 20)
       {
          fill(mCurrentFrame.mvpMapPoints.begin(), mCurrentFrame.mvpMapPoints.end(), static_cast<MapPoint*>(NULL));
+         Print("4");
          nmatches = matcher.SearchByProjection(mCurrentFrame, mLastFrame, 2 * th, mSensor == MONOCULAR);
       }
 
@@ -1037,7 +1032,7 @@ namespace ORB_SLAM2
       int nMinObs = 3;
       if (nKFs <= 2)
          nMinObs = 2;
-      int nRefMatches = mpReferenceKF->TrackedMapPoints(nMinObs);
+      int nRefMatches = mCurrentFrame.mpReferenceKF->TrackedMapPoints(nMinObs);
 
       // Check how many "close" points are being tracked and how many could be potentially created.
       int nNonTrackedClose = 0;
@@ -1145,7 +1140,7 @@ namespace ORB_SLAM2
       if (mpMapDrawer)
          mpMapDrawer->SetReferenceMapPoints(mvpLocalMapPoints);
 
-      // post: relevant keyframes are in mvpLocalKeyFrames
+      // post: relevant keyframes are in mvpLocalKeyFrames, and set mCurrentFrame.mReferenceKF to closest KeyFrame
       UpdateLocalMapKeyFrames();
 
       // post: potential map points are in mvpLocalMapPoints
@@ -1230,7 +1225,6 @@ namespace ORB_SLAM2
          pKF->mnTrackReferenceForFrame = mCurrentFrame.mnId;
       }
 
-
       // Include also some not-already-included keyframes that are neighbors to already-included keyframes
       for (KeyFrame * pKF : mvpLocalKeyFrames)
       {
@@ -1276,7 +1270,7 @@ namespace ORB_SLAM2
             {
                mvpLocalKeyFrames.push_back(pParent);
                pParent->mnTrackReferenceForFrame = mCurrentFrame.mnId;
-               break;
+               break; // TODO - was this a typo?
             }
          }
 
@@ -1284,8 +1278,7 @@ namespace ORB_SLAM2
 
       if (pKFmax)
       {
-         mpReferenceKF = pKFmax;
-         mCurrentFrame.mpReferenceKF = mpReferenceKF;
+         mCurrentFrame.mpReferenceKF = pKFmax;
       }
    }
 

@@ -49,7 +49,7 @@ namespace ORB_SLAM2
    class Viewer;
    class FrameDrawer;
 
-   class Tracking : SyncPrint
+   class Tracking : protected SyncPrint
    {
 
    public:
@@ -153,9 +153,10 @@ namespace ORB_SLAM2
       // Initalization (only for monocular)
       Initializer* mpInitializer;
 
-      //Local Map
-      KeyFrame* mpReferenceKF;
+      // used to hold nearby KeyFrames. different for each Frame.
       std::vector<KeyFrame*> mvpLocalKeyFrames;
+
+      // used to hold MapPoints from nearby KeyFrames. different for each Frame.
       std::vector<MapPoint*> mvpLocalMapPoints;
 
       //Drawers
