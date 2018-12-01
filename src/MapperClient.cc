@@ -481,15 +481,18 @@ namespace ORB_SLAM2
    }
    catch (zmq::error_t & e)
    {
-      Print(string("RunSubscriber: error_t: ") + e.what());
+      //Print(string("RunSubscriber: error_t: ") + e.what());
+      cerr << "MapperClient::RunSubscriber: error_t: " << e.what() << endl;
    }
    catch (const std::exception & e)
    {
-      Print(string("RunSubscriber: exception: ") + e.what());
+      //Print(string("RunSubscriber: exception: ") + e.what());
+      cerr << "MapperClient::RunSubscriber: exception: " << e.what() << endl;
    }
    catch (...)
    {
-      Print("RunSubscriber: an exception was not caught");
+      //Print("RunSubscriber: an exception was not caught");
+      cerr << "MapperClient::RunSubscriber: an exception was not caught" << endl;
    }
 
    zmq::message_t MapperClient::RequestReply(zmq::message_t & request)

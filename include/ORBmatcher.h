@@ -32,11 +32,12 @@
 #include "KeyFrame.h"
 #include "Frame.h"
 #include "MapChangeEvent.h"
+#include "SyncPrint.h"
 
 namespace ORB_SLAM2
 {
 
-   class ORBmatcher
+   class ORBmatcher : protected SyncPrint
    {
    public:
 

@@ -45,7 +45,10 @@ namespace ORB_SLAM2
    const int ORBmatcher::TH_LOW = 50;
    const int ORBmatcher::HISTO_LENGTH = 30;
 
-   ORBmatcher::ORBmatcher(float nnratio, bool checkOri) : mfNNratio(nnratio), mbCheckOrientation(checkOri)
+   ORBmatcher::ORBmatcher(float nnratio, bool checkOri) 
+      : SyncPrint("ORBmatcher: ")
+      , mfNNratio(nnratio)
+      , mbCheckOrientation(checkOri)
    {
    }
 
@@ -831,6 +834,7 @@ namespace ORB_SLAM2
 
    int ORBmatcher::Fuse(MapChangeEvent & mapChanges, KeyFrame *pKF, const vector<MapPoint *> &vpMapPoints, Map * pMap, const float th)
    {
+      Print("begin Fuse 1");
       cv::Mat Rcw = pKF->GetRotation();
       cv::Mat tcw = pKF->GetTranslation();
 
@@ -840,12 +844,14 @@ namespace ORB_SLAM2
       const float &cy = pKF->mFC.cy;
       const float &bf = pKF->mFC.blfx;
 
+      Print("cv::Mat Ow = pKF->GetCameraCenter();");
       cv::Mat Ow = pKF->GetCameraCenter();
 
       int nFused = 0;
 
       const int nMPs = vpMapPoints.size();
 
+      Print("for (int i = 0; i < nMPs; i++)");
       for (int i = 0; i < nMPs; i++)
       {
          MapPoint* pMP = vpMapPoints[i];
@@ -998,6 +1004,7 @@ namespace ORB_SLAM2
          }
       }
 
+      Print("end Fuse 1");
       return nFused;
    }
 

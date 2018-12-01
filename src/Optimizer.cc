@@ -67,6 +67,7 @@ namespace ORB_SLAM2
       const unsigned long loopKeyFrameId, 
       const bool bRobust)
    {
+      Print("begin BundleAdjustment");
       vector<bool> vbNotIncludedMP;
       vbNotIncludedMP.resize(vpMP.size());
 
@@ -85,6 +86,7 @@ namespace ORB_SLAM2
 
       long unsigned int maxKFid = 0;
 
+      Print("// Set KeyFrame vertices");
       // Set KeyFrame vertices
       for (size_t i = 0; i < vpKFs.size(); i++)
       {
@@ -103,6 +105,7 @@ namespace ORB_SLAM2
       const float thHuber2D = sqrt(5.99);
       const float thHuber3D = sqrt(7.815);
 
+      Print("// Set MapPoint vertices");
       // Set MapPoint vertices
       for (size_t i = 0; i < vpMP.size(); i++)
       {
@@ -257,7 +260,7 @@ namespace ORB_SLAM2
             pMP->mnBAGlobalForKF = loopKeyFrameId;
          }
       }
-
+      Print("end BundleAdjustment");
    }
 
    int Optimizer::PoseOptimization(Frame *pFrame)
@@ -702,6 +705,7 @@ namespace ORB_SLAM2
             return;
          }
 
+      Print("optimizer.initializeOptimization();");
       optimizer.initializeOptimization();
       optimizer.optimize(5);
 
@@ -711,9 +715,9 @@ namespace ORB_SLAM2
          if (*pbStopFlag)
             bDoMore = false;
 
-      Print("if(bDoMore)");
       if (bDoMore)
       {
+         Print("if(bDoMore)");
 
          // Check inlier observations
          for (size_t i = 0, iend = vpEdgesMono.size(); i < iend;i++)
@@ -732,6 +736,7 @@ namespace ORB_SLAM2
             e->setRobustKernel(0);
          }
 
+         Print("second for");
          for (size_t i = 0, iend = vpEdgesStereo.size(); i < iend;i++)
          {
             g2o::EdgeStereoSE3ProjectXYZ* e = vpEdgesStereo[i];
@@ -748,8 +753,8 @@ namespace ORB_SLAM2
             e->setRobustKernel(0);
          }
 
+         Print("// Optimize again without the outliers");
          // Optimize again without the outliers
-
          optimizer.initializeOptimization(0);
          optimizer.optimize(10);
 
@@ -967,7 +972,7 @@ namespace ORB_SLAM2
 
          KeyFrame* pParentKF = pKF->GetParent();
 
-         Print("Spanning tree edge");
+         //Print("Spanning tree edge");
          // Spanning tree edge
          if (pParentKF)
          {
@@ -993,7 +998,7 @@ namespace ORB_SLAM2
             optimizer.addEdge(e);
          }
 
-         Print("Loop edges");
+         //Print("Loop edges");
          // Loop edges
          const set<KeyFrame*> sLoopEdges = pKF->GetLoopEdges();
          for (set<KeyFrame*>::const_iterator sit = sLoopEdges.begin(), send = sLoopEdges.end(); sit != send; sit++)
@@ -1020,7 +1025,7 @@ namespace ORB_SLAM2
             }
          }
 
-         Print("Covisibility graph edges");
+         //Print("Covisibility graph edges");
          // Covisibility graph edges
          const vector<KeyFrame*> vpConnectedKFs = pKF->GetCovisiblesByWeight(minFeat);
          for (vector<KeyFrame*>::const_iterator vit = vpConnectedKFs.begin(); vit != vpConnectedKFs.end(); vit++)
@@ -1060,6 +1065,7 @@ namespace ORB_SLAM2
       optimizer.initializeOptimization();
       optimizer.optimize(20);
 
+      Print("unique_lock<mutex> lock(mutexMapUpdate);");
       unique_lock<mutex> lock(mutexMapUpdate);
 
       Print("SE3 Pose Recovering.");
@@ -1132,6 +1138,7 @@ namespace ORB_SLAM2
       const float th2, 
       const bool bFixScale)
    {
+      Print("begin OptimizeSim3");
       g2o::SparseOptimizer optimizer;
       g2o::BlockSolverX::LinearSolverType * linearSolver;
 
@@ -1296,7 +1303,10 @@ namespace ORB_SLAM2
          nMoreIterations = 5;
 
       if (nCorrespondences - nBad < 10)
+      {
+         Print("end OptimizeSim3 1");
          return 0;
+      }
 
       // Optimize again only with inliers
 
@@ -1324,6 +1334,7 @@ namespace ORB_SLAM2
       g2o::VertexSim3Expmap* vSim3_recov = static_cast<g2o::VertexSim3Expmap*>(optimizer.vertex(0));
       g2oS12 = vSim3_recov->estimate();
 
+      Print("end OptimizeSim3 2");
       return nIn;
    }
 

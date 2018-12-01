@@ -28,7 +28,7 @@ namespace ORB_SLAM2
 {
 
    Map::Map()
-      : mnMaxKFid(0), mnBigChangeIdx(0), SyncPrint("Map: ", false)
+      : mnMaxKFid(0), mnBigChangeIdx(0), SyncPrint("Map: ")
    {
 
    }
@@ -36,6 +36,9 @@ namespace ORB_SLAM2
    void Map::AddKeyFrame(KeyFrame *pKF)
    {
       Print("begin AddKeyFrame");
+      if (!pKF)
+         throw exception("Map::AddKeyFrame: can not add a NULL KeyFrame *");
+
       unique_lock<mutex> lock(mMutexMap);
       mKeyFrames[pKF->GetId()] = pKF;
       if (pKF->GetId() > mnMaxKFid)
@@ -45,6 +48,9 @@ namespace ORB_SLAM2
 
    void Map::AddMapPoint(MapPoint *pMP)
    {
+      if (!pMP)
+         throw exception("Map::AddMapPoint: can not add a NULL MapPoint *");
+
       unique_lock<mutex> lock(mMutexMap);
       mMapPoints[pMP->GetId()] = pMP;
    }

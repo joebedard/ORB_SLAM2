@@ -28,7 +28,7 @@ namespace ORB_SLAM2
 
 
    MapDrawer::MapDrawer(cv::FileStorage & settings, Mapper & mapper) :
-      SyncPrint("MapDrawer: ", false),
+      SyncPrint("MapDrawer: "),
       mMapper(mapper),
       mMap(mapper.GetMap())
    {
@@ -65,7 +65,9 @@ namespace ORB_SLAM2
       float currentColor[4];
       glGetFloatv(GL_CURRENT_COLOR, currentColor);
 
+      Print("unique_lock<mutex> lock(mMapper.GetMutexMapUpdate());");
       unique_lock<mutex> lock1(mMapper.GetMutexMapUpdate());
+
       const vector<MapPoint*> &vpMPs = mMap.GetAllMapPoints();
       if (vpMPs.empty())
       {
@@ -98,6 +100,7 @@ namespace ORB_SLAM2
          cv::Mat pos = pMP->GetWorldPos();
          glVertex3f(pos.at<float>(0), pos.at<float>(1), pos.at<float>(2));
       }
+      Print("glEnd();");
       glEnd();
 
       glPointSize(mPointSize);
@@ -144,8 +147,9 @@ namespace ORB_SLAM2
 
    void MapDrawer::DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph)
    {
-      unique_lock<mutex> lock(mMapper.GetMutexMapUpdate());
       Print("begin DrawKeyFrames");
+      Print("unique_lock<mutex> lock(mMapper.GetMutexMapUpdate());");
+      unique_lock<mutex> lock(mMapper.GetMutexMapUpdate());
 
       float currentColor[4];
       glGetFloatv(GL_CURRENT_COLOR, currentColor);
@@ -198,6 +202,7 @@ namespace ORB_SLAM2
 
       if (bDrawGraph)
       {
+         Print("if (bDrawGraph)");
          glLineWidth(mGraphLineWidth);
          glColor4f(0.0f, 1.0f, 0.0f, 0.6f);
          glBegin(GL_LINES);

@@ -67,6 +67,7 @@ namespace ORB_SLAM2
 
    void LoopClosing::Run() try
    {
+      Print("begin Run");
       mbFinished = false;
 
       while (1)
@@ -471,6 +472,7 @@ namespace ORB_SLAM2
 
    void LoopClosing::CorrectLoop()
    {
+      Print("begin CorrectLoop");
       Print("Loop detected!");
       MapChangeEvent mapChanges;
 
@@ -490,6 +492,7 @@ namespace ORB_SLAM2
          if (mpThreadGBA)
          {
             //mpThreadGBA->detach();
+            Print("mpThreadGBA->join();");
             mpThreadGBA->join();
             delete mpThreadGBA;
          }
@@ -517,6 +520,7 @@ namespace ORB_SLAM2
 
       {
          // Get Map Mutex
+         Print("unique_lock<mutex> lock(mMutexMapUpdate);");
          unique_lock<mutex> lock(mMutexMapUpdate);
 
          Print("for (vector<KeyFrame*>::iterator vit = mvpCurrentConnectedKFs.begin(), vend = mvpCurrentConnectedKFs.end(); vit != vend; vit++)");
@@ -685,6 +689,7 @@ namespace ORB_SLAM2
       mpLocalMapper->Resume();
 
       mLastLoopKFid = mpCurrentKF->GetId();
+      Print("end CorrectLoop");
    }
 
    void LoopClosing::SearchAndFuse(const KeyFrameAndPose &CorrectedPosesMap, MapChangeEvent & mapChanges)
@@ -703,6 +708,7 @@ namespace ORB_SLAM2
          matcher.Fuse(mapChanges, pKF, cvScw, mvpLoopMapPoints, 4, vpReplacePoints);
 
          // Get Map Mutex
+         Print("unique_lock<mutex> lock(mMutexMapUpdate);");
          unique_lock<mutex> lock(mMutexMapUpdate);
          const int nLP = mvpLoopMapPoints.size();
          for (int i = 0; i < nLP;i++)
@@ -745,19 +751,23 @@ namespace ORB_SLAM2
       unique_lock<mutex> lock(mMutexReset);
       if (mbResetRequested)
       {
+         Print("resetting LoopClosing");
          mlpLoopKeyFrameQueue.clear();
          mLastLoopKFid = 0;
          mbResetRequested = false;
       }
    }
 
-   void LoopClosing::RunGlobalBundleAdjustment(unsigned long loopKeyFrameId)
+   void LoopClosing::RunGlobalBundleAdjustment(unsigned long loopKeyFrameId) try
    {
+      Print("begin RunGlobalBundleAdjustment");
       Print("Starting Global Bundle Adjustment");
 
       int idx = mnFullBAIdx;
       MapChangeEvent mapChanges1;
       Optimizer::GlobalBundleAdjustment(mMap, mapChanges1, 10, &mbStopGBA, loopKeyFrameId, false);
+
+      Print("NotifyMapChanged(mapChanges1);");
       NotifyMapChanged(mapChanges1);
 
       // Update all MapPoints and KeyFrames
@@ -775,13 +785,13 @@ namespace ORB_SLAM2
             Print("Updating map ...");
             mpLocalMapper->RequestPause();
             // Wait until Local Mapping has effectively stopped
-
             while (!mpLocalMapper->IsPaused() && !mpLocalMapper->isFinished())
             {
                sleep(1000);
             }
 
             // Get Map Mutex
+            Print("unique_lock<mutex> lock(mMutexMapUpdate);");
             unique_lock<mutex> lock(mMutexMapUpdate);
 
             // Correct keyframes starting at map first keyframe
@@ -866,6 +876,24 @@ namespace ORB_SLAM2
          mbFinishedGBA = true;
          mbRunningGBA = false;
       }
+      Print("end RunGlobalBundleAdjustment");
+   }
+   catch(cv::Exception & e) {
+      string msg = string("RunGlobalBundleAdjustment: cv:Exception: ") + e.what();
+      cerr << "LoopClosing: " << msg << endl;
+      Print(msg);
+   }
+   catch (const exception & e)
+   {
+      string msg = string("RunGlobalBundleAdjustment: exception: ") + e.what();
+      cerr << "LoopClosing: " << msg << endl;
+      Print(msg);
+   }
+   catch (...)
+   {
+      string msg = string("RunGlobalBundleAdjustment: an exception was not caught");
+      cerr << "LoopClosing: " << msg << endl;
+      Print(msg);
    }
 
    void LoopClosing::RequestFinish()

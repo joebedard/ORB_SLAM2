@@ -53,6 +53,7 @@ namespace ORB_SLAM2
 
    MapperServer::~MapperServer()
    {
+      Print("begin ~MapperServer");
       mLocalMapper.RequestFinish();
       mLoopCloser.RequestFinish();
 
@@ -61,6 +62,7 @@ namespace ORB_SLAM2
 
       delete mptLocalMapping;
       delete mptLoopClosing;
+      Print("end ~MapperServer");
    }
 
    long unsigned MapperServer::KeyFramesInMap()

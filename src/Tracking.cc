@@ -1102,6 +1102,7 @@ namespace ORB_SLAM2
 
       int nToMatch = 0;
 
+      Print("// Project points in frame and check its visibility");
       // Project points in frame and check its visibility
       for (vector<MapPoint*>::iterator vit = mvpLocalMapPoints.begin(), vend = mvpLocalMapPoints.end(); vit != vend; vit++)
       {
@@ -1118,6 +1119,7 @@ namespace ORB_SLAM2
          }
       }
 
+      Print("if (nToMatch > 0)");
       if (nToMatch > 0)
       {
          ORBmatcher matcher(0.8);
@@ -1605,6 +1607,7 @@ namespace ORB_SLAM2
             if (vDepthIdx[j].first > currentFrame.mFC->thDepth && j > 99)
                break;
          }
+         Print(to_string(pKF->GetId()) + " KeyFrame deleted");
          delete pKF;
          Print("end CreateNewKeyFrame 2");
          return NULL;

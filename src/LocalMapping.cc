@@ -65,6 +65,7 @@ namespace ORB_SLAM2
 
    void LocalMapping::Run() try
    {
+      Print("begin Run");
       mbFinished = false;
 
       while (1)
@@ -318,6 +319,7 @@ namespace ORB_SLAM2
 
       ORBmatcher matcher(0.6, false);
 
+      Print("transformations");
       cv::Mat Rcw1 = mpCurrentKeyFrame->GetRotation();
       cv::Mat Rwc1 = Rcw1.t();
       cv::Mat tcw1 = mpCurrentKeyFrame->GetTranslation();
@@ -326,6 +328,7 @@ namespace ORB_SLAM2
       tcw1.copyTo(Tcw1.col(3));
       cv::Mat Ow1 = mpCurrentKeyFrame->GetCameraCenter();
 
+      Print("frame calibration");
       const float &fx1 = mpCurrentKeyFrame->mFC.fx;
       const float &fy1 = mpCurrentKeyFrame->mFC.fy;
       const float &cx1 = mpCurrentKeyFrame->mFC.cx;
@@ -337,6 +340,7 @@ namespace ORB_SLAM2
 
       int nnew = 0;
 
+      Print("for loop");
       // Search matches with epipolar restriction and triangulate
       for (size_t i = 0; i < vpNeighKFs.size(); i++)
       {
@@ -572,8 +576,10 @@ namespace ORB_SLAM2
       int nn = 10;
       if (mbMonocular)
          nn = 20;
+      Print("1");
       const vector<KeyFrame *> vpNeighKFs = mpCurrentKeyFrame->GetBestCovisibilityKeyFrames(nn);
       vector<KeyFrame *> vpTargetKFs;
+      Print("2");
       for (vector<KeyFrame *>::const_iterator vit = vpNeighKFs.begin(), vend = vpNeighKFs.end(); vit != vend; vit++)
       {
          KeyFrame * pKFi = *vit;
@@ -596,9 +602,11 @@ namespace ORB_SLAM2
       }
 
 
+      Print("3");
       // Search matches by projection from current KF in target KFs
       ORBmatcher matcher;
       vector<MapPoint *> vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
+      Print("4");
       for (vector<KeyFrame *>::iterator vit = vpTargetKFs.begin(), vend = vpTargetKFs.end(); vit != vend; vit++)
       {
          KeyFrame * pKFi = *vit;
@@ -606,10 +614,12 @@ namespace ORB_SLAM2
          matcher.Fuse(mapChanges, pKFi, vpMapPointMatches, &mMap);
       }
 
+      Print("5");
       // Search matches by projection from target KFs in current KF
       vector<MapPoint *> vpFuseCandidates;
       vpFuseCandidates.reserve(vpTargetKFs.size()*vpMapPointMatches.size());
 
+      Print("6");
       for (vector<KeyFrame *>::iterator vitKF = vpTargetKFs.begin(), vendKF = vpTargetKFs.end(); vitKF != vendKF; vitKF++)
       {
          KeyFrame * pKFi = *vitKF;
@@ -628,9 +638,11 @@ namespace ORB_SLAM2
          }
       }
 
+      Print("7");
       matcher.Fuse(mapChanges, mpCurrentKeyFrame, vpFuseCandidates, &mMap);
 
 
+      Print("8");
       // Update points
       // TODO OK - only update points that were touched during Fuse
       vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
@@ -647,6 +659,7 @@ namespace ORB_SLAM2
          }
       }
 
+      Print("9");
       // Update connections in covisibility graph
       mpCurrentKeyFrame->UpdateConnections();
       Print("end SearchInNeighbors");
@@ -857,6 +870,7 @@ namespace ORB_SLAM2
       unique_lock<mutex> lock(mMutexReset);
       if (mbResetRequested)
       {
+         Print("RESET MAP");
          mlNewKeyFrames.clear();
          mlpRecentAddedMapPoints.clear();
          mbResetRequested = false;

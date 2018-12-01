@@ -536,7 +536,7 @@ namespace ORB_SLAM2
 
    void KeyFrame::UpdateConnections()
    {
-      Print("begin UpdateConnections");
+      //Print("begin UpdateConnections");
       map<KeyFrame *, int> KFcounter;
 
       vector<MapPoint *> vpMP;
@@ -628,7 +628,7 @@ namespace ORB_SLAM2
          }
 
       }
-      Print("end UpdateConnections 2");
+      //Print("end UpdateConnections 2");
    }
 
    void KeyFrame::AddChild(KeyFrame *pKF)
@@ -709,13 +709,18 @@ namespace ORB_SLAM2
 
    bool KeyFrame::SetBadFlag(Map* pMap, KeyFrameDatabase* pKeyFrameDB)
    {
+      Print("begin SetBadFlag");
       {
          unique_lock<mutex> lock(mMutexConnections);
          if (mnId == 0)
+         {
+            Print("end SetBadFlag 1");
             return false;
+         }
          else if (mbNotErase)
          {
             mbToBeErased = true;
+            Print("end SetBadFlag 2");
             return false;
          }
       }
@@ -802,6 +807,7 @@ namespace ORB_SLAM2
 
       pMap->EraseKeyFrame(this);
       pKeyFrameDB->erase(this);
+      Print("end SetBadFlag 3");
       return true;
    }
 
