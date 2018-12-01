@@ -128,8 +128,8 @@ namespace ORB_SLAM2
 
       unique_lock<mutex> lock2(mMutexState);
       //mTrackingState = mpTracker->mState;
-      mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
-      mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
+      //mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
+      //mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
       return Tcw;
    }
 
@@ -144,8 +144,8 @@ namespace ORB_SLAM2
 
       unique_lock<mutex> lock2(mMutexState);
       //mTrackingState = mpTracker->mState;
-      mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
-      mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
+      //mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
+      //mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
       return Tcw;
    }
 
@@ -161,8 +161,8 @@ namespace ORB_SLAM2
 
       unique_lock<mutex> lock2(mMutexState);
       //mTrackingState = mpTracker->mState;
-      mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
-      mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
+      //mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
+      //mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
 
       return Tcw;
    }
@@ -226,7 +226,7 @@ namespace ORB_SLAM2
 
       // For each frame we have a reference keyframe (lRit), the timestamp (lT) and a flag
       // which is true when tracking failed (lbL).
-      list<ORB_SLAM2::KeyFrame*>::iterator lRit = mpTracker->mlpReferences.begin();
+      list<ORB_SLAM2::KeyFrame*>::iterator lRit = mpTracker->mlpReferenceKFs.begin();
       list<double>::iterator lT = mpTracker->mlFrameTimes.begin();
       list<bool>::iterator lbL = mpTracker->mlbLost.begin();
       for (list<cv::Mat>::iterator lit = mpTracker->mlRelativeFramePoses.begin(),
@@ -327,7 +327,7 @@ namespace ORB_SLAM2
 
       // For each frame we have a reference keyframe (lRit), the timestamp (lT) and a flag
       // which is true when tracking failed (lbL).
-      list<ORB_SLAM2::KeyFrame*>::iterator lRit = mpTracker->mlpReferences.begin();
+      list<ORB_SLAM2::KeyFrame*>::iterator lRit = mpTracker->mlpReferenceKFs.begin();
       list<double>::iterator lT = mpTracker->mlFrameTimes.begin();
       for (list<cv::Mat>::iterator lit = mpTracker->mlRelativeFramePoses.begin(), lend = mpTracker->mlRelativeFramePoses.end();lit != lend;lit++, lRit++, lT++)
       {

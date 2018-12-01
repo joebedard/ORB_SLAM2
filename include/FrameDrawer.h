@@ -47,7 +47,18 @@ namespace ORB_SLAM2
       void Reset();
 
       // Update info from the last processed frame.
-      void Update(Tracking & tracker, Map & map);
+      void Update(
+         bool onlyTracking,
+         TrackingState lastProcessedState,
+         cv::Mat & imGray, 
+         std::vector<cv::KeyPoint> & initialKeys, 
+         vector<int> & initialMatches,
+         std::vector<cv::KeyPoint> & currentKeys, 
+         std::vector<MapPoint *> & currentMapPoints, 
+         std::vector<bool> & outliers,
+         int keyFramesInMap,
+         int mapPointsInMap
+      );
 
       // Draw last processed frame.
       cv::Mat DrawFrame();

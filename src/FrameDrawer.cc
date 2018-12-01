@@ -222,33 +222,44 @@ namespace ORB_SLAM2
       cv::putText(imText, s.str(), cv::Point(5, imText.rows - 5), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255, 255, 255), 1, 8);
    }
 
-   void FrameDrawer::Update(Tracking & tracker, Map & map)
+   void FrameDrawer::Update(
+      bool onlyTracking,
+      TrackingState lastProcessedState,
+      cv::Mat & imGray, 
+      std::vector<cv::KeyPoint> & initialKeys, 
+      vector<int> & initialMatches,
+      std::vector<cv::KeyPoint> & currentKeys, 
+      std::vector<MapPoint *> & currentMapPoints, 
+      std::vector<bool> & outliers,
+      int keyFramesInMap,
+      int mapPointsInMap
+      )
    {
       Print("begin Update");
       unique_lock<mutex> lock(mMutex);
-      tracker.mImGray.copyTo(mIm);
-      mvCurrentKeys = tracker.mCurrentFrame.mvKeys;
+      imGray.copyTo(mIm);
+      mvCurrentKeys = currentKeys;
       N = mvCurrentKeys.size();
       mvbVO = vector<bool>(N, false);
       mvbMap = vector<bool>(N, false);
-      mbOnlyTracking = tracker.mbOnlyTracking;
+      mbOnlyTracking = onlyTracking;
 
-      mnKFs = map.KeyFramesInMap();
-      mnMPs = map.MapPointsInMap();
+      mnKFs = keyFramesInMap;
+      mnMPs = mapPointsInMap;
 
-      if (tracker.mLastProcessedState == NOT_INITIALIZED)
+      if (lastProcessedState == NOT_INITIALIZED)
       {
-         mvIniKeys = tracker.mInitialFrame.mvKeys;
-         mvIniMatches = tracker.mvIniMatches;
+         mvIniKeys = initialKeys;
+         mvIniMatches = initialMatches;
       }
-      else if (tracker.mLastProcessedState == TRACKING_OK)
+      else if (lastProcessedState == TRACKING_OK)
       {
-         for (int i = 0;i < N;i++)
+         for (int i = 0;i < N; i++)
          {
-            MapPoint* pMP = tracker.mCurrentFrame.mvpMapPoints[i];
+            MapPoint* pMP = currentMapPoints[i];
             if (pMP)
             {
-               if (!tracker.mCurrentFrame.mvbOutlier[i])
+               if (!outliers[i])
                {
                   if (pMP->Observations() > 0)
                      mvbMap[i] = true;
@@ -258,7 +269,7 @@ namespace ORB_SLAM2
             }
          }
       }
-      mState = tracker.mLastProcessedState;
+      mState = lastProcessedState;
       Print("end Update");
    }
 

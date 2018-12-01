@@ -398,7 +398,9 @@ namespace ORB_SLAM2
    void Tracking::Track()
    {
       Print("begin Track");
+
       // Get Map Mutex -> Map cannot be changed
+      Print("unique_lock<mutex> lock(mMapper.GetMutexMapUpdate());");
       unique_lock<mutex> lock(mMapper.GetMutexMapUpdate());
 
       mLastProcessedState = mState;
@@ -413,7 +415,18 @@ namespace ORB_SLAM2
             else
                MonocularInitialization();
 
-            mpFrameDrawer->Update(*this, mMapper.GetMap());
+            //mpFrameDrawer->Update(*this, mMapper.GetMap());
+            mpFrameDrawer->Update(
+               mbOnlyTracking, 
+               mLastProcessedState, 
+               mImGray, 
+               mInitialFrame.mvKeys,
+               mvIniMatches,
+               mCurrentFrame.mvKeys,
+               mCurrentFrame.mvpMapPoints,
+               mCurrentFrame.mvbOutlier,
+               mMapper.GetMap().KeyFramesInMap(),
+               mMapper.GetMap().MapPointsInMap());
 
             if (!mMapper.GetInitialized())
             {
@@ -467,7 +480,17 @@ namespace ORB_SLAM2
             mState = TRACKING_LOST;
 
          // Update drawer
-         mpFrameDrawer->Update(*this, mMapper.GetMap());
+         mpFrameDrawer->Update(
+            mbOnlyTracking, 
+            mLastProcessedState, 
+            mImGray, 
+            mInitialFrame.mvKeys,
+            mvIniMatches,
+            mCurrentFrame.mvKeys,
+            mCurrentFrame.mvpMapPoints,
+            mCurrentFrame.mvbOutlier,
+            mMapper.GetMap().KeyFramesInMap(),
+            mMapper.GetMap().MapPointsInMap());
 
          // If tracking was good, check if we insert a keyframe
          if (bOK)
@@ -552,8 +575,8 @@ namespace ORB_SLAM2
          {
             Print("mlRelativeFramePoses.push_back(mlRelativeFramePoses.back());");
             mlRelativeFramePoses.push_back(mlRelativeFramePoses.back());
-            //Print("mlpReferences.push_back(mlpReferences.back());");
-            mlpReferences.push_back(mlpReferences.back());
+            //Print("mlpReferenceKFs.push_back(mlpReferenceKFs.back());");
+            mlpReferenceKFs.push_back(mlpReferenceKFs.back());
             //Print("mlFrameTimes.push_back(mlFrameTimes.back());");
             mlFrameTimes.push_back(mlFrameTimes.back());
             //Print("mlbLost.push_back(mState == TRACKING_LOST);");
@@ -1178,27 +1201,27 @@ namespace ORB_SLAM2
 
    void Tracking::UpdateLocalMapKeyFrames()
    {
-      // Each map point vote for the keyframes in which it has been observed
-      map<KeyFrame *, int> keyframeCounter;
+      // Each MapPoint votes once for the keyframes in which it has been observed
+      map<KeyFrame *, int> keyframeVotes;
       for (int i = 0; i < mCurrentFrame.N; i++)
       {
-         if (mCurrentFrame.mvpMapPoints[i])
+         MapPoint * pMP = mCurrentFrame.mvpMapPoints[i];
+         if (pMP)
          {
-            MapPoint* pMP = mCurrentFrame.mvpMapPoints[i];
-            if (!pMP->isBad())
+            if (pMP->isBad())
             {
-               const map<KeyFrame *, size_t> observations = pMP->GetObservations();
-               for (map<KeyFrame *, size_t>::const_iterator it = observations.begin(), itend = observations.end(); it != itend; it++)
-                  keyframeCounter[it->first]++;
+               mCurrentFrame.mvpMapPoints[i] = NULL;
             }
             else
             {
-               mCurrentFrame.mvpMapPoints[i] = NULL;
+               const map<KeyFrame *, size_t> observations = pMP->GetObservations();
+               for (map<KeyFrame *, size_t>::const_iterator it = observations.begin(), itend = observations.end(); it != itend; it++)
+                  keyframeVotes[it->first]++;
             }
          }
       }
 
-      if (keyframeCounter.empty())
+      if (keyframeVotes.empty())
       {
          return;
       }
@@ -1207,10 +1230,10 @@ namespace ORB_SLAM2
       KeyFrame * pKFmax = static_cast<KeyFrame *>(NULL);
 
       mvpLocalKeyFrames.clear();
-      mvpLocalKeyFrames.reserve(3 * keyframeCounter.size());
+      mvpLocalKeyFrames.reserve(3 * keyframeVotes.size());
 
       // All keyframes that observe a map point are included in the local map. Also check which keyframe shares most points
-      for (map<KeyFrame *, int>::const_iterator it = keyframeCounter.begin(), itEnd = keyframeCounter.end(); it != itEnd; it++)
+      for (map<KeyFrame *, int>::const_iterator it = keyframeVotes.begin(), itEnd = keyframeVotes.end(); it != itEnd; it++)
       {
          KeyFrame * pKF = it->first;
 
@@ -1282,6 +1305,8 @@ namespace ORB_SLAM2
       {
          mCurrentFrame.mpReferenceKF = pKFmax;
       }
+      else
+         throw exception("mCurrentFrame.mpReferenceKF is NULL");
    }
 
    bool Tracking::Relocalization()
@@ -1674,7 +1699,7 @@ namespace ORB_SLAM2
       }
 
       mlRelativeFramePoses.clear();
-      mlpReferences.clear();
+      mlpReferenceKFs.clear();
       mlFrameTimes.clear();
       mlbLost.clear();
 

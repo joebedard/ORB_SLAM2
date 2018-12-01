@@ -87,10 +87,6 @@ namespace ORB_SLAM2
       // Input sensor
       SensorType mSensor;
 
-      // Current Frame
-      Frame mCurrentFrame;
-      cv::Mat mImGray;
-
       // Initialization Variables (Monocular)
       std::vector<int> mvIniLastMatches;
       std::vector<int> mvIniMatches;
@@ -101,7 +97,7 @@ namespace ORB_SLAM2
       // Lists used to recover the full camera trajectory at the end of the execution.
       // Basically we store the reference keyframe for each frame and its relative transformation
       list<cv::Mat> mlRelativeFramePoses;
-      list<KeyFrame*> mlpReferences;
+      list<KeyFrame*> mlpReferenceKFs;
       list<double> mlFrameTimes;
       list<bool> mlbLost;
 
@@ -115,33 +111,21 @@ namespace ORB_SLAM2
 
    protected:
 
-      // Main tracking function. It is independent of the input sensor.
-      void Track();
+      virtual void PrintPrefix(ostream & out) override;
 
-      // Map initialization for stereo and RGB-D
-      void StereoInitialization();
+   private:
 
-      // Map initialization for monocular
-      void MonocularInitialization();
-      void CreateInitialMapMonocular();
+      TrackingState mState;
 
-      void CheckReplacedInLastFrame();
-      bool TrackReferenceKeyFrame();
-      void UpdateLastFrame();
-      bool TrackWithMotionModel();
+      // Current Frame
+      Frame mCurrentFrame;
+      cv::Mat mImGray;
 
-      bool Relocalization();
-
-      void UpdateLocalMap();
-
-      // Reset mvpLocalMapPoints to all map points from mvpLocalKeyFrames
-      void UpdateLocalMapPoints();
-
-      // Reset mvpLocalKeyFrames to KeyFrames that share map points with the current frame
-      void UpdateLocalMapKeyFrames();
-
-      bool TrackLocalMap();
-      void SearchLocalPoints();
+      //Last Frame, KeyFrame and Relocalisation Info
+      KeyFrame* mpLastKeyFrame;
+      Frame mLastFrame;
+      unsigned int mnLastFrameIdMadeIntoKeyFrame;
+      unsigned int mnLastRelocFrameId;
 
       //ORB
       ORBextractor* mpORBextractorLeft, *mpORBextractorRight;
@@ -174,23 +158,11 @@ namespace ORB_SLAM2
       //Current matches in frame
       int mnMatchesInliers;
 
-      //Last Frame, KeyFrame and Relocalisation Info
-      KeyFrame* mpLastKeyFrame;
-      Frame mLastFrame;
-      unsigned int mnLastFrameIdMadeIntoKeyFrame;
-      unsigned int mnLastRelocFrameId;
-
       //Motion Model
       cv::Mat mVelocity;
 
       //Color order (true RGB, false BGR, ignored if grayscale)
       bool mbRGB;
-
-      virtual void PrintPrefix(ostream & out) override;
-
-   private:
-
-      TrackingState mState;
 
       // Change mode flags
       std::mutex mMutexMode;
@@ -243,6 +215,37 @@ namespace ORB_SLAM2
       void RotationsYZXtoMat(double y, double z, double x, cv::Mat & m);
 
       void RotationsYXZtoMat(double y, double x, double z, cv::Mat & m);
+
+      // Main tracking function. It is independent of the input sensor.
+      void Track();
+
+      // Map initialization for stereo and RGB-D
+      void StereoInitialization();
+
+      // Map initialization for monocular
+      void MonocularInitialization();
+      void CreateInitialMapMonocular();
+
+      void CheckReplacedInLastFrame();
+
+      bool TrackReferenceKeyFrame();
+
+      bool TrackWithMotionModel();
+
+      bool Relocalization();
+
+      void UpdateLocalMap();
+
+      // Reset mvpLocalMapPoints to all map points from mvpLocalKeyFrames
+      void UpdateLocalMapPoints();
+
+      // Reset mvpLocalKeyFrames to KeyFrames that share map points with mCurrentFrame
+      // and set mCurrentFrame.mReferenceKF to closest KeyFrame
+      void UpdateLocalMapKeyFrames();
+
+      bool TrackLocalMap();
+
+      void SearchLocalPoints();
 
       void HandleMapReset();
 
