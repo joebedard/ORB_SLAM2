@@ -518,7 +518,6 @@ namespace ORB_SLAM2
                {
                   mCurrentFrame.mpReferenceKF = pKF;
                   mnLastFrameIdMadeIntoKeyFrame = mCurrentFrame.mnId;
-                  mpLastKeyFrame = pKF;
                }
             }
 
@@ -621,7 +620,6 @@ namespace ORB_SLAM2
          mCurrentFrame.mpReferenceKF = pKFini;
          mLastFrame = Frame(mCurrentFrame);
          mnLastFrameIdMadeIntoKeyFrame = mCurrentFrame.mnId;
-         mpLastKeyFrame = pKFini;
 
          mvpLocalKeyFrames.push_back(pKFini);
          mvpLocalMapPoints = points;
@@ -813,7 +811,6 @@ namespace ORB_SLAM2
 
       mCurrentFrame.SetPose(pKFcur->GetPose());
       mnLastFrameIdMadeIntoKeyFrame = mCurrentFrame.mnId;
-      mpLastKeyFrame = pKFcur;
 
       mvpLocalKeyFrames.push_back(pKFcur);
       mvpLocalKeyFrames.push_back(pKFini);

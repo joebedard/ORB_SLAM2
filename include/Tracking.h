@@ -120,7 +120,6 @@ namespace ORB_SLAM2
       cv::Mat mImGray;
 
       //Last Frame, KeyFrame and Relocalisation Info
-      KeyFrame* mpLastKeyFrame;
       Frame mLastFrame;
       unsigned int mnLastFrameIdMadeIntoKeyFrame;
       unsigned int mnLastRelocFrameId;
