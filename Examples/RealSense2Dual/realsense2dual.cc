@@ -127,11 +127,11 @@ void RunTracker(int threadId) try
    gOutTrak.Print("while (gShouldRun)");
    while (gShouldRun)
    {
-      gOutTrak.Print("rs2::frameset data = pipe.wait_for_frames();");
+      //gOutTrak.Print("rs2::frameset data = pipe.wait_for_frames();");
       rs2::frameset data = pipe.wait_for_frames(); // Wait for next set of frames from the camera
-      gOutTrak.Print("rs2::video_frame irFrame1 = data.get_infrared_frame(1);");
+      //gOutTrak.Print("rs2::video_frame irFrame1 = data.get_infrared_frame(1);");
       rs2::video_frame irFrame1 = data.get_infrared_frame(1);
-      gOutTrak.Print("rs2::video_frame irFrame2 = data.get_infrared_frame(2);");
+      //gOutTrak.Print("rs2::video_frame irFrame2 = data.get_infrared_frame(2);");
       rs2::video_frame irFrame2 = data.get_infrared_frame(2);
 
       // Create OpenCV matrix of size (width, height)

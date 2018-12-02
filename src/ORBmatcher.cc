@@ -964,7 +964,7 @@ namespace ORB_SLAM2
          // If there is already a MapPoint replace otherwise add new measurement
          if (bestDist <= TH_LOW)
          {
-            MapPoint* pMPinKF = pKF->GetMapPoint(bestIdx);
+            MapPoint * pMPinKF = pKF->GetMapPoint(bestIdx);
             if (pMPinKF)
             {
                if (!pMPinKF->isBad())

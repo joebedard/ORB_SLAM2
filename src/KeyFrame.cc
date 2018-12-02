@@ -110,6 +110,9 @@ namespace ORB_SLAM2
       for (int i = 0;i < FRAME_GRID_COLS;i++)
          for (int j = 0; j < FRAME_GRID_ROWS; j++)
             mGrid[i][j] = frame.mGrid[i][j];
+      
+      if (frame.mTcw.empty())
+         throw exception("KeyFrame::KeyFrame(id_type id, Frame & frame) : frame.mTcw is empty");
 
       SetPose(frame.mTcw);
    }

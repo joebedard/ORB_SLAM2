@@ -39,7 +39,7 @@ int main(int argc, char **argv) try
     if(argc != 5)
     {
         cerr << endl << "Usage: ./rgbd_tum path_to_vocabulary path_to_settings path_to_sequence path_to_association" << endl;
-        return 1;
+        return EXIT_FAILURE;
     }
 
     // Retrieve paths to images
@@ -54,12 +54,12 @@ int main(int argc, char **argv) try
     if(vstrImageFilenamesRGB.empty())
     {
         cerr << endl << "No images found in provided path." << endl;
-        return 1;
+        return EXIT_FAILURE;
     }
     else if(vstrImageFilenamesD.size()!=vstrImageFilenamesRGB.size())
     {
         cerr << endl << "Different number of images for rgb and depth." << endl;
-        return 1;
+        return EXIT_FAILURE;
     }
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
@@ -86,7 +86,7 @@ int main(int argc, char **argv) try
         {
             cerr << endl << "Failed to load image at: "
                  << string(argv[3]) << "/" << vstrImageFilenamesRGB[ni] << endl;
-            return 1;
+            return EXIT_FAILURE;
         }
 
 #ifdef COMPILEDWITHC11
@@ -137,12 +137,24 @@ int main(int argc, char **argv) try
     SLAM.SaveTrajectoryTUM("CameraTrajectory.txt");
     SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");   
 
-    return 0;
+    return EXIT_SUCCESS;
 }
-catch (const std::exception& e)
+catch( cv::Exception & e ) {
+   string msg = string("cv::Exception: ") + e.what();
+   cerr << "main: " << msg << endl;
+   return EXIT_FAILURE;
+}
+catch (const exception & e)
 {
-   std::cerr << e.what() << std::endl;
-   return -1;
+   string msg = string("exception: ") + e.what();
+   cerr << "main: " << msg << endl;
+   return EXIT_FAILURE;
+}
+catch (...)
+{
+   string msg = string("There was an unknown exception in the main thread.");
+   cerr << "main: " << msg << endl;
+   return EXIT_FAILURE;
 }
 
 void LoadImages(const string &strAssociationFilename, vector<string> &vstrImageFilenamesRGB,

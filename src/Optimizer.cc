@@ -84,7 +84,7 @@ namespace ORB_SLAM2
       if (pbStopFlag)
          optimizer.setForceStopFlag(pbStopFlag);
 
-      long unsigned int maxKFid = 0;
+      id_type maxKFid = 0;
 
       Print("// Set KeyFrame vertices");
       // Set KeyFrame vertices
@@ -97,7 +97,8 @@ namespace ORB_SLAM2
          vSE3->setEstimate(Converter::toSE3Quat(pKF->GetPose()));
          vSE3->setId(pKF->GetId());
          vSE3->setFixed(pKF->GetId() == 0);
-         optimizer.addVertex(vSE3);
+         if (!optimizer.addVertex(vSE3))
+            Print("optimizer.addVertex(vSE3) failed");
          if (pKF->GetId() > maxKFid)
             maxKFid = pKF->GetId();
       }
@@ -114,10 +115,11 @@ namespace ORB_SLAM2
             continue;
          g2o::VertexSBAPointXYZ* vPoint = new g2o::VertexSBAPointXYZ();
          vPoint->setEstimate(Converter::toVector3d(pMP->GetWorldPos()));
-         const int id = pMP->GetId() + maxKFid + 1;
+         const id_type id = pMP->GetId() + maxKFid + 1;
          vPoint->setId(id);
          vPoint->setMarginalized(true);
-         optimizer.addVertex(vPoint);
+         if (!optimizer.addVertex(vPoint))
+            Print("optimizer.addVertex(vPoint) failed");
 
          const map<KeyFrame*, size_t> observations = pMP->GetObservations();
 
@@ -284,7 +286,8 @@ namespace ORB_SLAM2
       vSE3->setEstimate(Converter::toSE3Quat(pFrame->mTcw));
       vSE3->setId(0);
       vSE3->setFixed(false);
-      optimizer.addVertex(vSE3);
+      if (!optimizer.addVertex(vSE3))
+         Print("optimizer.addVertex(vSE3) failed");
 
       // Set MapPoint vertices
       const int N = pFrame->N;
@@ -571,7 +574,8 @@ namespace ORB_SLAM2
          vSE3->setEstimate(Converter::toSE3Quat(pKFi->GetPose()));
          vSE3->setId(pKFi->GetId());
          vSE3->setFixed(pKFi->GetId() == 0);
-         optimizer.addVertex(vSE3);
+         if (!optimizer.addVertex(vSE3))
+            Print("optimizer.addVertex(vSE3)) failed");
          if (pKFi->GetId() > maxKFid)
             maxKFid = pKFi->GetId();
       }
@@ -585,7 +589,8 @@ namespace ORB_SLAM2
          vSE3->setEstimate(Converter::toSE3Quat(pKFi->GetPose()));
          vSE3->setId(pKFi->GetId());
          vSE3->setFixed(true);
-         optimizer.addVertex(vSE3);
+         if (!optimizer.addVertex(vSE3))
+            Print("optimizer.addVertex(vSE3) failed");
          if (pKFi->GetId() > maxKFid)
             maxKFid = pKFi->GetId();
       }
@@ -620,10 +625,11 @@ namespace ORB_SLAM2
          MapPoint* pMP = *lit;
          g2o::VertexSBAPointXYZ* vPoint = new g2o::VertexSBAPointXYZ();
          vPoint->setEstimate(Converter::toVector3d(pMP->GetWorldPos()));
-         int id = pMP->GetId() + maxKFid + 1;
+         id_type id = pMP->GetId() + maxKFid + 1;
          vPoint->setId(id);
          vPoint->setMarginalized(true);
-         optimizer.addVertex(vPoint);
+         if (!optimizer.addVertex(vPoint))
+            Print("optimizer.addVertex(vPoint) failed");
 
          const std::map<KeyFrame*, size_t> observations = pMP->GetObservations();
 
@@ -888,7 +894,7 @@ namespace ORB_SLAM2
             continue;
          g2o::VertexSim3Expmap* VSim3 = new g2o::VertexSim3Expmap();
 
-         const int nIDi = pKF->GetId();
+         const id_type nIDi = pKF->GetId();
 
          LoopClosing::KeyFrameAndPose::const_iterator it = CorrectedSim3.find(pKF);
 
@@ -913,7 +919,8 @@ namespace ORB_SLAM2
          VSim3->setMarginalized(false);
          VSim3->_fix_scale = bFixScale;
 
-         optimizer.addVertex(VSim3);
+         if (!optimizer.addVertex(VSim3))
+            Print("optimizer.addVertex(VSim3) failed");
 
          vpVertices[nIDi] = VSim3;
       }
@@ -1173,7 +1180,8 @@ namespace ORB_SLAM2
       vSim3->_principle_point2[1] = K2.at<float>(1, 2);
       vSim3->_focal_length2[0] = K2.at<float>(0, 0);
       vSim3->_focal_length2[1] = K2.at<float>(1, 1);
-      optimizer.addVertex(vSim3);
+      if (!optimizer.addVertex(vSim3))
+         Print("optimizer.addVertex failed(vSim3)");
 
       // Set MapPoint vertices
       const int N = vpMatches1.size();
@@ -1198,8 +1206,8 @@ namespace ORB_SLAM2
          MapPoint* pMP1 = vpMapPoints1[i];
          MapPoint* pMP2 = vpMatches1[i];
 
-         const int id1 = 2 * i + 1;
-         const int id2 = 2 * (i + 1);
+         const id_type id1 = 2 * i + 1;
+         const id_type id2 = 2 * (i + 1);
 
          const int i2 = pMP2->GetIndexInKeyFrame(pKF2);
 
@@ -1213,7 +1221,8 @@ namespace ORB_SLAM2
                vPoint1->setEstimate(Converter::toVector3d(P3D1c));
                vPoint1->setId(id1);
                vPoint1->setFixed(true);
-               optimizer.addVertex(vPoint1);
+               if (!optimizer.addVertex(vPoint1))
+                  Print("optimizer.addVertex(vPoint1) failed");
 
                g2o::VertexSBAPointXYZ* vPoint2 = new g2o::VertexSBAPointXYZ();
                cv::Mat P3D2w = pMP2->GetWorldPos();
@@ -1221,7 +1230,8 @@ namespace ORB_SLAM2
                vPoint2->setEstimate(Converter::toVector3d(P3D2c));
                vPoint2->setId(id2);
                vPoint2->setFixed(true);
-               optimizer.addVertex(vPoint2);
+               if (!optimizer.addVertex(vPoint2))
+                  Print("optimizer.addVertex(vPoint2) failed");
             }
             else
                continue;

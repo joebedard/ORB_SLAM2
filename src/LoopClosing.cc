@@ -70,32 +70,32 @@ namespace ORB_SLAM2
       Print("begin Run");
       mbFinished = false;
 
-      while (1)
+      while (!CheckFinish())
       {
-         // Check if there are keyframes in the queue
-         if (CheckNewKeyFrames())
-         {
-            // Detect loop candidates and check covisibility consistency
-            if (DetectLoop())
-            {
-               // Compute similarity transformation [sR|t]
-               // In the stereo/RGBD case s=1
-               if (ComputeSim3())
-               {
-                  // Perform loop fusion and pose graph optimization
-                  CorrectLoop();
-               }
-            }
-         }
+         sleep(5000);
 
          //Print("ResetIfRequested();");
          ResetIfRequested();
+         {
+            //Print("unique_lock<mutex> lock(mMutexMapUpdate);");
+            //unique_lock<mutex> lock(mMutexMapUpdate);
 
-         //Print("if(CheckFinish())");
-         if (CheckFinish())
-            break;
-
-         sleep(5000);
+            // Check if there are keyframes in the queue
+            while (CheckNewKeyFrames())
+            {
+               // Detect loop candidates and check covisibility consistency
+               if (DetectLoop())
+               {
+                  // Compute similarity transformation [sR|t]
+                  // In the stereo/RGBD case s=1
+                  if (ComputeSim3())
+                  {
+                     // Perform loop fusion and pose graph optimization
+                     CorrectLoop();
+                  }
+               }
+            }
+         }
       }
 
       SetFinish();
@@ -131,7 +131,18 @@ namespace ORB_SLAM2
    bool LoopClosing::CheckNewKeyFrames()
    {
       unique_lock<mutex> lock(mMutexLoopQueue);
-      return(!mlpLoopKeyFrameQueue.empty());
+      if (mlpLoopKeyFrameQueue.empty())
+      {
+         return false;
+      }
+      else
+      {
+         mpCurrentKF = mlpLoopKeyFrameQueue.front();
+         mlpLoopKeyFrameQueue.pop_front();
+         // Avoid that a keyframe can be erased while it is being process by this thread
+         mpCurrentKF->SetNotErase();
+         return true;
+      }
    }
 
    bool LoopClosing::DetectLoop()
@@ -139,15 +150,7 @@ namespace ORB_SLAM2
       Print("begin DetectLoop");
       MapChangeEvent mapChanges;
 
-      {
-         unique_lock<mutex> lock(mMutexLoopQueue);
-         mpCurrentKF = mlpLoopKeyFrameQueue.front();
-         mlpLoopKeyFrameQueue.pop_front();
-         // Avoid that a keyframe can be erased while it is being process by this thread
-         mpCurrentKF->SetNotErase();
-      }
-
-      //If the map contains less than 10 KF or less than 10 KF have passed from last loop detection
+      // If the map contains less than 10 KF or less than 10 KF have passed since last loop detection
       if (mpCurrentKF->GetId() < mLastLoopKFid + 10)
       {
          mKeyFrameDB.add(mpCurrentKF);
@@ -762,6 +765,9 @@ namespace ORB_SLAM2
    {
       Print("begin RunGlobalBundleAdjustment");
       Print("Starting Global Bundle Adjustment");
+
+      //Print("unique_lock<mutex> lock(mMutexMapUpdate);");
+      //unique_lock<mutex> lock(mMutexMapUpdate);
 
       int idx = mnFullBAIdx;
       MapChangeEvent mapChanges1;

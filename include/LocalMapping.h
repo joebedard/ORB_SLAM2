@@ -152,6 +152,7 @@ namespace ORB_SLAM2
       mutex mMutexAccept;
 
       unsigned long NewMapPointId();
+
    };
 
 } //namespace ORB_SLAM
