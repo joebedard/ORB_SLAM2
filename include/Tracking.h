@@ -82,8 +82,6 @@ namespace ORB_SLAM2
 
    public:
 
-      TrackingState mLastProcessedState;
-
       // Input sensor
       SensorType mSensor;
 

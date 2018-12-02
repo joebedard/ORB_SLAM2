@@ -403,8 +403,6 @@ namespace ORB_SLAM2
       Print("unique_lock<mutex> lock(mMapper.GetMutexMapUpdate());");
       unique_lock<mutex> lock(mMapper.GetMutexMapUpdate());
 
-      mLastProcessedState = mState;
-
       Print("if (!mMapper->GetInitialized())");
       if (!mMapper.GetInitialized())
       {
@@ -418,7 +416,7 @@ namespace ORB_SLAM2
             //mpFrameDrawer->Update(*this, mMapper.GetMap());
             mpFrameDrawer->Update(
                mbOnlyTracking, 
-               mLastProcessedState, 
+               mState, 
                mImGray, 
                mInitialFrame.mvKeys,
                mvIniMatches,
@@ -482,7 +480,7 @@ namespace ORB_SLAM2
          // Update drawer
          mpFrameDrawer->Update(
             mbOnlyTracking, 
-            mLastProcessedState, 
+            mState, 
             mImGray, 
             mInitialFrame.mvKeys,
             mvIniMatches,
@@ -914,7 +912,7 @@ namespace ORB_SLAM2
       // Update pose according to reference keyframe
       KeyFrame * pRef = mLastFrame.mpReferenceKF;
       cv::Mat Tlr = mlRelativeFramePoses.back();
-      mLastFrame.SetPose(Tlr*pRef->GetPose()); // rarely causes a cv::Exception in matmul, is pRef deleted? Was the pose changed b another thread?
+      mLastFrame.SetPose(Tlr*pRef->GetPose()); // rarely causes a cv::Exception in matmul, is pRef deleted? Was the pose changed by another thread?
 
       Print("2");
       mCurrentFrame.SetPose(mVelocity*mLastFrame.mTcw);
