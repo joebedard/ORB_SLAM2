@@ -70,7 +70,7 @@ namespace ORB_SLAM2
       Print("begin Run");
       mbFinished = false;
 
-      while (!CheckFinish())
+      do
       {
          sleep(3000);
 
@@ -82,23 +82,8 @@ namespace ORB_SLAM2
             //Print("unique_lock<mutex> lock(mutexMapUpdate);");
             //unique_lock<mutex> lock(mMutexMapUpdate);
 
-            if (Pause())
-            {
-               // Tracking will see that Local Mapping is busy
-               Print("SetAcceptKeyFrames(false);");
-               SetAcceptKeyFrames(false);
-
-               // Pause and allow LoopClosing to finish (CorrectLoop or GlobalBundleAdjustment))
-               Print("PAUSE");
-
-               while (IsPaused() && !CheckFinish())
-               {
-                  sleep(3000);
-               }
-               Print("CONTINUE");
-            }
             // Check if there are keyframes in the queue
-            else if (CheckNewKeyFrames())
+            if (CheckNewKeyFrames())
             {
                // Tracking will see that Local Mapping is busy
                Print("SetAcceptKeyFrames(false);");
@@ -145,6 +130,27 @@ namespace ORB_SLAM2
 
                mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
             }
+            else if (Pause())
+            {
+               // Tracking will see that Local Mapping is busy
+               Print("SetAcceptKeyFrames(false);");
+               SetAcceptKeyFrames(false);
+
+               // Pause and allow LoopClosing to finish (CorrectLoop or GlobalBundleAdjustment))
+               Print("PAUSE");
+
+               while (IsPaused() && !CheckFinish())
+               {
+                  sleep(3000);
+               }
+
+               // LocalMapping::Resume clears the keyframe queue
+               Print("CONTINUE");
+
+               // Tracking will see that Local Mapping is not busy
+               Print("SetAcceptKeyFrames(true);");
+               SetAcceptKeyFrames(true);
+            }
             else
             {
                // Tracking will see that Local Mapping is not busy
@@ -153,7 +159,8 @@ namespace ORB_SLAM2
             }
 
          } while (!AcceptKeyFrames());
-      }
+
+      } while (!CheckFinish());
 
       SetFinish();
       Print("end Run");
@@ -203,16 +210,7 @@ namespace ORB_SLAM2
    bool LocalMapping::CheckNewKeyFrames()
    {
       unique_lock<mutex> lock(mMutexNewKFs);
-      if (mlNewKeyFrames.empty())
-      {
-         return false;
-      }
-      else
-      {
-         mpCurrentKeyFrame = mlNewKeyFrames.front();
-         mlNewKeyFrames.pop_front();
-         return true;
-      }
+      return !mlNewKeyFrames.empty();
    }
 
 
@@ -220,15 +218,19 @@ namespace ORB_SLAM2
    {
       Print("begin ProcessNewKeyFrame");
 
+      {
+         unique_lock<mutex> lock(mMutexNewKFs);
+         mpCurrentKeyFrame = mlNewKeyFrames.front();
+         mlNewKeyFrames.pop_front();
+      }
+
       // TODO OK - move this to MapperServer::InsertKeyFrame ?
       // Compute Bags of Words structures
       //mpCurrentKeyFrame->ComputeBoW(mVocab);
 
-      Print("3");
       // Associate MapPoints to the new keyframe and update normal and descriptor
       const vector<MapPoint *> vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
 
-      Print("4");
       for (size_t i = 0; i < vpMapPointMatches.size(); i++)
       {
          MapPoint * pMP = vpMapPointMatches[i];
@@ -254,11 +256,9 @@ namespace ORB_SLAM2
          }
       }
 
-      Print("5");
       // Update links in the Covisibility Graph
       mpCurrentKeyFrame->UpdateConnections();
       // TODO OK - add to created keyframes
-      Print("6");
       mapChanges.updatedKeyFrames.insert(mpCurrentKeyFrame);
 
       // TODO OK - move this to MapperServer::InsertKeyFrame ?
@@ -749,20 +749,23 @@ namespace ORB_SLAM2
             return;
       }
 
+      unique_lock<mutex> lock2(mMutexPause);
+      if (!mbPaused)
+         return;
+      else
       {
-         unique_lock<mutex> lock2(mMutexPause);
+         unique_lock<mutex> lock3(mMutexNewKFs);
+         for (list<KeyFrame *>::iterator lit = mlNewKeyFrames.begin(), lend = mlNewKeyFrames.end(); lit != lend; lit++)
+         {
+            mMap.EraseKeyFrame(*lit);
+            //delete *lit; // do not delete keyframes, they might be in Tracking::mLastFrame.mpReferenceKF
+         }
+         mlNewKeyFrames.clear();
+
          mbPaused = false;
          mbPauseRequested = false;
          NotifyPauseRequested(mbPauseRequested);
       }
-
-      unique_lock<mutex> lock3(mMutexNewKFs);
-      for (list<KeyFrame *>::iterator lit = mlNewKeyFrames.begin(), lend = mlNewKeyFrames.end(); lit != lend; lit++)
-      {
-         mMap.EraseKeyFrame(*lit);
-         //delete *lit; // do not delete keyframes, they might be in Tracking::mLastFrame.mpReferenceKF
-      }
-      mlNewKeyFrames.clear();
 
       Print("RESUME");
    }
