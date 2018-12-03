@@ -1638,6 +1638,8 @@ namespace ORB_SLAM2
    {
       unsigned long temp = mNextKeyFrameId;
       mNextKeyFrameId += mKeyFrameIdSpan;
+      if (temp > mNextKeyFrameId)
+         throw exception("exceeded maximum KeyFrameIds");
       return temp;
    }
 
@@ -1645,6 +1647,8 @@ namespace ORB_SLAM2
    {
       unsigned long temp = mNextMapPointId;
       mNextMapPointId += mMapPointIdSpan;
+      if (temp > mNextMapPointId)
+         throw exception("exceeded maximum MapPointIds");
       return temp;
    }
 
