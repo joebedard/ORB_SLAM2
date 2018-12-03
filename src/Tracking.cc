@@ -976,6 +976,10 @@ namespace ORB_SLAM2
       // post: potential map points are in mvpLocalMapPoints
       UpdateLocalMap();
 
+      // This is for visualization
+      if (mpMapDrawer)
+         mpMapDrawer->SetReferenceMapPoints(mvpLocalMapPoints);
+
       // post: matching map points are in mCurrentFrame.mvpMapPoints
       SearchLocalPoints();
 
@@ -1155,10 +1159,6 @@ namespace ORB_SLAM2
    void Tracking::UpdateLocalMap()
    {
       Print("begin UpdateLocalMap");
-
-      // This is for visualization
-      if (mpMapDrawer)
-         mpMapDrawer->SetReferenceMapPoints(mvpLocalMapPoints);
 
       // post: relevant keyframes are in mvpLocalKeyFrames, and set mCurrentFrame.mReferenceKF to closest KeyFrame
       UpdateLocalMapKeyFrames();
