@@ -703,8 +703,9 @@ namespace ORB_SLAM2
 
       if (mbToBeErased)
       {
+         bool b = SetBadFlag(pMap, pKeyFrameDB);
          Print("end SetErase 1");
-         return SetBadFlag(pMap, pKeyFrameDB);
+         return b;
       }
       Print("end SetErase 2");
       return false;
@@ -1155,5 +1156,12 @@ namespace ORB_SLAM2
       pData = WriteKeyFrameIds(pData, mspLoopEdges);
       return pData;
    }
+
+   void KeyFrame::PrintPrefix(ostream & out)
+   {
+      SyncPrint::PrintPrefix(out);
+      out << "Id=" << mnId << " ";
+   }
+
 
 } //namespace ORB_SLAM

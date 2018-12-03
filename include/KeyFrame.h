@@ -356,7 +356,10 @@ namespace ORB_SLAM2
       static void * WriteKeyFrameIds(void * const buffer, const std::set<KeyFrame *> & kfs);
 
       bool PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY);
+
       void AssignFeaturesToGrid();
+
+      void PrintPrefix(ostream & out);
 };
 
 } //namespace ORB_SLAM
