@@ -59,6 +59,16 @@ namespace ORB_SLAM2
    {
    }
 
+   LoopClosing::~LoopClosing()
+   {
+      if (mpThreadGBA)
+      {
+         mpThreadGBA->detach();
+         delete mpThreadGBA;
+         mpThreadGBA = NULL;
+      }
+   }
+
    void LoopClosing::SetLocalMapper(LocalMapping *pLocalMapper)
    {
       mpLocalMapper = pLocalMapper;
@@ -494,10 +504,10 @@ namespace ORB_SLAM2
 
          if (mpThreadGBA)
          {
-            //mpThreadGBA->detach();
-            Print("mpThreadGBA->join();");
-            mpThreadGBA->join();
+            Print("mpThreadGBA->detach();");
+            mpThreadGBA->detach();
             delete mpThreadGBA;
+            mpThreadGBA = NULL;
          }
       }
 

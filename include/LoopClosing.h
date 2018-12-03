@@ -61,6 +61,8 @@ namespace ORB_SLAM2
          const bool bFixScale
       );
 
+      ~LoopClosing();
+
       void SetLocalMapper(LocalMapping* pLocalMapper);
 
       // Main function
