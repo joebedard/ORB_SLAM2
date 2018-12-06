@@ -947,7 +947,7 @@ namespace ORB_SLAM2
    }
 
 
-   bool LocalMapping::isFinished()
+   bool LocalMapping::IsFinished()
    {
       unique_lock<mutex> lock(mMutexFinish);
       return mbFinished;

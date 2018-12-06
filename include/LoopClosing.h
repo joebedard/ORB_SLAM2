@@ -87,7 +87,7 @@ namespace ORB_SLAM2
 
       void RequestFinish();
 
-      bool isFinished();
+      bool IsFinished();
 
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 

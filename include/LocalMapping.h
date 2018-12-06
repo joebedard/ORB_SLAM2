@@ -75,7 +75,7 @@ namespace ORB_SLAM2
       void InterruptBA();
 
       void RequestFinish();
-      bool isFinished();
+      bool IsFinished();
 
       int KeyframesInQueue()
       {

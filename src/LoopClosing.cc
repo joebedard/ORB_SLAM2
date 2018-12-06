@@ -801,7 +801,7 @@ namespace ORB_SLAM2
             Print("Updating map ...");
             mpLocalMapper->RequestPause();
             // Wait until Local Mapping has effectively stopped
-            while (!mpLocalMapper->IsPaused() && !mpLocalMapper->isFinished())
+            while (!mpLocalMapper->IsPaused() && !mpLocalMapper->IsFinished())
             {
                sleep(1000);
             }
@@ -931,7 +931,7 @@ namespace ORB_SLAM2
       mbFinished = true;
    }
 
-   bool LoopClosing::isFinished()
+   bool LoopClosing::IsFinished()
    {
       unique_lock<mutex> lock(mMutexFinish);
       return mbFinished;
