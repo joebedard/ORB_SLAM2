@@ -302,8 +302,8 @@ namespace ORB_SLAM2
 
          if (Stop())
          {
-            Print("while (isStopped())");
-            while (isStopped())
+            Print("while (IsStopped())");
+            while (IsStopped())
             {
                sleep(3000);
             }
@@ -375,7 +375,7 @@ namespace ORB_SLAM2
       mbFinished = true;
    }
 
-   bool Viewer::isFinished()
+   bool Viewer::IsFinished()
    {
       unique_lock<mutex> lock(mMutexFinish);
       return mbFinished;
@@ -388,7 +388,7 @@ namespace ORB_SLAM2
          mbStopRequested = true;
    }
 
-   bool Viewer::isStopped()
+   bool Viewer::IsStopped()
    {
       unique_lock<mutex> lock(mMutexStop);
       return mbStopped;

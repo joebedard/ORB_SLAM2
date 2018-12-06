@@ -56,9 +56,9 @@ namespace ORB_SLAM2
 
       void RequestStop();
 
-      bool isFinished();
+      bool IsFinished();
 
-      bool isStopped();
+      bool IsStopped();
 
       void Resume();
 

@@ -1486,7 +1486,7 @@ namespace ORB_SLAM2
       if (mpViewer)
       {
          mpViewer->RequestStop();
-         while (!mpViewer->isStopped() && !mpViewer->isFinished())
+         while (!mpViewer->IsStopped() && !mpViewer->IsFinished())
             sleep(3000);
       }
 
