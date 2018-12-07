@@ -136,6 +136,7 @@ namespace ORB_SLAM2
          }
       }
 
+      Print("end SearchByProjection");
       return nmatches;
    }
 
