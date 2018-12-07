@@ -63,7 +63,7 @@ namespace ORB_SLAM2
       void EraseObservation(KeyFrame* pKF, Map * pMap);
 
       int GetIndexInKeyFrame(KeyFrame* pKF);
-      bool IsInKeyFrame(KeyFrame* pKF);
+      bool IsObserving(KeyFrame* pKF);
 
       void SetBadFlag(Map * pMap);
       bool isBad();

@@ -859,7 +859,7 @@ namespace ORB_SLAM2
          if (!pMP)
             continue;
 
-         if (pMP->isBad() || pMP->IsInKeyFrame(pKF))
+         if (pMP->isBad() || pMP->IsObserving(pKF))
             continue;
 
          cv::Mat p3Dw = pMP->GetWorldPos();

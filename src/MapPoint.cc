@@ -211,7 +211,7 @@ namespace ORB_SLAM2
          // Replace measurement in keyframe
          KeyFrame* pKF = mit->first;
 
-         if (!pMP->IsInKeyFrame(pKF))
+         if (!pMP->IsObserving(pKF))
          {
             pKF->ReplaceMapPointMatch(mit->second, pMP);
             pMP->AddObservation(pKF, mit->second);
@@ -343,7 +343,7 @@ namespace ORB_SLAM2
          return -1;
    }
 
-   bool MapPoint::IsInKeyFrame(KeyFrame *pKF)
+   bool MapPoint::IsObserving(KeyFrame *pKF)
    {
       unique_lock<mutex> lock(mMutexFeatures);
       return (mObservations.count(pKF));
