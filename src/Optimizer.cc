@@ -39,52 +39,25 @@
 namespace ORB_SLAM2
 {
 
+   using namespace std;
+
    void Optimizer::Print(const char * message)
    {
       SyncPrint::Print("Optimizer: ", message);
    }
 
-   void Optimizer::GlobalBundleAdjustment(
-      Map & map,
-      MapChangeEvent & mapChanges,
-      int nIterations, 
-      bool * pbStopFlag, 
-      const unsigned long loopKeyFrameId, 
-      const bool bRobust)
+   void Optimizer::CreateGraphGlobalBundleAdjustment(
+      Map & theMap,
+      g2o::SparseOptimizer & optimizer,
+      const bool bRobust,
+      vector<KeyFrame*> & vpKFs,
+      vector<MapPoint*> & vpMPs,
+      vector<bool> & vbNotIncludedMP,
+      id_type & maxKFid)
    {
-      vector<KeyFrame*> vpKFs = map.GetAllKeyFrames();
-      vector<MapPoint*> vpMP = map.GetAllMapPoints();
-      BundleAdjustment(vpKFs, vpMP, mapChanges, nIterations, pbStopFlag, loopKeyFrameId, bRobust);
-   }
-
-
-   void Optimizer::BundleAdjustment(
-      const vector<KeyFrame *> & vpKFs,
-      const vector<MapPoint *> & vpMP,
-      MapChangeEvent & mapChanges,
-      int nIterations, 
-      bool * pbStopFlag,
-      const unsigned long loopKeyFrameId, 
-      const bool bRobust)
-   {
-      Print("begin BundleAdjustment");
-      vector<bool> vbNotIncludedMP;
-      vbNotIncludedMP.resize(vpMP.size());
-
-      g2o::SparseOptimizer optimizer;
-      g2o::BlockSolver_6_3::LinearSolverType * linearSolver;
-
-      linearSolver = new g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>();
-
-      g2o::BlockSolver_6_3 * solver_ptr = new g2o::BlockSolver_6_3(linearSolver);
-
-      g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
-      optimizer.setAlgorithm(solver);
-
-      if (pbStopFlag)
-         optimizer.setForceStopFlag(pbStopFlag);
-
-      id_type maxKFid = 0;
+      vpKFs = theMap.GetAllKeyFrames();
+      vpMPs = theMap.GetAllMapPoints();
+      vbNotIncludedMP.resize(vpMPs.size());
 
       // Set KeyFrame vertices
       for (size_t i = 0; i < vpKFs.size(); i++)
@@ -106,14 +79,16 @@ namespace ORB_SLAM2
       const float thHuber3D = sqrt(7.815);
 
       // Set MapPoint vertices
-      for (size_t i = 0; i < vpMP.size(); i++)
+      for (size_t i = 0; i < vpMPs.size(); i++)
       {
-         MapPoint* pMP = vpMP[i];
+         MapPoint* pMP = vpMPs[i];
          if (pMP->isBad())
             continue;
          g2o::VertexSBAPointXYZ* vPoint = new g2o::VertexSBAPointXYZ();
          vPoint->setEstimate(Converter::toVector3d(pMP->GetWorldPos()));
          const id_type id = pMP->GetId() + maxKFid + 1;
+         if (id <= maxKFid)
+            throw exception("Optimizer::GlobalBundleAdjustment: maximum id exceeded");
          vPoint->setId(id);
          vPoint->setMarginalized(true);
          if (!optimizer.addVertex(vPoint))
@@ -144,8 +119,8 @@ namespace ORB_SLAM2
                e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(id)));
                e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKF->GetId())));
                e->setMeasurement(obs);
-               const float &invSigma2 = pKF->invLevelSigma2[kpUn.octave];
-               e->setInformation(Eigen::Matrix2d::Identity()*invSigma2);
+               Eigen::Matrix2d info = Eigen::Matrix2d::Identity() * pKF->invLevelSigma2[kpUn.octave];
+               e->setInformation(info);
 
                if (bRobust)
                {
@@ -159,7 +134,8 @@ namespace ORB_SLAM2
                e->cx = pKF->mFC.cx;
                e->cy = pKF->mFC.cy;
 
-               optimizer.addEdge(e);
+               if (!optimizer.addEdge(e))
+                  Print("optimizer.addEdge(e) failed");
             }
             else
             {
@@ -172,15 +148,14 @@ namespace ORB_SLAM2
                e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(id)));
                e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKF->GetId())));
                e->setMeasurement(obs);
-               const float &invSigma2 = pKF->invLevelSigma2[kpUn.octave];
-               Eigen::Matrix3d Info = Eigen::Matrix3d::Identity()*invSigma2;
-               e->setInformation(Info);
+               Eigen::Matrix3d info = Eigen::Matrix3d::Identity() * pKF->invLevelSigma2[kpUn.octave];
+               e->setInformation(info);
 
                if (bRobust)
                {
                   g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
                   e->setRobustKernel(rk);
-                  rk->setDelta(thHuber3D);
+                  rk->setDelta(thHuber3D); // TODO - swap with line above?
                }
 
                e->fx = pKF->mFC.fx;
@@ -189,7 +164,8 @@ namespace ORB_SLAM2
                e->cy = pKF->mFC.cy;
                e->bf = pKF->mFC.blfx;
 
-               optimizer.addEdge(e);
+               if (!optimizer.addEdge(e))
+                  Print("optimizer.addEdge(e) failed");
             }
          }
 
@@ -203,12 +179,24 @@ namespace ORB_SLAM2
             vbNotIncludedMP[i] = false;
          }
       }
+   }
 
-      // Optimize!
-      optimizer.initializeOptimization();
-      optimizer.optimize(nIterations);
-
-      // Recover optimized data
+   void Optimizer::RecoverGraphGlobalBundleAdjustment(
+      Map & theMap,
+      MapChangeEvent & mapChanges,
+      g2o::SparseOptimizer & optimizer,
+      const id_type loopKeyFrameId,
+      vector<KeyFrame*> & vpKFs,
+      vector<MapPoint*> & vpMPs,
+      vector<bool> & vbNotIncludedMP,
+      id_type & maxKFid)
+   {
+      /*
+      For GlobalBundleAdjustment, graph recovery does not involve the 'edges' 
+      (i.e. the links between KeyFrames and MapPoints). Only poses and positions
+      of the KeyFrames and MapPoints, respectively, are updated. Thus, it is
+      not necessary to lock on the map mutex.
+      */
 
       //Keyframes
       for (size_t i = 0; i < vpKFs.size(); i++)
@@ -234,12 +222,12 @@ namespace ORB_SLAM2
       }
 
       //Points
-      for (size_t i = 0; i < vpMP.size(); i++)
+      for (size_t i = 0; i < vpMPs.size(); i++)
       {
          if (vbNotIncludedMP[i])
             continue;
 
-         MapPoint* pMP = vpMP[i];
+         MapPoint* pMP = vpMPs[i];
 
          if (pMP->isBad())
             continue;
@@ -260,7 +248,61 @@ namespace ORB_SLAM2
             pMP->mnBAGlobalForKF = loopKeyFrameId;
          }
       }
-      Print("end BundleAdjustment");
+   }
+
+   void Optimizer::GlobalBundleAdjustment(
+      Map & theMap,
+      mutex & mutexMapUpdate,
+      MapChangeEvent & mapChanges,
+      int nIterations, 
+      bool * pbStopFlag, 
+      const id_type loopKeyFrameId, 
+      const bool bRobust)
+   {
+      Print("begin GlobalBundleAdjustment");
+
+      g2o::SparseOptimizer optimizer;
+      g2o::BlockSolver_6_3::LinearSolverType * linearSolver;
+
+      linearSolver = new g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>();
+
+      g2o::BlockSolver_6_3 * solver_ptr = new g2o::BlockSolver_6_3(linearSolver);
+
+      g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
+      optimizer.setAlgorithm(solver);
+
+      if (pbStopFlag)
+         optimizer.setForceStopFlag(pbStopFlag);
+
+      vector<KeyFrame*> vpKFs;
+      vector<MapPoint*> vpMPs;
+      vector<bool> vbNotIncludedMP;
+      id_type maxKFid = 0;
+      if (loopKeyFrameId == 0)
+      {
+         // GBA is called during Tracking initialization, and there is already a lock on the map
+         CreateGraphGlobalBundleAdjustment(theMap, optimizer, bRobust, vpKFs, vpMPs, vbNotIncludedMP, maxKFid);
+      }
+      else
+      {
+         // GBA is called from LoopClosing, we should lock the map
+         Print("waiting to lock map");
+         unique_lock<mutex> lock(mutexMapUpdate);
+         Print("map is locked");
+
+         CreateGraphGlobalBundleAdjustment(theMap, optimizer, bRobust, vpKFs, vpMPs, vbNotIncludedMP, maxKFid);
+      }
+
+      // Optimize!
+      if (optimizer.initializeOptimization())
+         optimizer.optimize(nIterations);
+      else
+         throw exception("optimizer.initializeOptimization() failed");
+
+      // Recover optimized data
+      RecoverGraphGlobalBundleAdjustment(theMap, mapChanges, optimizer, loopKeyFrameId, vpKFs, vpMPs, vbNotIncludedMP, maxKFid);
+
+      Print("end GlobalBundleAdjustment");
    }
 
    int Optimizer::PoseOptimization(Frame *pFrame)
@@ -399,8 +441,8 @@ namespace ORB_SLAM2
 
       // We perform 4 optimizations, after each optimization we classify observation as inlier/outlier
       // At the next optimization, outliers are not included, but at the end they can be classified as inliers again.
-      const float chi2Mono[4] = { 5.991,5.991,5.991,5.991 };
-      const float chi2Stereo[4] = { 7.815,7.815,7.815, 7.815 };
+      const float chi2Mono[4] = { 5.991f, 5.991f, 5.991f , 5.991f };
+      const float chi2Stereo[4] = { 7.815f, 7.815f, 7.815f, 7.815f };
       const int its[4] = { 10,10,10,10 };
 
       int nBad = 0;
@@ -484,21 +526,28 @@ namespace ORB_SLAM2
       return nInitialCorrespondences - nBad;
    }
 
-   void Optimizer::LocalBundleAdjustment(
+   void Optimizer::CreateGraphLocalBundleAdjustment(
+      std::mutex & mutexMapUpdate,
       KeyFrame * pKF,
-      bool * pbStopFlag,
-      Map & map, 
-      std::mutex & mutexMapUpdate, 
-      MapChangeEvent & mapChanges)
+      g2o::SparseOptimizer & optimizer,
+      id_type & maxKFid,
+      list<KeyFrame*> & lLocalKeyFrames,
+      list<MapPoint*> & lLocalMapPoints,
+      vector<g2o::EdgeSE3ProjectXYZ*> & vpEdgesMono,
+      vector<KeyFrame*> & vpEdgeKFMono,
+      vector<MapPoint*> & vpMapPointEdgeMono,
+      vector<g2o::EdgeStereoSE3ProjectXYZ*> & vpEdgesStereo,
+      vector<KeyFrame*> & vpEdgeKFStereo,
+      vector<MapPoint*> & vpMapPointEdgeStereo)
    {
-      Print("begin LocalBundleAdjustment");
-
-      // Local KeyFrames: First Breath Search from Current Keyframe
-      list<KeyFrame*> lLocalKeyFrames;
+      Print("waiting to lock map");
+      unique_lock<mutex> lock(mutexMapUpdate);
+      Print("map is locked");
 
       lLocalKeyFrames.push_back(pKF);
       pKF->mnBALocalForKF = pKF->GetId();
 
+      // Local KeyFrames: First Breath Search from Current Keyframe
       const vector<KeyFrame*> vNeighKFs = pKF->GetVectorCovisibleKeyFrames();
       for (int i = 0, iend = vNeighKFs.size(); i < iend; i++)
       {
@@ -509,7 +558,6 @@ namespace ORB_SLAM2
       }
 
       // Local MapPoints seen in Local KeyFrames
-      list<MapPoint*> lLocalMapPoints;
       for (list<KeyFrame*>::iterator lit = lLocalKeyFrames.begin(), lend = lLocalKeyFrames.end(); lit != lend; lit++)
       {
          vector<MapPoint*> vpMPs = (*lit)->GetMapPointMatches();
@@ -544,22 +592,6 @@ namespace ORB_SLAM2
          }
       }
 
-      // Setup optimizer
-      g2o::SparseOptimizer optimizer;
-      g2o::BlockSolver_6_3::LinearSolverType * linearSolver;
-
-      linearSolver = new g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>();
-
-      g2o::BlockSolver_6_3 * solver_ptr = new g2o::BlockSolver_6_3(linearSolver);
-
-      g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
-      optimizer.setAlgorithm(solver);
-
-      if (pbStopFlag)
-         optimizer.setForceStopFlag(pbStopFlag);
-
-      unsigned long maxKFid = 0;
-
       // Set Local KeyFrame vertices
       for (list<KeyFrame*>::iterator lit = lLocalKeyFrames.begin(), lend = lLocalKeyFrames.end(); lit != lend; lit++)
       {
@@ -591,22 +623,11 @@ namespace ORB_SLAM2
       // Set MapPoint vertices
       const int nExpectedSize = (lLocalKeyFrames.size() + lFixedCameras.size())*lLocalMapPoints.size();
 
-      vector<g2o::EdgeSE3ProjectXYZ*> vpEdgesMono;
       vpEdgesMono.reserve(nExpectedSize);
-
-      vector<KeyFrame*> vpEdgeKFMono;
       vpEdgeKFMono.reserve(nExpectedSize);
-
-      vector<MapPoint*> vpMapPointEdgeMono;
       vpMapPointEdgeMono.reserve(nExpectedSize);
-
-      vector<g2o::EdgeStereoSE3ProjectXYZ*> vpEdgesStereo;
       vpEdgesStereo.reserve(nExpectedSize);
-
-      vector<KeyFrame*> vpEdgeKFStereo;
       vpEdgeKFStereo.reserve(nExpectedSize);
-
-      vector<MapPoint*> vpMapPointEdgeStereo;
       vpMapPointEdgeStereo.reserve(nExpectedSize);
 
       const float thHuberMono = sqrt(5.991);
@@ -618,6 +639,8 @@ namespace ORB_SLAM2
          g2o::VertexSBAPointXYZ* vPoint = new g2o::VertexSBAPointXYZ();
          vPoint->setEstimate(Converter::toVector3d(pMP->GetWorldPos()));
          id_type id = pMP->GetId() + maxKFid + 1;
+         if (id < maxKFid)
+            throw exception("Optimizer::LocalBundleAdjustment: maximum id exceeded");
          vPoint->setId(id);
          vPoint->setMarginalized(true);
          if (!optimizer.addVertex(vPoint))
@@ -695,65 +718,68 @@ namespace ORB_SLAM2
             }
          }
       }
+   }
 
-      if (pbStopFlag)
-         if (*pbStopFlag)
-         {
-            Print("end LocalBundleAdjustment 1");
-            return;
-         }
+   void Optimizer::CheckGraphLocalBundleAdjustment(
+      std::mutex & mutexMapUpdate,
+      vector<g2o::EdgeSE3ProjectXYZ*> & vpEdgesMono,
+      vector<MapPoint*> & vpMapPointEdgeMono,
+      vector<g2o::EdgeStereoSE3ProjectXYZ*> & vpEdgesStereo,
+      vector<MapPoint*> & vpMapPointEdgeStereo)
+   {
+      Print("waiting to lock map");
+      unique_lock<mutex> lock(mutexMapUpdate);
+      Print("map is locked");
 
-      optimizer.initializeOptimization();
-      optimizer.optimize(5);
-
-      bool bDoMore = true;
-
-      if (pbStopFlag)
-         if (*pbStopFlag)
-            bDoMore = false;
-
-      if (bDoMore)
+      // Check inlier observations
+      for (size_t i = 0, iend = vpEdgesMono.size(); i < iend;i++)
       {
+         g2o::EdgeSE3ProjectXYZ* e = vpEdgesMono[i];
+         MapPoint* pMP = vpMapPointEdgeMono[i];
 
-         // Check inlier observations
-         for (size_t i = 0, iend = vpEdgesMono.size(); i < iend;i++)
+         if (pMP->isBad())
+            continue;
+
+         if (e->chi2() > 5.991 || !e->isDepthPositive())
          {
-            g2o::EdgeSE3ProjectXYZ* e = vpEdgesMono[i];
-            MapPoint* pMP = vpMapPointEdgeMono[i];
-
-            if (pMP->isBad())
-               continue;
-
-            if (e->chi2() > 5.991 || !e->isDepthPositive())
-            {
-               e->setLevel(1);
-            }
-
-            e->setRobustKernel(0);
+            e->setLevel(1);
          }
 
-         for (size_t i = 0, iend = vpEdgesStereo.size(); i < iend;i++)
-         {
-            g2o::EdgeStereoSE3ProjectXYZ* e = vpEdgesStereo[i];
-            MapPoint* pMP = vpMapPointEdgeStereo[i];
-
-            if (pMP->isBad())
-               continue;
-
-            if (e->chi2() > 7.815 || !e->isDepthPositive())
-            {
-               e->setLevel(1);
-            }
-
-            e->setRobustKernel(0);
-         }
-
-         // Optimize again without the outliers
-         optimizer.initializeOptimization(0);
-         optimizer.optimize(10);
-
+         e->setRobustKernel(0);
       }
 
+      for (size_t i = 0, iend = vpEdgesStereo.size(); i < iend;i++)
+      {
+         g2o::EdgeStereoSE3ProjectXYZ* e = vpEdgesStereo[i];
+         MapPoint* pMP = vpMapPointEdgeStereo[i];
+
+         if (pMP->isBad())
+            continue;
+
+         if (e->chi2() > 7.815 || !e->isDepthPositive())
+         {
+            e->setLevel(1);
+         }
+
+         e->setRobustKernel(0);
+      }
+   }
+
+   void Optimizer::RecoverGraphLocalBundleAdjustment(
+      Map & theMap, 
+      std::mutex & mutexMapUpdate, 
+      MapChangeEvent & mapChanges,
+      g2o::SparseOptimizer & optimizer,
+      id_type & maxKFid,
+      list<KeyFrame*> & lLocalKeyFrames,
+      list<MapPoint*> & lLocalMapPoints,
+      vector<g2o::EdgeSE3ProjectXYZ*> & vpEdgesMono,
+      vector<KeyFrame*> & vpEdgeKFMono,
+      vector<MapPoint*> & vpMapPointEdgeMono,
+      vector<g2o::EdgeStereoSE3ProjectXYZ*> & vpEdgesStereo,
+      vector<KeyFrame*> & vpEdgeKFStereo,
+      vector<MapPoint*> & vpMapPointEdgeStereo)
+   {
       vector<pair<KeyFrame*, MapPoint*> > vToErase;
       vToErase.reserve(vpEdgesMono.size() + vpEdgesStereo.size());
 
@@ -803,7 +829,7 @@ namespace ORB_SLAM2
             // TODO OK - add to updated keyframes
             mapChanges.updatedKeyFrames.insert(pKFi);
 
-            pMPi->EraseObservation(pKFi, &map);
+            pMPi->EraseObservation(pKFi, &theMap);
             // TODO OK - add to updated points
             mapChanges.updatedMapPoints.insert(pMPi);
          }
@@ -832,12 +858,85 @@ namespace ORB_SLAM2
          // TODO OK - add to updated points
          mapChanges.updatedMapPoints.insert(pMP);
       }
+   }
+
+   void Optimizer::LocalBundleAdjustment(
+      KeyFrame * pKF,
+      bool * pbStopFlag,
+      Map & map, 
+      std::mutex & mutexMapUpdate, 
+      MapChangeEvent & mapChanges)
+   {
+      Print("begin LocalBundleAdjustment");
+
+      // Setup optimizer
+      g2o::SparseOptimizer optimizer;
+      g2o::BlockSolver_6_3::LinearSolverType * linearSolver;
+
+      linearSolver = new g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>();
+
+      g2o::BlockSolver_6_3 * solver_ptr = new g2o::BlockSolver_6_3(linearSolver);
+
+      g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
+      optimizer.setAlgorithm(solver);
+
+      if (pbStopFlag)
+         optimizer.setForceStopFlag(pbStopFlag);
+
+      id_type maxKFid = 0;
+      list<KeyFrame*> lLocalKeyFrames;
+      list<MapPoint*> lLocalMapPoints;
+      vector<g2o::EdgeSE3ProjectXYZ*> vpEdgesMono;
+      vector<KeyFrame*> vpEdgeKFMono;
+      vector<MapPoint*> vpMapPointEdgeMono;
+      vector<g2o::EdgeStereoSE3ProjectXYZ*> vpEdgesStereo;
+      vector<KeyFrame*> vpEdgeKFStereo;
+      vector<MapPoint*> vpMapPointEdgeStereo;
+
+      CreateGraphLocalBundleAdjustment(mutexMapUpdate, pKF, optimizer, maxKFid, lLocalKeyFrames, lLocalMapPoints, 
+         vpEdgesMono, vpEdgeKFMono, vpMapPointEdgeMono, vpEdgesStereo, vpEdgeKFStereo, vpMapPointEdgeStereo);
+
+      if (pbStopFlag)
+         if (*pbStopFlag)
+         {
+            Print("end LocalBundleAdjustment 1");
+            return;
+         }
+
+      if (optimizer.initializeOptimization())
+         optimizer.optimize(5);
+      else
+         throw exception("optimizer.initializeOptimization() failed");
+
+      bool bDoMore = true;
+
+      if (pbStopFlag)
+         if (*pbStopFlag)
+            bDoMore = false;
+
+      if (bDoMore)
+      {
+         CheckGraphLocalBundleAdjustment(mutexMapUpdate, vpEdgesMono, vpMapPointEdgeMono, vpEdgesStereo, vpMapPointEdgeStereo);
+
+         // Optimize again without the outliers
+         if (optimizer.initializeOptimization())
+            optimizer.optimize(10);
+         else
+            throw exception("optimizer.initializeOptimization() failed");
+
+      }
+
+      RecoverGraphLocalBundleAdjustment(map, mutexMapUpdate, mapChanges, optimizer,
+         maxKFid, lLocalKeyFrames, lLocalMapPoints,
+         vpEdgesMono, vpEdgeKFMono, vpMapPointEdgeMono,
+         vpEdgesStereo, vpEdgeKFStereo, vpMapPointEdgeStereo);
+
       Print("end LocalBundleAdjustment 2");
    }
 
 
    void Optimizer::OptimizeEssentialGraph(
-      Map & map,
+      Map & theMap,
       std::mutex & mutexMapUpdate, 
       KeyFrame * pLoopKF, 
       KeyFrame * pCurKF,
@@ -859,10 +958,10 @@ namespace ORB_SLAM2
       solver->setUserLambdaInit(1e-16);
       optimizer.setAlgorithm(solver);
 
-      const vector<KeyFrame*> vpKFs = map.GetAllKeyFrames();
-      const vector<MapPoint*> vpMPs = map.GetAllMapPoints();
+      const vector<KeyFrame*> vpKFs = theMap.GetAllKeyFrames();
+      const vector<MapPoint*> vpMPs = theMap.GetAllMapPoints();
 
-      const unsigned int nMaxKFid = map.GetMaxKFid();
+      const unsigned int nMaxKFid = theMap.GetMaxKFid();
 
       vector<g2o::Sim3, Eigen::aligned_allocator<g2o::Sim3> > vScw(nMaxKFid + 1);
       vector<g2o::Sim3, Eigen::aligned_allocator<g2o::Sim3> > vCorrectedSwc(nMaxKFid + 1);
@@ -870,7 +969,6 @@ namespace ORB_SLAM2
 
       const int minFeat = 100;
 
-      Print("Set KeyFrame vertices");
       // Set KeyFrame vertices
       for (size_t i = 0, iend = vpKFs.size(); i < iend;i++)
       {
@@ -915,7 +1013,6 @@ namespace ORB_SLAM2
 
       const Eigen::Matrix<double, 7, 7> matLambda = Eigen::Matrix<double, 7, 7>::Identity();
 
-      Print("Set Loop edges");
       // Set Loop edges
       for (std::map<KeyFrame *, set<KeyFrame *> >::const_iterator mit = LoopConnections.begin(), mend = LoopConnections.end(); mit != mend; mit++)
       {
@@ -947,7 +1044,6 @@ namespace ORB_SLAM2
          }
       }
 
-      Print("Set normal edges");
       // Set normal edges
       for (KeyFrame * pKF : vpKFs)
       {
@@ -964,7 +1060,6 @@ namespace ORB_SLAM2
 
          KeyFrame* pParentKF = pKF->GetParent();
 
-         //Print("Spanning tree edge");
          // Spanning tree edge
          if (pParentKF)
          {
@@ -990,7 +1085,6 @@ namespace ORB_SLAM2
             optimizer.addEdge(e);
          }
 
-         //Print("Loop edges");
          // Loop edges
          const set<KeyFrame*> sLoopEdges = pKF->GetLoopEdges();
          for (set<KeyFrame*>::const_iterator sit = sLoopEdges.begin(), send = sLoopEdges.end(); sit != send; sit++)
@@ -1017,7 +1111,6 @@ namespace ORB_SLAM2
             }
          }
 
-         //Print("Covisibility graph edges");
          // Covisibility graph edges
          const vector<KeyFrame*> vpConnectedKFs = pKF->GetCovisiblesByWeight(minFeat);
          for (vector<KeyFrame*>::const_iterator vit = vpConnectedKFs.begin(); vit != vpConnectedKFs.end(); vit++)
@@ -1052,15 +1145,14 @@ namespace ORB_SLAM2
          }
       }
 
-      Print("Optimize!");
       // Optimize!
       optimizer.initializeOptimization();
       optimizer.optimize(20);
 
-      Print("unique_lock<mutex> lock(mutexMapUpdate);");
+      Print("waiting to lock map");
       unique_lock<mutex> lock(mutexMapUpdate);
+      Print("map is locked");
 
-      Print("SE3 Pose Recovering.");
       // SE3 Pose Recovering. Sim3:[sR t;0 1] -> SE3:[R t/s;0 1]
       for (size_t i = 0;i < vpKFs.size();i++)
       {
@@ -1084,7 +1176,6 @@ namespace ORB_SLAM2
          mapChanges.updatedKeyFrames.insert(pKFi);
       }
 
-      Print("Correct points.");
       // Correct points. Transform to "non-optimized" reference keyframe pose and transform back with optimized pose
       for (size_t i = 0, iend = vpMPs.size(); i < iend; i++)
       {

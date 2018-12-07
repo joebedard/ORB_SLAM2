@@ -281,121 +281,121 @@ namespace ORB_SLAM2
       m.at<float>(2, 2) = -sy * sz * sx + cy * cx;
    }
 
-   void Tracking::SetViewer(Viewer *pViewer)
+   void Tracking::SetViewer(Viewer * pViewer)
    {
       mpViewer = pViewer;
    }
 
-   cv::Mat Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRectRight, const double &timestamp)
+   cv::Mat Tracking::GrabImageStereo(const cv::Mat & imRectLeft, const cv::Mat & imRectRight, const double & timestamp)
    {
       CheckModeChange();
       CheckReset();
 
-      mImGray = imRectLeft;
+      cv::Mat imGray = imRectLeft;
       cv::Mat imGrayRight = imRectRight;
 
-      if (mImGray.channels() == 3)
+      if (imGray.channels() == 3)
       {
          if (mbRGB)
          {
-            cvtColor(mImGray, mImGray, CV_RGB2GRAY);
+            cvtColor(imGray, imGray, CV_RGB2GRAY);
             cvtColor(imGrayRight, imGrayRight, CV_RGB2GRAY);
          }
          else
          {
-            cvtColor(mImGray, mImGray, CV_BGR2GRAY);
+            cvtColor(imGray, imGray, CV_BGR2GRAY);
             cvtColor(imGrayRight, imGrayRight, CV_BGR2GRAY);
          }
       }
-      else if (mImGray.channels() == 4)
+      else if (imGray.channels() == 4)
       {
          if (mbRGB)
          {
-            cvtColor(mImGray, mImGray, CV_RGBA2GRAY);
+            cvtColor(imGray, imGray, CV_RGBA2GRAY);
             cvtColor(imGrayRight, imGrayRight, CV_RGBA2GRAY);
          }
          else
          {
-            cvtColor(mImGray, mImGray, CV_BGRA2GRAY);
+            cvtColor(imGray, imGray, CV_BGRA2GRAY);
             cvtColor(imGrayRight, imGrayRight, CV_BGRA2GRAY);
          }
       }
 
-      mCurrentFrame = Frame(mImGray, imGrayRight, timestamp, mpORBextractorLeft, mpORBextractorRight, &mFC);
+      mCurrentFrame = Frame(imGray, imGrayRight, timestamp, mpORBextractorLeft, mpORBextractorRight, &mFC);
 
-      Track();
+      Track(imGray);
 
       return mCurrentFrame.mTcw.clone();
    }
 
 
-   cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB, const cv::Mat &imD, const double &timestamp)
+   cv::Mat Tracking::GrabImageRGBD(const cv::Mat & imRGB, const cv::Mat & imD, const double & timestamp)
    {
       CheckModeChange();
       CheckReset();
 
-      mImGray = imRGB;
+      cv::Mat imGray = imRGB;
       cv::Mat imDepth = imD;
 
-      if (mImGray.channels() == 3)
+      if (imGray.channels() == 3)
       {
          if (mbRGB)
-            cvtColor(mImGray, mImGray, CV_RGB2GRAY);
+            cvtColor(imGray, imGray, CV_RGB2GRAY);
          else
-            cvtColor(mImGray, mImGray, CV_BGR2GRAY);
+            cvtColor(imGray, imGray, CV_BGR2GRAY);
       }
-      else if (mImGray.channels() == 4)
+      else if (imGray.channels() == 4)
       {
          if (mbRGB)
-            cvtColor(mImGray, mImGray, CV_RGBA2GRAY);
+            cvtColor(imGray, imGray, CV_RGBA2GRAY);
          else
-            cvtColor(mImGray, mImGray, CV_BGRA2GRAY);
+            cvtColor(imGray, imGray, CV_BGRA2GRAY);
       }
 
       if ((fabs(mDepthMapFactor - 1.0f) > 1e-5) || imDepth.type() != CV_32F)
          imDepth.convertTo(imDepth, CV_32F, mDepthMapFactor);
 
-      mCurrentFrame = Frame(mImGray, imDepth, timestamp, mpORBextractorLeft, &mFC);
+      mCurrentFrame = Frame(imGray, imDepth, timestamp, mpORBextractorLeft, &mFC);
 
-      Track();
+      Track(imGray);
 
       return mCurrentFrame.mTcw.clone();
    }
 
 
-   cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
+   cv::Mat Tracking::GrabImageMonocular(const cv::Mat & im, const double & timestamp)
    {
       CheckModeChange();
       CheckReset();
 
-      mImGray = im;
+      cv::Mat imGray = im;
 
-      if (mImGray.channels() == 3)
+      if (imGray.channels() == 3)
       {
          if (mbRGB)
-            cvtColor(mImGray, mImGray, CV_RGB2GRAY);
+            cvtColor(imGray, imGray, CV_RGB2GRAY);
          else
-            cvtColor(mImGray, mImGray, CV_BGR2GRAY);
+            cvtColor(imGray, imGray, CV_BGR2GRAY);
       }
-      else if (mImGray.channels() == 4)
+      else if (imGray.channels() == 4)
       {
          if (mbRGB)
-            cvtColor(mImGray, mImGray, CV_RGBA2GRAY);
+            cvtColor(imGray, imGray, CV_RGBA2GRAY);
          else
-            cvtColor(mImGray, mImGray, CV_BGRA2GRAY);
+            cvtColor(imGray, imGray, CV_BGRA2GRAY);
       }
 
       if (!mMapper.GetInitialized())
-         mCurrentFrame = Frame(mImGray, timestamp, mpIniORBextractor, &mFC);
+         mCurrentFrame = Frame(imGray, timestamp, mpIniORBextractor, &mFC);
       else
-         mCurrentFrame = Frame(mImGray, timestamp, mpORBextractorLeft, &mFC);
+         mCurrentFrame = Frame(imGray, timestamp, mpORBextractorLeft, &mFC);
 
-      Track();
+      Track(imGray);
 
       return mCurrentFrame.mTcw.clone();
    }
 
-   void Tracking::Track()
+   void Tracking::Track(cv::Mat & imGray)
    {
       Print("begin Track");
 
@@ -417,7 +417,7 @@ namespace ORB_SLAM2
             mpFrameDrawer->Update(
                mbOnlyTracking, 
                mState, 
-               mImGray, 
+               imGray, 
                mInitialFrame.mvKeys,
                mvIniMatches,
                mCurrentFrame.mvKeys,
@@ -480,7 +480,7 @@ namespace ORB_SLAM2
          mpFrameDrawer->Update(
             mbOnlyTracking, 
             mState, 
-            mImGray, 
+            imGray, 
             mInitialFrame.mvKeys,
             mvIniMatches,
             mCurrentFrame.mvKeys,
@@ -592,10 +592,7 @@ namespace ORB_SLAM2
             {
                cv::Mat x3D = mCurrentFrame.UnprojectStereo(i);
                MapPoint* pNewMP = new MapPoint(NewMapPointId(), x3D, pKFini);
-               pNewMP->AddObservation(pKFini, i);
                pKFini->AddMapPoint(pNewMP, i);
-               pNewMP->ComputeDistinctiveDescriptors();
-               pNewMP->UpdateNormalAndDepth();
                points.push_back(pNewMP);
                mCurrentFrame.mvpMapPoints[i] = pNewMP;
             }
@@ -710,9 +707,6 @@ namespace ORB_SLAM2
       KeyFrame * pKFini = new KeyFrame(NewKeyFrameId(), mInitialFrame);
       KeyFrame * pKFcur = new KeyFrame(NewKeyFrameId(), mCurrentFrame);
 
-      pKFini->ComputeBoW(mVocab);
-      pKFcur->ComputeBoW(mVocab);
-
       // Insert KFs in the map
       map.AddKeyFrame(pKFini);
       map.AddKeyFrame(pKFcur);
@@ -724,9 +718,8 @@ namespace ORB_SLAM2
          if (mvIniMatches[i] < 0)
             continue;
 
-         //Create MapPoint.
+         //Create MapPoint
          cv::Mat worldPos(mvIniP3D[i]);
-
          MapPoint* pMP = new MapPoint(NewMapPointId(), worldPos, pKFcur);
 
          pKFini->AddMapPoint(pMP, i);
@@ -757,7 +750,7 @@ namespace ORB_SLAM2
       Print(ss.str().c_str());
 
       MapChangeEvent mapChanges;
-      Optimizer::GlobalBundleAdjustment(map, mapChanges, 20);
+      Optimizer::GlobalBundleAdjustment(map, mMapper.GetMutexMapUpdate(), mapChanges, 20);
 
       // Set median depth to 1
       float medianDepth = pKFini->ComputeSceneMedianDepth(2);
@@ -1530,11 +1523,11 @@ namespace ORB_SLAM2
       // We sort points by the measured depth by the stereo/RGBD sensor.
       // We create all those MapPoints whose depth < mThDepth.
       // If there are less than 100 close points we create the 100 closest.
-      vector<pair<float, int> > vDepthIdx;
-      vector<MapPoint *> points;
+      vector<MapPoint *> newPoints;
 
       if (sensorType != MONOCULAR)
       {
+         vector<pair<float, int> > vDepthIdx;
          currentFrame.UpdatePoseMatrices();
 
          vDepthIdx.reserve(currentFrame.N);
@@ -1559,11 +1552,8 @@ namespace ORB_SLAM2
                {
                   cv::Mat x3D = currentFrame.UnprojectStereo(i);
                   MapPoint* pNewMP = new MapPoint(NewMapPointId(), x3D, pKF);
-                  pNewMP->AddObservation(pKF, i);
                   pKF->AddMapPoint(pNewMP, i);
-                  pNewMP->ComputeDistinctiveDescriptors();
-                  pNewMP->UpdateNormalAndDepth();
-                  points.push_back(pNewMP);
+                  newPoints.push_back(pNewMP);
                }
                if (vDepthIdx[j].first > currentFrame.mFC->thDepth && j > 99)
                   break;
@@ -1571,19 +1561,15 @@ namespace ORB_SLAM2
          }
       }
 
-      if (mMapper.InsertKeyFrame(mId, points, pKF))
+      if (mMapper.InsertKeyFrame(mId, newPoints, pKF))
       {
-         if (sensorType != MONOCULAR)
+         // Add new MapPoints to currentFrame. They will be used later by Tracking::TrackWithMotionModel.
+         for (MapPoint * pMP : newPoints)
          {
-            // Add new MapPoints to currentFrame. They will be used later by Tracking::TrackWithMotionModel.
-            for (size_t j = 0; j < vDepthIdx.size();j++)
+            int idx = pMP->GetIndexInKeyFrame(pKF);
+            if (idx >= 0)
             {
-               int i = vDepthIdx[j].second;
-               MapPoint * pMP = pKF->GetMapPoint(i);
-               if (!pMP || pMP->Observations() < 1)
-                  currentFrame.mvpMapPoints[i] = pMP;
-               if (vDepthIdx[j].first > currentFrame.mFC->thDepth && j > 99)
-                  break;
+               currentFrame.mvpMapPoints[idx] = pMP;
             }
          }
          Print("end CreateNewKeyFrame 1");
@@ -1592,24 +1578,13 @@ namespace ORB_SLAM2
       else
       {
          // delete MapPoints and KeyFrame
-         for (size_t j = 0; j < vDepthIdx.size(); j++)
+         for (MapPoint * pMP : newPoints)
          {
-            int i = vDepthIdx[j].second;
-            MapPoint * pMP = pKF->GetMapPoint(i);
-            if (pMP)
-            {
-               pMP->EraseObservation(pKF, &mMapper.GetMap());
-               pKF->EraseMapPointMatch(i);
-               if (pMP->Observations() < 1)
-               {
-                  Print(to_string(pMP->GetId()) + " MapPoint deleted");
-                  delete pMP;
-               }
-            }
-            if (vDepthIdx[j].first > currentFrame.mFC->thDepth && j > 99)
-               break;
+            pKF->EraseMapPointMatch(pMP);
+            Print(to_string(pMP->GetId()) + "=id MapPoint deleted");
+            delete pMP;
          }
-         Print(to_string(pKF->GetId()) + " KeyFrame deleted");
+         Print(to_string(pKF->GetId()) + "=id KeyFrame deleted");
          delete pKF;
          Print("end CreateNewKeyFrame 2");
          return NULL;

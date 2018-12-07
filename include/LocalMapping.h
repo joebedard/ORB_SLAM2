@@ -59,7 +59,7 @@ namespace ORB_SLAM2
       // Main function
       void Run();
 
-      bool InsertKeyFrame(KeyFrame * pKF);
+      bool InsertKeyFrame(KeyFrame * pKF, vector<MapPoint *> & mapPoints);
 
       // Thread Synch
       void RequestPause();
@@ -91,6 +91,7 @@ namespace ORB_SLAM2
 
       void CreateNewMapPoints(MapChangeEvent & mapChanges);
 
+      // iterate through the new MapPoints (that were added by the new KeyFrame) and remove low-quality MapPoints
       void MapPointCulling(MapChangeEvent & mapChanges);
 
       void SearchInNeighbors(MapChangeEvent & mapChanges);

@@ -540,6 +540,8 @@ namespace ORB_SLAM2
    void KeyFrame::UpdateConnections()
    {
       //Print("begin UpdateConnections");
+
+      // quantity of MapPoints shared with each KeyFrame
       map<KeyFrame *, int> KFcounter;
 
       vector<MapPoint *> vpMP;
@@ -1114,6 +1116,9 @@ namespace ORB_SLAM2
 
       // rebuild mGrid
       AssignFeaturesToGrid();
+
+      // just in case
+      UpdateConnections();
 
       return pData;
    }

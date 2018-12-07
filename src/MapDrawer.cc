@@ -65,9 +65,6 @@ namespace ORB_SLAM2
       float currentColor[4];
       glGetFloatv(GL_CURRENT_COLOR, currentColor);
 
-      Print("unique_lock<mutex> lock(mMapper.GetMutexMapUpdate());");
-      unique_lock<mutex> lock1(mMapper.GetMutexMapUpdate());
-
       const vector<MapPoint*> &vpMPs = mMap.GetAllMapPoints();
       if (vpMPs.empty())
       {
@@ -75,8 +72,11 @@ namespace ORB_SLAM2
          return;
       }
 
-      unique_lock<mutex> lock2(mMutexReferenceMapPoints);
-      set<MapPoint*> spRefMPs(mvpReferenceMapPoints.begin(), mvpReferenceMapPoints.end());
+      set<MapPoint*> spRefMPs;
+      {
+         unique_lock<mutex> lock2(mMutexReferenceMapPoints);
+         spRefMPs.insert(mvpReferenceMapPoints.begin(), mvpReferenceMapPoints.end());
+      }
 
       glPointSize(mPointSize);
       glBegin(GL_POINTS);
@@ -84,10 +84,20 @@ namespace ORB_SLAM2
 
       for (MapPoint * pMP : vpMPs)
       {
-         if (pMP->isBad() || spRefMPs.count(pMP))
+         if (spRefMPs.count(pMP))
+            continue;
+         if (pMP->isBad())
             continue;
          cv::Mat pos = pMP->GetWorldPos();
-         glVertex3f(pos.at<float>(0), pos.at<float>(1), pos.at<float>(2));
+         if (pos.empty())
+         {
+            Print(to_string(pMP->GetId()) + "=MapPointId GetWorldPos() is empty! replaced=" + (pMP->GetReplaced() ? "true" : "false"));
+            throw exception("GetWorldPos() is empty!!!!!!!!!!!!!!!!!!!!!!");
+         }
+         else
+         {
+            glVertex3f(pos.at<float>(0), pos.at<float>(1), pos.at<float>(2));
+         }
       }
       glEnd();
 
@@ -95,7 +105,7 @@ namespace ORB_SLAM2
       glBegin(GL_POINTS);
       glColor3f(1.0, 0.0, 0.0);
 
-      for (MapPoint * pMP : mvpReferenceMapPoints)
+      for (MapPoint * pMP : spRefMPs)
       {
          if (pMP->isBad())
             continue;
@@ -119,9 +129,6 @@ namespace ORB_SLAM2
    void MapDrawer::DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph)
    {
       Print("begin DrawKeyFrames");
-      Print("unique_lock<mutex> lock(mMapper.GetMutexMapUpdate());");
-      unique_lock<mutex> lock(mMapper.GetMutexMapUpdate());
-
       float currentColor[4];
       glGetFloatv(GL_CURRENT_COLOR, currentColor);
 

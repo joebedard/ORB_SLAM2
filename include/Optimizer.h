@@ -30,6 +30,7 @@
 #include "Frame.h"
 
 #include "Thirdparty/g2o/g2o/types/types_seven_dof_expmap.h"
+#include "Thirdparty/g2o/g2o/core/sparse_optimizer.h"
 
 namespace ORB_SLAM2
 {
@@ -40,37 +41,29 @@ namespace ORB_SLAM2
    {
    public:
 
-      void static BundleAdjustment(
-         const std::vector<KeyFrame*> & vpKF, 
-         const std::vector<MapPoint*> & vpMP,
-         MapChangeEvent & mapChanges,
-         int nIterations = 5, 
-         bool * pbStopFlag = NULL, 
-         const unsigned long loopKeyFrameId = 0,
-         const bool bRobust = true);
-
-      void static GlobalBundleAdjustment(
-         Map & map,
+      static void GlobalBundleAdjustment(
+         Map & theMap,
+         mutex & mutexMapUpdate,
          MapChangeEvent & mapChanges,
          int nIterations = 5,
          bool * pbStopFlag = NULL,
-         const unsigned long loopKeyFrameId = 0,
+         const id_type loopKeyFrameId = 0,
          const bool bRobust = true);
 
-      void static LocalBundleAdjustment(
-         KeyFrame * pKF, 
-         bool * pbStopFlag, 
+      static void LocalBundleAdjustment(
+         KeyFrame * pKF,
+         bool * pbStopFlag,
          Map & map,
-         std::mutex & mutexMapUpdate, 
+         std::mutex & mutexMapUpdate,
          MapChangeEvent & mapChanges);
 
-      int static PoseOptimization(Frame* pFrame);
+      static int PoseOptimization(Frame* pFrame);
 
       // if bFixScale is true, 6DoF optimization (stereo,rgbd), 7DoF otherwise (mono)
-      void static OptimizeEssentialGraph(
-         Map & map, 
-         std::mutex & mutexMapUpdate, 
-         KeyFrame * pLoopKF, 
+      static void OptimizeEssentialGraph(
+         Map & theMap,
+         std::mutex & mutexMapUpdate,
+         KeyFrame * pLoopKF,
          KeyFrame * pCurKF,
          const LoopClosing::KeyFrameAndPose & NonCorrectedSim3,
          const LoopClosing::KeyFrameAndPose & CorrectedSim3,
@@ -83,14 +76,68 @@ namespace ORB_SLAM2
          KeyFrame * pKF1,
          KeyFrame * pKF2,
          std::vector<MapPoint *> & vpMatches1,
-         g2o::Sim3 & g2oS12, 
-         const float th2, 
+         g2o::Sim3 & g2oS12,
+         const float th2,
          const bool bFixScale);
 
    private:
 
       static void Print(const char * message);
 
+      static void CreateGraphLocalBundleAdjustment(
+         std::mutex & mutexMapUpdate,
+         KeyFrame * pKF,
+         g2o::SparseOptimizer & optimizer,
+         id_type & maxKFid,
+         list<KeyFrame*> & lLocalKeyFrames,
+         list<MapPoint*> & lLocalMapPoints,
+         vector<g2o::EdgeSE3ProjectXYZ*> & vpEdgesMono,
+         vector<KeyFrame*> & vpEdgeKFMono,
+         vector<MapPoint*> & vpMapPointEdgeMono,
+         vector<g2o::EdgeStereoSE3ProjectXYZ*> & vpEdgesStereo,
+         vector<KeyFrame*> & vpEdgeKFStereo,
+         vector<MapPoint*> & vpMapPointEdgeStereo);
+
+      static void CheckGraphLocalBundleAdjustment(
+         std::mutex & mutexMapUpdate,
+         vector<g2o::EdgeSE3ProjectXYZ*> & vpEdgesMono,
+         vector<MapPoint*> & vpMapPointEdgeMono,
+         vector<g2o::EdgeStereoSE3ProjectXYZ*> & vpEdgesStereo,
+         vector<MapPoint*> & vpMapPointEdgeStereo);
+
+      static void RecoverGraphLocalBundleAdjustment(
+         Map & theMap,
+         std::mutex & mutexMapUpdate,
+         MapChangeEvent & mapChanges,
+         g2o::SparseOptimizer & optimizer,
+         id_type & maxKFid,
+         list<KeyFrame*> & lLocalKeyFrames,
+         list<MapPoint*> & lLocalMapPoints,
+         vector<g2o::EdgeSE3ProjectXYZ*> & vpEdgesMono,
+         vector<KeyFrame*> & vpEdgeKFMono,
+         vector<MapPoint*> & vpMapPointEdgeMono,
+         vector<g2o::EdgeStereoSE3ProjectXYZ*> & vpEdgesStereo,
+         vector<KeyFrame*> & vpEdgeKFStereo,
+         vector<MapPoint*> & vpMapPointEdgeStereo);
+
+      static void CreateGraphGlobalBundleAdjustment(
+         Map & theMap,
+         g2o::SparseOptimizer & optimizer,
+         const bool bRobust,
+         vector<KeyFrame*> & vpKFs,
+         vector<MapPoint*> & vpMPs,
+         vector<bool> & vbNotIncludedMP,
+         id_type & maxKFid);
+
+      static void RecoverGraphGlobalBundleAdjustment(
+         Map & theMap,
+         MapChangeEvent & mapChanges,
+         g2o::SparseOptimizer & optimizer,
+         const id_type loopKeyFrameId,
+         vector<KeyFrame*> & vpKFs,
+         vector<MapPoint*> & vpMPs,
+         vector<bool> & vbNotIncludedMP,
+         id_type & maxKFid);
    };
 
 } //namespace ORB_SLAM

@@ -193,6 +193,9 @@ namespace ORB_SLAM2
       if (pMP->mnId == this->mnId)
          return;
 
+      if (pMap)
+         pMap->EraseMapPoint(this);
+
       int nvisible, nfound;
       map<KeyFrame*, size_t> obs;
       {
@@ -224,9 +227,6 @@ namespace ORB_SLAM2
       pMP->IncreaseFound(nfound);
       pMP->IncreaseVisible(nvisible);
       pMP->ComputeDistinctiveDescriptors();
-
-      if (pMap)
-         pMap->EraseMapPoint(this);
    }
 
    bool MapPoint::isBad()

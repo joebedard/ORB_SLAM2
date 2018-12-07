@@ -505,6 +505,7 @@ namespace ORB_SLAM2
          if (mpThreadGBA)
          {
             Print("mpThreadGBA->detach();");
+            // TODO - refactor so that each thread has one mbStopGBA variable
             mpThreadGBA->detach();
             delete mpThreadGBA;
             mpThreadGBA = NULL;
@@ -776,15 +777,10 @@ namespace ORB_SLAM2
       Print("begin RunGlobalBundleAdjustment");
       Print("Starting Global Bundle Adjustment");
 
-      //Print("unique_lock<mutex> lock(mMutexMapUpdate);");
-      //unique_lock<mutex> lock(mMutexMapUpdate);
-
       int idx = mnFullBAIdx;
-      MapChangeEvent mapChanges1;
-      Optimizer::GlobalBundleAdjustment(mMap, mapChanges1, 10, &mbStopGBA, loopKeyFrameId, false);
+      MapChangeEvent mapChanges;
+      Optimizer::GlobalBundleAdjustment(mMap, mMutexMapUpdate, mapChanges, 10, &mbStopGBA, loopKeyFrameId, false);
 
-      Print("NotifyMapChanged(mapChanges1);");
-      NotifyMapChanged(mapChanges1);
 
       // Update all MapPoints and KeyFrames
       // Local Mapping was active during BA, that means that there might be new keyframes
@@ -793,12 +789,17 @@ namespace ORB_SLAM2
       {
          unique_lock<mutex> lock(mMutexGBA);
          if (idx != mnFullBAIdx)
+         {
+            Print("NotifyMapChanged(mapChanges);");
+            NotifyMapChanged(mapChanges);
             return;
+         }
 
          if (!mbStopGBA)
          {
             Print("Global Bundle Adjustment finished");
             Print("Updating map ...");
+
             mpLocalMapper->RequestPause();
             // Wait until Local Mapping has effectively stopped
             while (!mpLocalMapper->IsPaused() && !mpLocalMapper->IsFinished())
@@ -806,13 +807,11 @@ namespace ORB_SLAM2
                sleep(1000);
             }
 
-            // Get Map Mutex
             Print("unique_lock<mutex> lock(mMutexMapUpdate);");
             unique_lock<mutex> lock(mMutexMapUpdate);
 
             // Correct keyframes starting at map first keyframe
             list<KeyFrame*> lpKFtoCheck(mMap.mvpKeyFrameOrigins.begin(), mMap.mvpKeyFrameOrigins.end());
-            MapChangeEvent mapChanges2;
                  
             while (!lpKFtoCheck.empty())
             {
@@ -835,7 +834,7 @@ namespace ORB_SLAM2
                pKF->mTcwBefGBA = pKF->GetPose();
                pKF->SetPose(pKF->mTcwGBA);
                // TODO OK - add to map changes
-               mapChanges2.updatedKeyFrames.insert(pKF);
+               mapChanges.updatedKeyFrames.insert(pKF);
                lpKFtoCheck.pop_front();
             }
 
@@ -854,7 +853,7 @@ namespace ORB_SLAM2
                   // If optimized by Global BA, just update
                   pMP->SetWorldPos(pMP->mPosGBA);
                   // TODO OK - add to map changes
-                  mapChanges2.updatedMapPoints.insert(pMP);
+                  mapChanges.updatedMapPoints.insert(pMP);
                }
                else
                {
@@ -876,11 +875,12 @@ namespace ORB_SLAM2
 
                   pMP->SetWorldPos(Rwc*Xc + twc);
                   // TODO OK - add to map changes
-                  mapChanges2.updatedMapPoints.insert(pMP);
+                  mapChanges.updatedMapPoints.insert(pMP);
                }
             }
 
-            NotifyMapChanged(mapChanges2);
+            Print("NotifyMapChanged(mapChanges);");
+            NotifyMapChanged(mapChanges);
             mMap.InformNewBigChange();
 
             mpLocalMapper->Resume();

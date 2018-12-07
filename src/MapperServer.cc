@@ -139,8 +139,6 @@ namespace ORB_SLAM2
 
       ValidateTracker(trackerId);
 
-      pKF1->ComputeBoW(mVocab);
-      pKF2->ComputeBoW(mVocab);
       for (MapPoint * pMP : mapPoints)
       {
          mMap.AddMapPoint(pMP);
@@ -148,11 +146,12 @@ namespace ORB_SLAM2
 
       // Insert KeyFrame in the map
       mMap.mvpKeyFrameOrigins.push_back(pKF1);
-      mMap.AddKeyFrame(pKF1);
-      mMap.AddKeyFrame(pKF2);
 
-      if (mLocalMapper.InsertKeyFrame(pKF1) && mLocalMapper.InsertKeyFrame(pKF2))
+      vector<MapPoint *> noPoints;
+      if (mLocalMapper.InsertKeyFrame(pKF1, noPoints) && mLocalMapper.InsertKeyFrame(pKF2, noPoints))
       {
+         pKF1->ComputeBoW(mVocab);
+         pKF2->ComputeBoW(mVocab);
          UpdateTrackerStatus(trackerId, mapPoints);
          UpdateTrackerStatus(trackerId, pKF1);
          UpdateTrackerStatus(trackerId, pKF2);
@@ -181,18 +180,12 @@ namespace ORB_SLAM2
 
       ValidateTracker(trackerId);
 
-      pKF->ComputeBoW(mVocab);
-      for (MapPoint * pMP : mapPoints)
-      {
-         mMap.AddMapPoint(pMP);
-      }
-
       // Insert KeyFrame in the map
       mMap.mvpKeyFrameOrigins.push_back(pKF);
-      mMap.AddKeyFrame(pKF);
 
-      if (mLocalMapper.InsertKeyFrame(pKF))
+      if (mLocalMapper.InsertKeyFrame(pKF, mapPoints))
       {
+         pKF->ComputeBoW(mVocab);
          UpdateTrackerStatus(trackerId, mapPoints);
          UpdateTrackerStatus(trackerId, pKF);
          mInitialized = true;
@@ -210,16 +203,9 @@ namespace ORB_SLAM2
       Print("begin InsertKeyFrame");
       ValidateTracker(trackerId);
 
-      if (mLocalMapper.InsertKeyFrame(pKF))
+      if (mLocalMapper.InsertKeyFrame(pKF, mapPoints))
       {
          pKF->ComputeBoW(mVocab);
-         for (auto pMP : mapPoints)
-         {
-            mMap.AddMapPoint(pMP);
-         }
-
-         // In the original code, this was not done until LocalMapping::ProcessNewKeyFrame
-         mMap.AddKeyFrame(pKF);
 
          // stereo and RGBD modes will create MapPoints
          UpdateTrackerStatus(trackerId, mapPoints);

@@ -117,7 +117,6 @@ namespace ORB_SLAM2
 
       // Current Frame
       Frame mCurrentFrame;
-      cv::Mat mImGray;
 
       //Last Frame, KeyFrame and Relocalisation Info
       Frame mLastFrame;
@@ -214,7 +213,7 @@ namespace ORB_SLAM2
       void RotationsYXZtoMat(double y, double x, double z, cv::Mat & m);
 
       // Main tracking function. It is independent of the input sensor.
-      void Track();
+      void Track(cv::Mat & imGray);
 
       // Map initialization for stereo and RGB-D
       void StereoInitialization();

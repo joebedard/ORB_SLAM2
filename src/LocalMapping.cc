@@ -79,9 +79,6 @@ namespace ORB_SLAM2
             //Print("ResetIfRequested();");
             ResetIfRequested();
 
-            //Print("unique_lock<mutex> lock(mutexMapUpdate);");
-            //unique_lock<mutex> lock(mMutexMapUpdate);
-
             // Check if there are keyframes in the queue
             if (CheckNewKeyFrames())
             {
@@ -115,10 +112,10 @@ namespace ORB_SLAM2
                   {
                      // deletes points, updates keyframes, updates points
                      Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame, &mbAbortBA, mMap, mMutexMapUpdate, mapChanges);
-                  }
 
-                  // Check for redundant local Keyframes, and delete them
-                  KeyFrameCulling(mapChanges);
+                     // Check for redundant local Keyframes, and delete them
+                     KeyFrameCulling(mapChanges);
+                  }
                }
 
                // mpCurrentKeyFrame added/updated, 0..N keyframes updated, 0..N keyframes deleted, 0..N points added, 0..N points updated, 0..N points deleted
@@ -178,7 +175,7 @@ namespace ORB_SLAM2
    }
 
 
-   bool LocalMapping::InsertKeyFrame(KeyFrame * pKF)
+   bool LocalMapping::InsertKeyFrame(KeyFrame * pKF, vector<MapPoint *> & mapPoints)
    {
       bool success = false;
       if (SetNotPause(true))
@@ -187,19 +184,50 @@ namespace ORB_SLAM2
          // Otherwise send a signal to interrupt BA
          if ( AcceptKeyFrames() || (!mbMonocular && KeyframesInQueue() < 3) )
          {
+            // TODO - add keyframe and new points to map
+            mMap.AddKeyFrame(pKF);
+
+            for (MapPoint * pMP : mapPoints)
+            {
+               mMap.AddMapPoint(pMP);
+            }
+
+            // associate MapPoints to the new keyframe, update normal and compute descriptor
+            std::vector<MapPoint *> matches = pKF->GetMapPointMatches();
+            MapPoint * pMP = static_cast<MapPoint *>(NULL);
+            const int n = matches.size();
+            for (int i = 0; i < n; i++)
+            {
+               pMP = matches[i];
+               if (pMP && !pMP->isBad())
+               {
+                  pMP->AddObservation(pKF, i);
+                  pMP->UpdateNormalAndDepth();
+                  pMP->ComputeDistinctiveDescriptors();
+               }
+            }
+
+            // Update links in the Covisibility Graph
+            pKF->UpdateConnections();
+
             unique_lock<mutex> lock(mMutexNewKFs);
             mlNewKeyFrames.push_back(pKF);
+            if (!mapPoints.empty())
+            {
+               // only for stereo mode
+               mlpRecentAddedMapPoints.insert(mlpRecentAddedMapPoints.end(), mapPoints.begin(), mapPoints.end());
+            }
+
             success = true;
          }
          else
          {
-            InterruptBA();
+            InterruptBA(); // TODO - also interrupt global bundle adjust?
          }
          SetNotPause(false);
       }
       return success;
    }
-
 
    bool LocalMapping::CheckNewKeyFrames()
    {
@@ -218,46 +246,10 @@ namespace ORB_SLAM2
          mlNewKeyFrames.pop_front();
       }
 
-      // TODO OK - move this to MapperServer::InsertKeyFrame ?
-      // Compute Bags of Words structures
-      //mpCurrentKeyFrame->ComputeBoW(mVocab);
+      mapChanges.updatedMapPoints = mpCurrentKeyFrame->GetMapPoints();
 
-      // Associate MapPoints to the new keyframe and update normal and descriptor
-      const vector<MapPoint *> vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
-
-      for (size_t i = 0; i < vpMapPointMatches.size(); i++)
-      {
-         MapPoint * pMP = vpMapPointMatches[i];
-         if (pMP)
-         {
-            if (!pMP->isBad())
-            {
-               if (!pMP->IsInKeyFrame(mpCurrentKeyFrame))
-               {
-                  //Print("MapPoint is not in KeyFrame");
-                  pMP->AddObservation(mpCurrentKeyFrame, i);
-                  pMP->UpdateNormalAndDepth();
-                  pMP->ComputeDistinctiveDescriptors();
-               }
-               else
-               {
-                  // this can only happen for new stereo points inserted by the Tracking
-                  mlpRecentAddedMapPoints.push_back(pMP);
-               }
-               // TODO OK - add pMP to updated points
-               mapChanges.updatedMapPoints.insert(pMP);
-            }
-         }
-      }
-
-      // Update links in the Covisibility Graph
-      mpCurrentKeyFrame->UpdateConnections();
-      // TODO OK - add to created keyframes
       mapChanges.updatedKeyFrames.insert(mpCurrentKeyFrame);
 
-      // TODO OK - move this to MapperServer::InsertKeyFrame ?
-      // Insert Keyframe in Map
-      //mMap.AddKeyFrame(mpCurrentKeyFrame);
       Print("end ProcessNewKeyFrame");
    }
 
@@ -267,7 +259,7 @@ namespace ORB_SLAM2
       Print("begin MapPointCulling");
       // Check Recent Added MapPoints
       list<MapPoint *>::iterator lit = mlpRecentAddedMapPoints.begin();
-      const unsigned long int nCurrentKFid = mpCurrentKeyFrame->GetId();
+      const id_type nCurrentKFid = mpCurrentKeyFrame->GetId();
 
       int nThObs;
       if (mbMonocular)
@@ -279,33 +271,39 @@ namespace ORB_SLAM2
       while (lit != mlpRecentAddedMapPoints.end())
       {
          MapPoint * pMP = *lit;
+         if (pMP == NULL)
+            throw exception("LocalMapping::MapPointCulling: pMP == NULL");
+
          if (pMP->isBad())
          {
+            // this shouldn't happen but if it does, remove it
             // TODO OK - add to deleted points
             mapChanges.deletedMapPoints.insert(pMP->GetId());
+            mapChanges.updatedMapPoints.erase(pMP);
             lit = mlpRecentAddedMapPoints.erase(lit);
             //Print(to_string(pMP->GetId()) + "=MapPointId erased 1");
          }
          else if (pMP->GetFoundRatio() < 0.25f)
          {
-            pMP->SetBadFlag(&mMap); // TODO OK - add to deleted points
+            pMP->SetBadFlag(&mMap);
+            // TODO OK - add to deleted points
             mapChanges.deletedMapPoints.insert(pMP->GetId());
+            mapChanges.updatedMapPoints.erase(pMP);
             lit = mlpRecentAddedMapPoints.erase(lit);
             //Print(to_string(pMP->GetId()) + "=MapPointId erased 2");
          }
-         else if (((int)nCurrentKFid - (int)pMP->mnFirstKFid) >= 2 && pMP->Observations() <= cnThObs)
+         else if ((nCurrentKFid - pMP->mnFirstKFid) >= 2 && pMP->Observations() <= cnThObs)
          {
-            pMP->SetBadFlag(&mMap); // TODO OK - add to deleted points
+            pMP->SetBadFlag(&mMap);
+            // TODO OK - add to deleted points
             mapChanges.deletedMapPoints.insert(pMP->GetId());
+            mapChanges.updatedMapPoints.erase(pMP);
             lit = mlpRecentAddedMapPoints.erase(lit);
             //Print(to_string(pMP->GetId()) + "=MapPointId erased 3");
          }
-         else if (((int)nCurrentKFid - (int)pMP->mnFirstKFid) >= 3)
+         else if ((nCurrentKFid - pMP->mnFirstKFid) >= 3)
          {
-            // TODO OK - add to deleted points
-            // this point was created by the current keyframe (stereo)
-            // add it to deleted points so that the tracker (that created it) will delete it
-            mapChanges.deletedMapPoints.insert((*lit)->GetId());
+            // this MapPoint was not recently added, so don't consider it for culling
             lit = mlpRecentAddedMapPoints.erase(lit);
             //Print(to_string(pMP->GetId()) + "=MapPointId removed 4");
          }
