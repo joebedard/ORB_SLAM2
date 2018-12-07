@@ -400,10 +400,10 @@ namespace ORB_SLAM2
       Print("begin Track");
 
       // Get Map Mutex -> Map cannot be changed
-      Print("unique_lock<mutex> lock(mMapper.GetMutexMapUpdate());");
+      Print("waiting to lock map");
       unique_lock<mutex> lock(mMapper.GetMutexMapUpdate());
+      Print("map is locked");
 
-      Print("if (!mMapper->GetInitialized())");
       if (!mMapper.GetInitialized())
       {
          if (0 == mId)
@@ -444,7 +444,6 @@ namespace ORB_SLAM2
          bool bOK;
 
          // Initial camera pose estimation using motion model or relocalization (if tracking is lost)
-         Print("if (mState == TRACKING_OK)");
          if (mState == TRACKING_OK)
          {
             // Mapping might have changed some MapPoints tracked in last frame
@@ -550,33 +549,22 @@ namespace ORB_SLAM2
       }
 
       // Store frame pose information to retrieve the complete camera trajectory afterwards.
-      Print("if (mState == TRACKING_OK)");
       if (mState == TRACKING_OK)
       {
-         Print("cv::Mat Tcr = mCurrentFrame.mTcw*mCurrentFrame.mpReferenceKF->GetPoseInverse();");
          cv::Mat Tcr = mCurrentFrame.mTcw*mCurrentFrame.mpReferenceKF->GetPoseInverse();
-         //Print("mlRelativeFramePoses.push_back(Tcr);");
          mlRelativeFramePoses.push_back(Tcr);
-         //Print("mlpReferenceKFs.push_back(mCurrentFrame.mpReferenceKF);");
          mlpReferenceKFs.push_back(mCurrentFrame.mpReferenceKF);
-         //Print("mlFrameTimes.push_back(mCurrentFrame.mTimeStamp);");
          mlFrameTimes.push_back(mCurrentFrame.mTimeStamp);
-         //Print("mlbLost.push_back(mState == TRACKING_LOST);");
          mlbLost.push_back(mState == TRACKING_LOST);
       }
       else
       {
          // This can happen if tracking is lost
-         Print("if (!mlRelativeFramePoses.empty())");
          if (!mlRelativeFramePoses.empty())
          {
-            Print("mlRelativeFramePoses.push_back(mlRelativeFramePoses.back());");
             mlRelativeFramePoses.push_back(mlRelativeFramePoses.back());
-            //Print("mlpReferenceKFs.push_back(mlpReferenceKFs.back());");
             mlpReferenceKFs.push_back(mlpReferenceKFs.back());
-            //Print("mlFrameTimes.push_back(mlFrameTimes.back());");
             mlFrameTimes.push_back(mlFrameTimes.back());
-            //Print("mlbLost.push_back(mState == TRACKING_LOST);");
             mlbLost.push_back(mState == TRACKING_LOST);
          }
       }
@@ -905,13 +893,11 @@ namespace ORB_SLAM2
       // Update last frame pose according to its reference keyframe
       // Create "visual odometry" points if in Localization Mode
 
-      Print("1");
       // Update pose according to reference keyframe
       KeyFrame * pRef = mLastFrame.mpReferenceKF;
       cv::Mat Tlr = mlRelativeFramePoses.back();
       mLastFrame.SetPose(Tlr*pRef->GetPose()); // rarely causes a cv::Exception in matmul, is pRef deleted? Was the pose changed by another thread?
 
-      Print("2");
       mCurrentFrame.SetPose(mVelocity*mLastFrame.mTcw);
 
       fill(mCurrentFrame.mvpMapPoints.begin(), mCurrentFrame.mvpMapPoints.end(), static_cast<MapPoint*>(NULL));
@@ -923,14 +909,12 @@ namespace ORB_SLAM2
       else
          th = 7;
       
-      Print("3");
       int nmatches = matcher.SearchByProjection(mCurrentFrame, mLastFrame, th, mSensor == MONOCULAR);
 
       // If few matches, uses a wider window search
       if (nmatches < 20)
       {
          fill(mCurrentFrame.mvpMapPoints.begin(), mCurrentFrame.mvpMapPoints.end(), static_cast<MapPoint*>(NULL));
-         Print("4");
          nmatches = matcher.SearchByProjection(mCurrentFrame, mLastFrame, 2 * th, mSensor == MONOCULAR);
       }
 
@@ -1124,7 +1108,6 @@ namespace ORB_SLAM2
 
       int nToMatch = 0;
 
-      Print("// Project points in frame and check its visibility");
       // Project points in frame and check its visibility
       for (vector<MapPoint*>::iterator vit = mvpLocalMapPoints.begin(), vend = mvpLocalMapPoints.end(); vit != vend; vit++)
       {
@@ -1141,7 +1124,6 @@ namespace ORB_SLAM2
          }
       }
 
-      Print("if (nToMatch > 0)");
       if (nToMatch > 0)
       {
          ORBmatcher matcher(0.8);

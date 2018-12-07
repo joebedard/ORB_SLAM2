@@ -86,10 +86,8 @@ namespace ORB_SLAM2
             if (CheckNewKeyFrames())
             {
                // Tracking will see that Local Mapping is busy
-               Print("SetAcceptKeyFrames(false);");
                SetAcceptKeyFrames(false);
 
-               Print("new KeyFrame in LocalMapping");
                MapChangeEvent mapChanges;
 
                // update KF connections
@@ -110,7 +108,6 @@ namespace ORB_SLAM2
 
                mbAbortBA = false;
 
-               Print("if(!CheckNewKeyFrames() && !PauseRequested())");
                if (!CheckNewKeyFrames() && !PauseRequested())
                {
                   // Local BA
@@ -133,7 +130,6 @@ namespace ORB_SLAM2
             else if (Pause())
             {
                // Tracking will see that Local Mapping is busy
-               Print("SetAcceptKeyFrames(false);");
                SetAcceptKeyFrames(false);
 
                // Pause and allow LoopClosing to finish (CorrectLoop or GlobalBundleAdjustment))
@@ -148,13 +144,11 @@ namespace ORB_SLAM2
                Print("CONTINUE");
 
                // Tracking will see that Local Mapping is not busy
-               Print("SetAcceptKeyFrames(true);");
                SetAcceptKeyFrames(true);
             }
             else
             {
                // Tracking will see that Local Mapping is not busy
-               Print("SetAcceptKeyFrames(true);");
                SetAcceptKeyFrames(true);
             }
 
@@ -312,8 +306,8 @@ namespace ORB_SLAM2
             // this point was created by the current keyframe (stereo)
             // add it to deleted points so that the tracker (that created it) will delete it
             mapChanges.deletedMapPoints.insert((*lit)->GetId());
-            //Print(to_string((*lit)->GetId()) + "=MapPointId erased 4");
             lit = mlpRecentAddedMapPoints.erase(lit);
+            //Print(to_string(pMP->GetId()) + "=MapPointId removed 4");
          }
          else
          {
@@ -335,7 +329,6 @@ namespace ORB_SLAM2
 
       ORBmatcher matcher(0.6, false);
 
-      Print("transformations");
       cv::Mat Rcw1 = mpCurrentKeyFrame->GetRotation();
       cv::Mat Rwc1 = Rcw1.t();
       cv::Mat tcw1 = mpCurrentKeyFrame->GetTranslation();
@@ -344,7 +337,6 @@ namespace ORB_SLAM2
       tcw1.copyTo(Tcw1.col(3));
       cv::Mat Ow1 = mpCurrentKeyFrame->GetCameraCenter();
 
-      Print("frame calibration");
       const float &fx1 = mpCurrentKeyFrame->mFC.fx;
       const float &fy1 = mpCurrentKeyFrame->mFC.fy;
       const float &cx1 = mpCurrentKeyFrame->mFC.cx;
@@ -356,7 +348,6 @@ namespace ORB_SLAM2
 
       int nnew = 0;
 
-      Print("for loop");
       // Search matches with epipolar restriction and triangulate
       for (size_t i = 0; i < vpNeighKFs.size(); i++)
       {
@@ -559,13 +550,13 @@ namespace ORB_SLAM2
 
             // Triangulation is succesfull
             MapPoint * pMP = new MapPoint(NewMapPointId(), x3D, mpCurrentKeyFrame);
-            //stringstream ss; ss << pMP->GetId() << "=MapPointId " << x3D; Print(ss);
 
             pMP->AddObservation(mpCurrentKeyFrame, idx1);
             pMP->AddObservation(pKF2, idx2);
 
             mpCurrentKeyFrame->AddMapPoint(pMP, idx1);
             pKF2->AddMapPoint(pMP, idx2);
+
             // TODO OK - add to updated keyframes
             mapChanges.updatedKeyFrames.insert(mpCurrentKeyFrame);
             mapChanges.updatedKeyFrames.insert(pKF2);
@@ -576,6 +567,7 @@ namespace ORB_SLAM2
 
             mMap.AddMapPoint(pMP);
             mlpRecentAddedMapPoints.push_back(pMP);
+
             // TODO OK - add to created points
             mapChanges.updatedMapPoints.insert(pMP);
 
@@ -593,10 +585,10 @@ namespace ORB_SLAM2
       int nn = 10;
       if (mbMonocular)
          nn = 20;
-      Print("1");
+
       const vector<KeyFrame *> vpNeighKFs = mpCurrentKeyFrame->GetBestCovisibilityKeyFrames(nn);
       vector<KeyFrame *> vpTargetKFs;
-      Print("2");
+
       for (vector<KeyFrame *>::const_iterator vit = vpNeighKFs.begin(), vend = vpNeighKFs.end(); vit != vend; vit++)
       {
          KeyFrame * pKFi = *vit;
@@ -618,30 +610,23 @@ namespace ORB_SLAM2
          }
       }
 
-      Print("3");
       // Search matches by projection from current KF in target KFs
       ORBmatcher matcher;
       vector<MapPoint *> vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
-      Print("4");
       for (vector<KeyFrame *>::iterator vit = vpTargetKFs.begin(), vend = vpTargetKFs.end(); vit != vend; vit++)
       {
          KeyFrame * pKFi = *vit;
-
          matcher.Fuse(mapChanges, pKFi, vpMapPointMatches, &mMap);
       }
 
-      Print("5");
       // Search matches by projection from target KFs in current KF
       vector<MapPoint *> vpFuseCandidates;
       vpFuseCandidates.reserve(vpTargetKFs.size()*vpMapPointMatches.size());
 
-      Print("6");
       for (vector<KeyFrame *>::iterator vitKF = vpTargetKFs.begin(), vendKF = vpTargetKFs.end(); vitKF != vendKF; vitKF++)
       {
          KeyFrame * pKFi = *vitKF;
-
          vector<MapPoint *> vpMapPointsKFi = pKFi->GetMapPointMatches();
-
          for (vector<MapPoint *>::iterator vitMP = vpMapPointsKFi.begin(), vendMP = vpMapPointsKFi.end(); vitMP != vendMP; vitMP++)
          {
             MapPoint * pMP = *vitMP;
@@ -654,10 +639,8 @@ namespace ORB_SLAM2
          }
       }
 
-      Print("7");
       matcher.Fuse(mapChanges, mpCurrentKeyFrame, vpFuseCandidates, &mMap);
 
-      Print("8");
       // Update points
       // TODO OK - only update points that were touched during Fuse
       vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
@@ -674,7 +657,6 @@ namespace ORB_SLAM2
          }
       }
 
-      Print("9");
       // Update connections in covisibility graph
       mpCurrentKeyFrame->UpdateConnections();
       Print("end SearchInNeighbors");
@@ -719,7 +701,6 @@ namespace ORB_SLAM2
       if (mbPauseRequested && !mbNotPause)
       {
          mbPaused = true;
-         //Print("PAUSE");
          return true;
       }
 

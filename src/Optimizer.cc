@@ -86,7 +86,6 @@ namespace ORB_SLAM2
 
       id_type maxKFid = 0;
 
-      Print("// Set KeyFrame vertices");
       // Set KeyFrame vertices
       for (size_t i = 0; i < vpKFs.size(); i++)
       {
@@ -106,7 +105,6 @@ namespace ORB_SLAM2
       const float thHuber2D = sqrt(5.99);
       const float thHuber3D = sqrt(7.815);
 
-      Print("// Set MapPoint vertices");
       // Set MapPoint vertices
       for (size_t i = 0; i < vpMP.size(); i++)
       {
@@ -510,7 +508,6 @@ namespace ORB_SLAM2
             lLocalKeyFrames.push_back(pKFi);
       }
 
-      Print("// Local MapPoints seen in Local KeyFrames");
       // Local MapPoints seen in Local KeyFrames
       list<MapPoint*> lLocalMapPoints;
       for (list<KeyFrame*>::iterator lit = lLocalKeyFrames.begin(), lend = lLocalKeyFrames.end(); lit != lend; lit++)
@@ -529,7 +526,6 @@ namespace ORB_SLAM2
          }
       }
 
-      Print("// Fixed Keyframes. Keyframes that see Local MapPoints but that are not Local Keyframes");
       // Fixed Keyframes. Keyframes that see Local MapPoints but that are not Local Keyframes
       list<KeyFrame*> lFixedCameras;
       for (list<MapPoint*>::iterator lit = lLocalMapPoints.begin(), lend = lLocalMapPoints.end(); lit != lend; lit++)
@@ -548,7 +544,6 @@ namespace ORB_SLAM2
          }
       }
 
-      Print("// Setup optimizer");
       // Setup optimizer
       g2o::SparseOptimizer optimizer;
       g2o::BlockSolver_6_3::LinearSolverType * linearSolver;
@@ -565,7 +560,6 @@ namespace ORB_SLAM2
 
       unsigned long maxKFid = 0;
 
-      Print("// Set Local KeyFrame vertices");
       // Set Local KeyFrame vertices
       for (list<KeyFrame*>::iterator lit = lLocalKeyFrames.begin(), lend = lLocalKeyFrames.end(); lit != lend; lit++)
       {
@@ -580,7 +574,6 @@ namespace ORB_SLAM2
             maxKFid = pKFi->GetId();
       }
 
-      Print("// Set Fixed KeyFrame vertices");
       // Set Fixed KeyFrame vertices
       for (list<KeyFrame*>::iterator lit = lFixedCameras.begin(), lend = lFixedCameras.end(); lit != lend; lit++)
       {
@@ -619,7 +612,6 @@ namespace ORB_SLAM2
       const float thHuberMono = sqrt(5.991);
       const float thHuberStereo = sqrt(7.815);
 
-      Print("for(list<MapPoint*>::iterator lit=lLocalMapPoints.begin(), lend=lLocalMapPoints.end(); lit!=lend; lit++)");
       for (list<MapPoint*>::iterator lit = lLocalMapPoints.begin(), lend = lLocalMapPoints.end(); lit != lend; lit++)
       {
          MapPoint* pMP = *lit;
@@ -711,7 +703,6 @@ namespace ORB_SLAM2
             return;
          }
 
-      Print("optimizer.initializeOptimization();");
       optimizer.initializeOptimization();
       optimizer.optimize(5);
 
@@ -723,7 +714,6 @@ namespace ORB_SLAM2
 
       if (bDoMore)
       {
-         Print("if(bDoMore)");
 
          // Check inlier observations
          for (size_t i = 0, iend = vpEdgesMono.size(); i < iend;i++)
@@ -742,7 +732,6 @@ namespace ORB_SLAM2
             e->setRobustKernel(0);
          }
 
-         Print("second for");
          for (size_t i = 0, iend = vpEdgesStereo.size(); i < iend;i++)
          {
             g2o::EdgeStereoSE3ProjectXYZ* e = vpEdgesStereo[i];
@@ -759,7 +748,6 @@ namespace ORB_SLAM2
             e->setRobustKernel(0);
          }
 
-         Print("// Optimize again without the outliers");
          // Optimize again without the outliers
          optimizer.initializeOptimization(0);
          optimizer.optimize(10);
@@ -769,7 +757,6 @@ namespace ORB_SLAM2
       vector<pair<KeyFrame*, MapPoint*> > vToErase;
       vToErase.reserve(vpEdgesMono.size() + vpEdgesStereo.size());
 
-      Print("// Check inlier observations       ");
       // Check inlier observations       
       for (size_t i = 0, iend = vpEdgesMono.size(); i < iend;i++)
       {
@@ -786,7 +773,6 @@ namespace ORB_SLAM2
          }
       }
 
-      Print("for(size_t i=0, iend=vpEdgesStereo.size(); i<iend;i++)");
       for (size_t i = 0, iend = vpEdgesStereo.size(); i < iend;i++)
       {
          g2o::EdgeStereoSE3ProjectXYZ* e = vpEdgesStereo[i];
@@ -803,10 +789,10 @@ namespace ORB_SLAM2
       }
 
       // Get Map Mutex
-      Print("unique_lock<mutex> lock(mutexMapUpdate);");
+      Print("waiting to lock map");
       unique_lock<mutex> lock(mutexMapUpdate);
+      Print("map is locked");
 
-      Print("if(!vToErase.empty())");
       if (!vToErase.empty())
       {
          for (size_t i = 0;i < vToErase.size();i++)
@@ -823,7 +809,6 @@ namespace ORB_SLAM2
          }
       }
 
-      Print("// Recover optimized data");
       // Recover optimized data
 
       //Keyframes

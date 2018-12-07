@@ -77,22 +77,11 @@ namespace ORB_SLAM2
 
       unique_lock<mutex> lock2(mMutexReferenceMapPoints);
       set<MapPoint*> spRefMPs(mvpReferenceMapPoints.begin(), mvpReferenceMapPoints.end());
-      //stringstream ss;
-      //ss << "spRefMPs = ";
-      //for (MapPoint * mp : spRefMPs)
-      //{
-      //    if (mp)
-      //        ss << mp->GetWorldPos() << " ";
-      //    else
-      //        ss << "NULL" << " ";
-      //}
-      //Print(ss.str().c_str());
 
       glPointSize(mPointSize);
       glBegin(GL_POINTS);
       glColor3f(0.0, 0.0, 0.0);
 
-      Print("for (MapPoint * pMP : vpMPs)");
       for (MapPoint * pMP : vpMPs)
       {
          if (pMP->isBad() || spRefMPs.count(pMP))
@@ -100,30 +89,12 @@ namespace ORB_SLAM2
          cv::Mat pos = pMP->GetWorldPos();
          glVertex3f(pos.at<float>(0), pos.at<float>(1), pos.at<float>(2));
       }
-      Print("glEnd();");
       glEnd();
 
       glPointSize(mPointSize);
       glBegin(GL_POINTS);
       glColor3f(1.0, 0.0, 0.0);
 
-      /*Print("for(set<MapPoint*>::iterator sit=spRefMPs.begin(), send=spRefMPs.end(); sit!=send; sit++)");
-      for(set<MapPoint*>::iterator sit=spRefMPs.begin(), send=spRefMPs.end(); sit!=send; sit++)
-      {
-          //Print("if((*sit)->isBad())");
-          if((*sit)->isBad())
-              continue;
-          //Print("cv::Mat pos = (*sit)->GetWorldPos();");
-          cv::Mat pos = (*sit)->GetWorldPos();
-          if (pos.empty())
-              throw exception("GetWorldPos() is empty!!!!!!!!!!!!!!!!!!!!!!");
-          //stringstream ss;
-          //ss << "pos = "<< pos;
-          //Print(ss.str().c_str());
-          glVertex3f(pos.at<float>(0),pos.at<float>(1),pos.at<float>(2));
-      }*/
-
-      Print("for (MapPoint * pMP : mvpReferenceMapPoints)");
       for (MapPoint * pMP : mvpReferenceMapPoints)
       {
          if (pMP->isBad())
@@ -170,7 +141,6 @@ namespace ORB_SLAM2
             cv::Mat Twc = pKF->GetPoseInverse().t();
 
             glPushMatrix();
-
             glMultMatrixf(Twc.ptr<GLfloat>(0));
 
             glBegin(GL_LINES);
@@ -202,7 +172,6 @@ namespace ORB_SLAM2
 
       if (bDrawGraph)
       {
-         Print("if (bDrawGraph)");
          glLineWidth(mGraphLineWidth);
          glColor4f(0.0f, 1.0f, 0.0f, 0.6f);
          glBegin(GL_LINES);
@@ -384,17 +353,10 @@ namespace ORB_SLAM2
 
    void MapDrawer::SetReferenceMapPoints(const std::vector<MapPoint*>& vpMPs)
    {
-      Print("begin SetReferenceMapPoints");
+      //Print("begin SetReferenceMapPoints");
       unique_lock<mutex> lock(mMutexReferenceMapPoints);
-      stringstream ss;
-      //ss << "mvpReferenceMapPoints = ";
-      //for (MapPoint * mp : vpMPs)
-      //{
-      //    ss << mp->GetWorldPos() << " ";
-      //}
-      //Print(ss.str().c_str());
       mvpReferenceMapPoints = vpMPs;
-      Print("end SetReferenceMapPoints");
+      //Print("end SetReferenceMapPoints");
    }
 
    float MapDrawer::GetViewpointX()

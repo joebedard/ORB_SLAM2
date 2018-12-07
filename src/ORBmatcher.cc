@@ -46,7 +46,7 @@ namespace ORB_SLAM2
    const int ORBmatcher::HISTO_LENGTH = 30;
 
    ORBmatcher::ORBmatcher(float nnratio, bool checkOri) 
-      : SyncPrint("ORBmatcher: ")
+      : SyncPrint("ORBmatcher: ", false)
       , mfNNratio(nnratio)
       , mbCheckOrientation(checkOri)
    {
@@ -54,6 +54,7 @@ namespace ORB_SLAM2
 
    int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint*> &vpMapPoints, const float th)
    {
+      Print("begin SearchByProjection");
       int nmatches = 0;
 
       const bool bFactor = th != 1.0;
@@ -168,6 +169,7 @@ namespace ORB_SLAM2
 
    int ORBmatcher::SearchByBoW(KeyFrame* pKF, Frame &F, vector<MapPoint*> &vpMapPointMatches)
    {
+      Print("begin SearchByBoW");
       const vector<MapPoint*> vpMapPointsKF = pKF->GetMapPointMatches();
 
       vpMapPointMatches = vector<MapPoint*>(F.N, static_cast<MapPoint*>(NULL));
@@ -294,11 +296,13 @@ namespace ORB_SLAM2
          }
       }
 
+      Print("end SearchByBoW");
       return nmatches;
    }
 
    int ORBmatcher::SearchByProjection(KeyFrame* pKF, cv::Mat Scw, const vector<MapPoint*> &vpPoints, vector<MapPoint*> &vpMatched, int th)
    {
+      Print("begin SearchByProjection");
       // Get Calibration Parameters for later projection
       const float &fx = pKF->mFC.fx;
       const float &fy = pKF->mFC.fy;
@@ -409,11 +413,13 @@ namespace ORB_SLAM2
 
       }
 
+      Print("end SearchByProjection");
       return nmatches;
    }
 
    int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f> &vbPrevMatched, vector<int> &vnMatches12, int windowSize)
    {
+      Print("begin SearchForInitialization");
       int nmatches = 0;
       vnMatches12 = vector<int>(F1.mvKeysUn.size(), -1);
 
@@ -526,11 +532,13 @@ namespace ORB_SLAM2
          if (vnMatches12[i1] >= 0)
             vbPrevMatched[i1] = F2.mvKeysUn[vnMatches12[i1]].pt;
 
+      Print("end SearchForInitialization");
       return nmatches;
    }
 
    int ORBmatcher::SearchByBoW(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint *> &vpMatches12)
    {
+      Print("begin SearchByBoW");
       const vector<cv::KeyPoint> &vKeysUn1 = pKF1->keysUn;
       const DBoW2::FeatureVector &vFeatVec1 = pKF1->mFeatVec;
       const vector<MapPoint*> vpMapPoints1 = pKF1->GetMapPointMatches();
@@ -661,12 +669,14 @@ namespace ORB_SLAM2
          }
       }
 
+      Print("end SearchByBoW");
       return nmatches;
    }
 
    int ORBmatcher::SearchForTriangulation(KeyFrame *pKF1, KeyFrame *pKF2, cv::Mat F12,
       vector<pair<size_t, size_t> > &vMatchedPairs, const bool bOnlyStereo)
    {
+      Print("begin SearchForTriangulation");
       const DBoW2::FeatureVector &vFeatVec1 = pKF1->mFeatVec;
       const DBoW2::FeatureVector &vFeatVec2 = pKF2->mFeatVec;
 
@@ -829,6 +839,7 @@ namespace ORB_SLAM2
          vMatchedPairs.push_back(make_pair(i, vMatches12[i]));
       }
 
+      Print("end SearchForTriangulation");
       return nmatches;
    }
 
@@ -844,7 +855,6 @@ namespace ORB_SLAM2
       const float &cy = pKF->mFC.cy;
       const float &bf = pKF->mFC.blfx;
 
-      Print("cv::Mat Ow = pKF->GetCameraCenter();");
       cv::Mat Ow = pKF->GetCameraCenter();
 
       int nFused = 0;
@@ -1010,6 +1020,7 @@ namespace ORB_SLAM2
 
    int ORBmatcher::Fuse(MapChangeEvent & mapChanges, KeyFrame *pKF, cv::Mat Scw, const vector<MapPoint *> &vpPoints, float th, vector<MapPoint *> &vpReplacePoint)
    {
+      Print("begin Fuse 2");
       // Get Calibration Parameters for later projection
       const float &fx = pKF->mFC.fx;
       const float &fy = pKF->mFC.fy;
@@ -1135,12 +1146,14 @@ namespace ORB_SLAM2
          }
       }
 
+      Print("end Fuse 2");
       return nFused;
    }
 
    int ORBmatcher::SearchBySim3(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint*> &vpMatches12,
       const float &s12, const cv::Mat &R12, const cv::Mat &t12, const float th)
    {
+      Print("begin SearchBySim3");
       const float &fx = pKF1->mFC.fx;
       const float &fy = pKF1->mFC.fy;
       const float &cx = pKF1->mFC.cx;
