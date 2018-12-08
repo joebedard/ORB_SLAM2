@@ -2,7 +2,7 @@
 
 #--------------------------------------------------------------------------------------------
 # Camera Parameters. Adjust them!
-# Camera.bf is baseline times fx (aprox.)
+# Camera.bl is baseline in meters
 #--------------------------------------------------------------------------------------------
 
 # factory calibration
@@ -15,7 +15,7 @@ Camera.k1: 0.0
 Camera.k2: 0.0
 Camera.p1: 0.0
 Camera.p2: 0.0
-Camera.bf: 19.120788640248
+Camera.bl: 0.0500099108959238
 
 Camera.width: 640
 Camera.height: 480

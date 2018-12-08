@@ -124,8 +124,24 @@ namespace ORB_SLAM2
       if (0 == height)
          throw new exception("Camera.height is not set.");
 
+      float bl = fSettings["Camera.bl"];
       float bf = fSettings["Camera.bf"];
-      float thDepth = bf * (float)fSettings["ThDepth"] / fx;
+      if (sensor != SensorType::MONOCULAR)
+      {
+         if (bl == 0.0f && bf == 0.0f)
+            throw exception("Camera.bl or Camera.bf must be non-zero when sensor type is not monocular");
+
+         if (bl == 0.0f)
+         {
+            bl = bf / fx;
+         }
+         else
+         {
+            bf = bl * fx;
+         }
+      }
+
+      float thDepth = bl * (float)fSettings["ThDepth"];
 
       mFC.Initialize(K, distCoef, width, height, bf, thDepth);
 
