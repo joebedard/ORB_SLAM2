@@ -65,14 +65,19 @@ namespace ORB_SLAM2
       Print("end ~MapperServer");
    }
 
-   long unsigned MapperServer::KeyFramesInMap()
+   unsigned long MapperServer::KeyFramesInMap()
    {
       return mMap.KeyFramesInMap();
    }
 
-   long unsigned MapperServer::MapPointsInMap()
+   unsigned long MapperServer::MapPointsInMap()
    {
       return mMap.MapPointsInMap();
+   }
+
+   unsigned int MapperServer::LoopsInMap()
+   {
+      return mLoopCloser.quantityLoops;
    }
 
    void MapperServer::Reset()

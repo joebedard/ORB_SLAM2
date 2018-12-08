@@ -40,6 +40,8 @@ namespace ORB_SLAM2
 
       virtual long unsigned MapPointsInMap() = 0;
 
+      virtual unsigned int LoopsInMap() = 0;
+
       virtual void Reset() = 0;
 
       virtual std::vector<KeyFrame *> DetectRelocalizationCandidates(Frame * F) = 0;

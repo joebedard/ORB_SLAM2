@@ -55,7 +55,9 @@ namespace ORB_SLAM2
       mbStopGBA(false),
       mpThreadGBA(NULL),
       mnFullBAIdx(0),
-      mnCovisibilityConsistencyTh(3)
+      mnCovisibilityConsistencyTh(3),
+      mQuantityLoops(0),
+      quantityLoops(mQuantityLoops)
    {
    }
 
@@ -102,6 +104,7 @@ namespace ORB_SLAM2
                   {
                      // Perform loop fusion and pose graph optimization
                      CorrectLoop();
+                     mQuantityLoops++;
                   }
                }
             }

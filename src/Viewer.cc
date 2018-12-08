@@ -109,6 +109,7 @@ namespace ORB_SLAM2
 
       pangolin::Var<unsigned long> menuQuantityKF("menu.Key Frames", 0);
       pangolin::Var<unsigned long> menuQuantityMP("menu.Map Points", 0);
+      pangolin::Var<unsigned long> menuQuantityLoops("menu.Loops", 0);
 
       pangolin::View & d_multiviewMaps = pangolin::Display("multiviewMaps");
       pangolin::View & d_multiviewTrackers = pangolin::Display("multiviewTrackers");
@@ -202,6 +203,7 @@ namespace ORB_SLAM2
 
          menuQuantityKF = mMapper.KeyFramesInMap();
          menuQuantityMP = mMapper.MapPointsInMap();
+         menuQuantityLoops = mMapper.LoopsInMap();
 
          for (int i = 0; i < mvTrackers.size(); ++i)
          {

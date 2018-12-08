@@ -48,7 +48,11 @@ namespace ORB_SLAM2
 
       ~MapperClient();
 
-      virtual long unsigned  KeyFramesInMap();
+      virtual unsigned long KeyFramesInMap();
+
+      virtual unsigned long MapPointsInMap();
+
+      virtual unsigned int LoopsInMap();
 
       virtual void Reset();
 

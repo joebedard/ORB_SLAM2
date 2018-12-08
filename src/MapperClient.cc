@@ -98,14 +98,20 @@ namespace ORB_SLAM2
       }
    }
 
-   long unsigned MapperClient::KeyFramesInMap()
+   unsigned long MapperClient::KeyFramesInMap()
    {
       return mMap.KeyFramesInMap();
    }
 
-   long unsigned MapperServer::MapPointsInMap()
+   unsigned long MapperClient::MapPointsInMap()
    {
       return mMap.MapPointsInMap();
+   }
+
+   unsigned int MapperClient::LoopsInMap()
+   {
+      // TODO - synchronize with server
+      return 0;
    }
 
    void MapperClient::Reset()

@@ -48,8 +48,11 @@ namespace ORB_SLAM2
    public:
 
       typedef pair<set<KeyFrame*>, int> ConsistentGroup;
+
       typedef map<KeyFrame*, g2o::Sim3, std::less<KeyFrame*>,
          Eigen::aligned_allocator<std::pair<const KeyFrame*, g2o::Sim3> > > KeyFrameAndPose;
+
+      const unsigned int & quantityLoops;
 
    public:
 
@@ -157,6 +160,7 @@ namespace ORB_SLAM2
       
       std::mutex & mMutexMapUpdate;
 
+      unsigned int mQuantityLoops;
    };
 
 } //namespace ORB_SLAM
