@@ -70,7 +70,8 @@ namespace ORB_SLAM2
       mMapPointIdSpan(0),
       mMapperObserver(this),
       pivotCal(4, 4, CV_32F),
-      quantityRelocalizations(mQuantityRelocalizations)
+      quantityRelocalizations(mQuantityRelocalizations),
+      mRectify(false)
    {
       LoadCameraParameters(fSettings, sensor);
       Login();
@@ -237,7 +238,45 @@ namespace ORB_SLAM2
       pivotCal.at<float>(3, 1) = 0.0f;
       pivotCal.at<float>(3, 0) = 0.0f;
 
-      ss << "Mat: " << pivotCal << endl;
+      //ss << "Mat: " << pivotCal << endl;
+
+      // Stereo Rectification
+      if (sensor == SensorType::STEREO)
+      {
+         cv::Mat K_l, K_r, /*P_l, P_r,*/ R_l, R_r, D_l, D_r;
+         fSettings["LEFT.K"] >> K_l;
+         fSettings["RIGHT.K"] >> K_r;
+
+         fSettings["LEFT.R"] >> R_l;
+         fSettings["RIGHT.R"] >> R_r;
+
+         fSettings["LEFT.D"] >> D_l;
+         fSettings["RIGHT.D"] >> D_r;
+
+         int leftHeight = fSettings["LEFT.height"];
+         int leftWidth = fSettings["LEFT.width"];
+         int rightHeight = fSettings["RIGHT.height"];
+         int rightWidth = fSettings["RIGHT.width"];
+
+         if (K_l.empty() && K_r.empty() && R_l.empty() && R_r.empty() && D_l.empty() && D_r.empty() &&
+            leftHeight == 0 && rightHeight == 0 && leftWidth == 0 && rightWidth == 0)
+         {
+            ss << endl << "Stereo Image Rectification is DISABLED" << endl;
+         }
+         else if (K_l.empty() || K_r.empty() || R_l.empty() || R_r.empty() || D_l.empty() || D_r.empty() ||
+            leftHeight == 0 || rightHeight == 0 || leftWidth == 0 || rightWidth == 0)
+         {
+            throw exception("stereo image rectification parameters are incomplete");
+         }
+         else
+         {
+            ss << endl << "Stereo Image Rectification is ENABLED" << endl;
+            cv::initUndistortRectifyMap(K_l, D_l, R_l, K, cv::Size(leftWidth, leftHeight), CV_32F, mRectMapLeft1, mRectMapLeft2);
+            cv::initUndistortRectifyMap(K_r, D_r, R_r, K, cv::Size(rightWidth, rightHeight), CV_32F, mRectMapRight1, mRectMapRight2);
+            mRectify = true;
+         }
+      }
+
       Print(ss);
    }
 
@@ -337,7 +376,17 @@ namespace ORB_SLAM2
          }
       }
 
-      mCurrentFrame = Frame(imGray, imGrayRight, timestamp, mpORBextractorLeft, mpORBextractorRight, &mFC);
+      if (mRectify)
+      {
+         cv::Mat imLeftRect, imRightRect;
+         cv::remap(imGray, imLeftRect, mRectMapLeft1, mRectMapLeft2, cv::INTER_LINEAR);
+         cv::remap(imGrayRight, imRightRect, mRectMapRight1, mRectMapRight2, cv::INTER_LINEAR);
+         mCurrentFrame = Frame(imLeftRect, imRightRect, timestamp, mpORBextractorLeft, mpORBextractorRight, &mFC);
+      }
+      else
+      {
+         mCurrentFrame = Frame(imGray, imGrayRight, timestamp, mpORBextractorLeft, mpORBextractorRight, &mFC);
+      }
 
       Track(imGray);
 

@@ -42,7 +42,7 @@ DepthMapFactor: 1.0
 Pivot.rx: 0.0
 Pivot.ry: 0.0
 Pivot.rz: 0.0
-Pivot.tx: -0.3
+Pivot.tx: 0.0
 Pivot.ty: 0.0
 Pivot.tz: 0.0
 

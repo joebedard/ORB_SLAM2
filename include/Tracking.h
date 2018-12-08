@@ -188,6 +188,12 @@ namespace ORB_SLAM2
 
       unsigned int mQuantityRelocalizations;
 
+      // should stereo images be rectified before feature extraction
+      bool mRectify;
+
+      // used for stereo image rectification
+      cv::Mat mRectMapLeft1, mRectMapLeft2, mRectMapRight1, mRectMapRight2;
+
       void LoadCameraParameters(cv::FileStorage & settings, SensorType sensor);
 
       void CheckModeChange();
