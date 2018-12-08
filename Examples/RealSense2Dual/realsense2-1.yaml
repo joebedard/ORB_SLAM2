@@ -15,6 +15,9 @@ Camera.k1: 0.0
 Camera.k2: 0.0
 Camera.p1: 0.0
 Camera.p2: 0.0
+#Camera.bl: 0.0498142205178738
+
+# manual calibration
 Camera.bl: 0.0500099753281999
 
 Camera.width: 640
