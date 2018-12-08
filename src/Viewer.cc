@@ -107,6 +107,9 @@ namespace ORB_SLAM2
 
       pangolin::Var<bool> menuReset("menu.Reset", false, false);
 
+      pangolin::Var<unsigned long> menuQuantityKF("menu.Key Frames", 0);
+      pangolin::Var<unsigned long> menuQuantityMP("menu.Map Points", 0);
+
       pangolin::View & d_multiviewMaps = pangolin::Display("multiviewMaps");
       pangolin::View & d_multiviewTrackers = pangolin::Display("multiviewTrackers");
 
@@ -197,6 +200,9 @@ namespace ORB_SLAM2
       {
          glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+         menuQuantityKF = mMapper.KeyFramesInMap();
+         menuQuantityMP = mMapper.MapPointsInMap();
+
          for (int i = 0; i < mvTrackers.size(); ++i)
          {
             if (vMenuLocalizationModes[i]->GuiChanged())
@@ -208,7 +214,6 @@ namespace ORB_SLAM2
             }
          }
 
-         Print("begin drawing maps and frames");
          for (int i = 0; i < mvMapDrawers.size(); ++i)
          {
             if (menuFollowCamera)
@@ -245,7 +250,6 @@ namespace ORB_SLAM2
             cv::Mat im = fd->DrawFrame();
             if (mEmbeddedFrameDrawers)
             {
-               Print("cv::Mat flipped = cv::Mat(im.rows, im.cols, CV_8UC3, cv::Scalar(0, 0, 0));");
                cv::Mat flipped = cv::Mat(im.rows, im.cols, CV_8UC3, cv::Scalar(0, 0, 0));
                cv::flip(im, flipped, 0);
                if (maxTextureBufferSize < fd->GetFrameWidth() * fd->GetFrameHeight())
@@ -266,13 +270,16 @@ namespace ORB_SLAM2
                cv::imshow(vTrackerWindowNames[i], im);
             }
          }
-         Print("end drawing maps and frames");
 
          pangolin::FinishFrame();
          //CheckGlDieOnError();
          if (!mEmbeddedFrameDrawers)
          {
-            cv::waitKey(1);
+            cv::waitKey(20);
+         }
+         else
+         {
+            sleep(20000);
          }
 
          if (pangolin::ShouldQuit())

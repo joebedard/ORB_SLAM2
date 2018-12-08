@@ -422,9 +422,7 @@ namespace ORB_SLAM2
                mvIniMatches,
                mCurrentFrame.mvKeys,
                mCurrentFrame.mvpMapPoints,
-               mCurrentFrame.mvbOutlier,
-               mMapper.GetMap().KeyFramesInMap(),
-               mMapper.GetMap().MapPointsInMap());
+               mCurrentFrame.mvbOutlier);
 
             if (!mMapper.GetInitialized())
             {
@@ -485,9 +483,7 @@ namespace ORB_SLAM2
             mvIniMatches,
             mCurrentFrame.mvKeys,
             mCurrentFrame.mvpMapPoints,
-            mCurrentFrame.mvbOutlier,
-            mMapper.GetMap().KeyFramesInMap(),
-            mMapper.GetMap().MapPointsInMap());
+            mCurrentFrame.mvbOutlier);
 
          // If tracking was good, check if we insert a keyframe
          if (bOK)

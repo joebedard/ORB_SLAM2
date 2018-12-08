@@ -70,6 +70,11 @@ namespace ORB_SLAM2
       return mMap.KeyFramesInMap();
    }
 
+   long unsigned MapperServer::MapPointsInMap()
+   {
+      return mMap.MapPointsInMap();
+   }
+
    void MapperServer::Reset()
    {
       Print("Begin Reset");

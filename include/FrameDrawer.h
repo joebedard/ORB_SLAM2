@@ -55,10 +55,7 @@ namespace ORB_SLAM2
          vector<int> & initialMatches,
          std::vector<cv::KeyPoint> & currentKeys, 
          std::vector<MapPoint *> & currentMapPoints, 
-         std::vector<bool> & outliers,
-         int keyFramesInMap,
-         int mapPointsInMap
-      );
+         std::vector<bool> & outliers);
 
       // Draw last processed frame.
       cv::Mat DrawFrame();
@@ -77,7 +74,6 @@ namespace ORB_SLAM2
 
       // Info of the frame to be drawn
       cv::Mat mIm;
-      int N;
       vector<cv::KeyPoint> mvCurrentKeys;
       vector<bool> mvbMap, mvbVO;
       bool mbOnlyTracking;
@@ -91,7 +87,7 @@ namespace ORB_SLAM2
    private:
       // 1/fps in ms
       double mT;
-      int mImageWidth, mImageHeight, mTextInfoHeight, mnKFs, mnMPs;
+      int mImageWidth, mImageHeight, mTextInfoHeight;
 
       stringstream StateToString(TrackingState state);
 

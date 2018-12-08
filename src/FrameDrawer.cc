@@ -33,9 +33,6 @@ namespace ORB_SLAM2
 
    FrameDrawer::FrameDrawer(cv::FileStorage & fSettings)
       : SyncPrint("FrameDrawer: ", false)
-      , mnKFs(0)
-      , mnMPs(0)
-      , N(0)
       , mState(NO_IMAGES_YET)
       , mbOnlyTracking(false)
    {
@@ -64,9 +61,6 @@ namespace ORB_SLAM2
    {
       unique_lock<mutex> lock(mMutex);
 
-      mnKFs = 0;
-      mnMPs = 0;
-      N = 0;
       mState = NO_IMAGES_YET;
       mbOnlyTracking = false;
 
@@ -202,7 +196,7 @@ namespace ORB_SLAM2
             s << "SLAM MODE |  ";
          else
             s << "LOCALIZATION | ";
-         s << "KFs: " << mnKFs << ", MPs: " << mnMPs << ", Matches: " << mnTracked;
+         s << "Matches: " << mnTracked;
          if (mnTrackedVO > 0)
             s << ", + VO matches: " << mnTrackedVO;
       }
@@ -230,22 +224,16 @@ namespace ORB_SLAM2
       vector<int> & initialMatches,
       std::vector<cv::KeyPoint> & currentKeys, 
       std::vector<MapPoint *> & currentMapPoints, 
-      std::vector<bool> & outliers,
-      int keyFramesInMap,
-      int mapPointsInMap
-      )
+      std::vector<bool> & outliers)
    {
       Print("begin Update");
       unique_lock<mutex> lock(mMutex);
       imGray.copyTo(mIm);
       mvCurrentKeys = currentKeys;
-      N = mvCurrentKeys.size();
+      int N = currentKeys.size();
       mvbVO = vector<bool>(N, false);
       mvbMap = vector<bool>(N, false);
       mbOnlyTracking = onlyTracking;
-
-      mnKFs = keyFramesInMap;
-      mnMPs = mapPointsInMap;
 
       if (lastProcessedState == NOT_INITIALIZED)
       {
@@ -254,7 +242,7 @@ namespace ORB_SLAM2
       }
       else if (lastProcessedState == TRACKING_OK)
       {
-         for (int i = 0;i < N; i++)
+         for (int i = 0; i < N; i++)
          {
             MapPoint* pMP = currentMapPoints[i];
             if (pMP)

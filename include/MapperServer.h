@@ -50,6 +50,8 @@ namespace ORB_SLAM2
 
       virtual long unsigned  KeyFramesInMap();
 
+      virtual long unsigned MapPointsInMap();
+
       virtual void Reset();
 
       virtual std::vector<KeyFrame *> DetectRelocalizationCandidates(Frame * F);
