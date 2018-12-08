@@ -457,9 +457,15 @@ namespace ORB_SLAM2
          return 0;
    }
 
-   void KeyFrame::AddMapPoint(MapPoint *pMP, const size_t &idx)
+   void KeyFrame::AddMapPoint(MapPoint *pMP, const size_t idx)
    {
       unique_lock<mutex> lock(mMutexFeatures);
+      if (idx >= mvpMapPoints.size())
+      {
+         stringstream ss;
+         ss << "KeyFrame::AddMapPoint: idx==" << idx << " mvpMapPoints.size()==" << mvpMapPoints.size();
+         Print(ss);
+      }
       mvpMapPoints.at(idx) = pMP;
    }
 
@@ -527,14 +533,16 @@ namespace ORB_SLAM2
       return mvpMapPoints;
    }
 
-   MapPoint * KeyFrame::GetMapPoint(const size_t &idx)
+   MapPoint * KeyFrame::GetMapPoint(const size_t idx)
    {
       unique_lock<mutex> lock(mMutexFeatures);
+      if (idx >= mvpMapPoints.size())
+      {
+         stringstream ss; 
+         ss << "KeyFrame::GetMapPoint: idx==" << idx << " mvpMapPoints.size()==" << mvpMapPoints.size();
+         Print(ss);
+      }
       return mvpMapPoints.at(idx);
-      //if (idx >= mvpMapPoints.size())
-      //   return static_cast<MapPoint *>(NULL);
-      //else
-      //   return mvpMapPoints[idx];
    }
 
    void KeyFrame::UpdateConnections()

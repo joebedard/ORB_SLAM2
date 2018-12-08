@@ -150,8 +150,6 @@ namespace ORB_SLAM2
       vector<MapPoint *> noPoints;
       if (mLocalMapper.InsertKeyFrame(pKF1, noPoints) && mLocalMapper.InsertKeyFrame(pKF2, noPoints))
       {
-         pKF1->ComputeBoW(mVocab);
-         pKF2->ComputeBoW(mVocab);
          UpdateTrackerStatus(trackerId, mapPoints);
          UpdateTrackerStatus(trackerId, pKF1);
          UpdateTrackerStatus(trackerId, pKF2);
@@ -185,7 +183,6 @@ namespace ORB_SLAM2
 
       if (mLocalMapper.InsertKeyFrame(pKF, mapPoints))
       {
-         pKF->ComputeBoW(mVocab);
          UpdateTrackerStatus(trackerId, mapPoints);
          UpdateTrackerStatus(trackerId, pKF);
          mInitialized = true;
@@ -205,8 +202,6 @@ namespace ORB_SLAM2
 
       if (mLocalMapper.InsertKeyFrame(pKF, mapPoints))
       {
-         pKF->ComputeBoW(mVocab);
-
          // stereo and RGBD modes will create MapPoints
          UpdateTrackerStatus(trackerId, mapPoints);
          UpdateTrackerStatus(trackerId, pKF);

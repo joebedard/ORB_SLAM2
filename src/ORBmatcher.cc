@@ -862,7 +862,6 @@ namespace ORB_SLAM2
 
       const int nMPs = vpMapPoints.size();
 
-      Print("for (int i = 0; i < nMPs; i++)");
       for (int i = 0; i < nMPs; i++)
       {
          MapPoint* pMP = vpMapPoints[i];

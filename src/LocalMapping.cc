@@ -207,6 +207,8 @@ namespace ORB_SLAM2
                }
             }
 
+            pKF->ComputeBoW(mVocab);
+
             // Update links in the Covisibility Graph
             pKF->UpdateConnections();
 
