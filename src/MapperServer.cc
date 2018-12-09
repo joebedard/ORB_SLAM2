@@ -156,9 +156,11 @@ namespace ORB_SLAM2
 
       // Insert KeyFrame in the map
       mMap.mvpKeyFrameOrigins.push_back(pKF1);
+      mMap.AddKeyFrame(pKF1);
+      pKF1->ComputeBoW(mVocab);
 
       vector<MapPoint *> noPoints;
-      if (mLocalMapper.InsertKeyFrame(pKF1, noPoints) && mLocalMapper.InsertKeyFrame(pKF2, noPoints))
+      if (mLocalMapper.InsertKeyFrame(pKF2, noPoints))
       {
          UpdateTrackerStatus(trackerId, mapPoints);
          UpdateTrackerStatus(trackerId, pKF1);
