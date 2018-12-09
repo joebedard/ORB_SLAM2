@@ -806,10 +806,6 @@ namespace ORB_SLAM2
       pKFcur->UpdateConnections();
 
       // Bundle Adjustment
-      stringstream ss;
-      ss << "New Map created with " << points.size() << " points";
-      Print(ss.str().c_str());
-
       MapChangeEvent mapChanges;
       Optimizer::GlobalBundleAdjustment(map, mMapper.GetMutexMapUpdate(), mapChanges, 20);
 
@@ -831,6 +827,10 @@ namespace ORB_SLAM2
          // TODO - delete MapPoints and KeyFrames
          return;
       }
+
+      stringstream ss;
+      ss << "New Map created with " << points.size() << " points";
+      Print(ss.str().c_str());
 
       // Scale initial baseline
       cv::Mat Tc2w = pKFcur->GetPose();
