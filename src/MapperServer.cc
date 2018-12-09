@@ -149,15 +149,19 @@ namespace ORB_SLAM2
 
       ValidateTracker(trackerId);
 
+      mMap.mvpKeyFrameOrigins.push_back(pKF1);
+
+      mMap.AddKeyFrame(pKF1);
+
       for (MapPoint * pMP : mapPoints)
       {
          mMap.AddMapPoint(pMP);
       }
 
-      // Insert KeyFrame in the map
-      mMap.mvpKeyFrameOrigins.push_back(pKF1);
-      mMap.AddKeyFrame(pKF1);
       pKF1->ComputeBoW(mVocab);
+
+      // already called by tracking initialize
+      // pKF1->UpdateConnections();
 
       vector<MapPoint *> noPoints;
       if (mLocalMapper.InsertKeyFrame(pKF2, noPoints))
