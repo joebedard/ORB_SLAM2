@@ -68,8 +68,8 @@ namespace ORB_SLAM2
       void Resume();
       bool IsPaused();
       bool PauseRequested();
-      bool AcceptKeyFrames();
-      void SetAcceptKeyFrames(bool flag);
+      bool GetIdle();
+      void SetIdle(bool flag);
       bool SetNotPause(bool flag);
 
       void InterruptBA();
@@ -148,9 +148,9 @@ namespace ORB_SLAM2
 
       mutex mMutexPause;
 
-      bool mbAcceptKeyFrames;
+      bool mbIdle;
 
-      mutex mMutexAccept;
+      mutex mMutexIdle;
 
       unsigned long NewMapPointId();
 

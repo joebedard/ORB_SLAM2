@@ -40,7 +40,7 @@ namespace ORB_SLAM2
 
       virtual void HandlePauseRequested(bool b) {}
 
-      virtual void HandleAcceptKeyFrames(bool b) {}
+      virtual void HandleIdle(bool b) {}
 
    };
 

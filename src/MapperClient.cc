@@ -35,7 +35,7 @@ namespace ORB_SLAM2
       , mbMonocular(bMonocular)
       , mInitialized(false)
       , mPauseRequested(false)
-      , mAcceptKeyFrames(true)
+      , mIdle(true)
       , mContext(2)
       , mSocketReq(mContext, ZMQ_REQ)
       , mSocketSub(mContext, ZMQ_SUB)
@@ -44,7 +44,7 @@ namespace ORB_SLAM2
          &MapperClient::ReceiveMapReset, 
          &MapperClient::ReceiveMapChange, 
          &MapperClient::ReceivePauseRequested, 
-         &MapperClient::ReceiveAcceptKeyFrames,
+         &MapperClient::ReceiveIdle,
          &MapperClient::ReceivePivotUpdate,
          &MapperClient::ReceivePoseUpdate}
    {
@@ -145,10 +145,10 @@ namespace ORB_SLAM2
       return mPauseRequested;
    }
 
-   bool MapperClient::AcceptKeyFrames()
+   bool MapperClient::GetIdle()
    {
-      unique_lock<mutex> lock(mMutexAccept);
-      return mAcceptKeyFrames;
+      unique_lock<mutex> lock(mMutexIdle);
+      return mIdle;
    }
 
    void MapperClient::InitializeMono(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2)
@@ -416,13 +416,13 @@ namespace ORB_SLAM2
       Print("end ReceivePauseRequested");
    }
 
-   void MapperClient::ReceiveAcceptKeyFrames(zmq::message_t & message)
+   void MapperClient::ReceiveIdle(zmq::message_t & message)
    {
-      Print("begin ReceiveAcceptKeyFrames");
+      Print("begin ReceiveIdle");
       GeneralMessage * pMsgData = message.data<GeneralMessage>();
-      unique_lock<mutex> lock(mMutexAccept);
-      mAcceptKeyFrames = *(bool *)(pMsgData + 1);
-      Print("end ReceiveAcceptKeyFrames");
+      unique_lock<mutex> lock(mMutexIdle);
+      mIdle = *(bool *)(pMsgData + 1);
+      Print("end ReceiveIdle");
    }
 
    void MapperClient::ReceivePivotUpdate(zmq::message_t & message)

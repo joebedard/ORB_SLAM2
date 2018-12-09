@@ -60,7 +60,7 @@ namespace ORB_SLAM2
 
       virtual bool GetPauseRequested();
 
-      virtual bool AcceptKeyFrames();
+      virtual bool GetIdle();
 
       virtual void LoginTracker(
          const cv::Mat & pivotCalib,
@@ -119,7 +119,7 @@ namespace ORB_SLAM2
 
       std::mutex mMutexPause;
 
-      std::mutex mMutexAccept;
+      std::mutex mMutexIdle;
 
       bool mbMonocular;
 
@@ -131,7 +131,7 @@ namespace ORB_SLAM2
 
       bool mPauseRequested;
 
-      bool mAcceptKeyFrames;
+      bool mIdle;
 
       string mServerAddress;
 
@@ -156,7 +156,7 @@ namespace ORB_SLAM2
 
       void ReceivePauseRequested(zmq::message_t & message);
 
-      void ReceiveAcceptKeyFrames(zmq::message_t & message);
+      void ReceiveIdle(zmq::message_t & message);
 
       void ReceivePivotUpdate(zmq::message_t & message);
 

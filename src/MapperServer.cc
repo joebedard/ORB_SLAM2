@@ -129,9 +129,9 @@ namespace ORB_SLAM2
       return mLocalMapper.PauseRequested();
    }
 
-   bool MapperServer::AcceptKeyFrames()
+   bool MapperServer::GetIdle()
    {
-      return mLocalMapper.AcceptKeyFrames();
+      return mLocalMapper.GetIdle();
    }
 
    void MapperServer::InitializeMono(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2)

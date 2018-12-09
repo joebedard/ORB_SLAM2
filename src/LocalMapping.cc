@@ -54,7 +54,7 @@ namespace ORB_SLAM2
       mbPaused(false),
       mbPauseRequested(false),
       mbNotPause(false),
-      mbAcceptKeyFrames(true)
+      mbIdle(true)
    {
    }
 
@@ -83,7 +83,7 @@ namespace ORB_SLAM2
             if (CheckNewKeyFrames())
             {
                // Tracking will see that Local Mapping is busy
-               SetAcceptKeyFrames(false);
+               SetIdle(false);
 
                MapChangeEvent mapChanges;
 
@@ -127,7 +127,7 @@ namespace ORB_SLAM2
             else if (Pause())
             {
                // Tracking will see that Local Mapping is busy
-               SetAcceptKeyFrames(false);
+               SetIdle(false);
 
                // Pause and allow LoopClosing to finish (CorrectLoop or GlobalBundleAdjustment))
                Print("PAUSE");
@@ -141,15 +141,15 @@ namespace ORB_SLAM2
                Print("CONTINUE");
 
                // Tracking will see that Local Mapping is not busy
-               SetAcceptKeyFrames(true);
+               SetIdle(true);
             }
             else
             {
                // Tracking will see that Local Mapping is not busy
-               SetAcceptKeyFrames(true);
+               SetIdle(true);
             }
 
-         } while (!AcceptKeyFrames());
+         } while (!GetIdle());
 
       } while (!CheckFinish());
 
@@ -182,7 +182,7 @@ namespace ORB_SLAM2
       {
          // If the mapping accepts keyframes, insert keyframe.
          // Otherwise send a signal to interrupt BA
-         if ( AcceptKeyFrames() || (!mbMonocular && KeyframesInQueue() < 3) )
+         if ( GetIdle() || (!mbMonocular && KeyframesInQueue() < 3) )
          {
             // TODO - add keyframe and new points to map
             mMap.AddKeyFrame(pKF);
@@ -752,20 +752,20 @@ namespace ORB_SLAM2
    }
 
 
-   bool LocalMapping::AcceptKeyFrames()
+   bool LocalMapping::GetIdle()
    {
-      unique_lock<mutex> lock(mMutexAccept);
-      return mbAcceptKeyFrames;
+      unique_lock<mutex> lock(mMutexIdle);
+      return mbIdle;
    }
 
 
-   void LocalMapping::SetAcceptKeyFrames(bool flag)
+   void LocalMapping::SetIdle(bool flag)
    {
-      if (mbAcceptKeyFrames != flag)
+      if (mbIdle != flag)
       {
-         unique_lock<mutex> lock(mMutexAccept);
-         mbAcceptKeyFrames = flag;
-         NotifyAcceptKeyFrames(flag);
+         unique_lock<mutex> lock(mMutexIdle);
+         mbIdle = flag;
+         NotifyIdle(flag);
       }
    }
 

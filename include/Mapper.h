@@ -48,7 +48,7 @@ namespace ORB_SLAM2
 
       virtual bool GetPauseRequested() = 0;
 
-      virtual bool AcceptKeyFrames() = 0;
+      virtual bool GetIdle() = 0;
 
       virtual bool InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF) = 0;
 

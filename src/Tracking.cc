@@ -1125,7 +1125,7 @@ namespace ORB_SLAM2
       const bool c1a = mCurrentFrame.mnId >= (mnLastFrameIdMadeIntoKeyFrame + mMaxFrames);
 
       // Condition 1b: More than "MinFrames" have passed and Local Mapping is idle
-      const bool c1b = (mCurrentFrame.mnId >= (mnLastFrameIdMadeIntoKeyFrame + mMinFrames)) && mMapper.AcceptKeyFrames();
+      const bool c1b = (mCurrentFrame.mnId >= (mnLastFrameIdMadeIntoKeyFrame + mMinFrames)) && mMapper.GetIdle();
 
       // Condition 1c: tracking is weak
       const bool c1c = (mSensor != MONOCULAR) && (mnMatchesInliers < (nRefMatches * 0.25) || bNeedToInsertClose);

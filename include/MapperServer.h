@@ -60,7 +60,7 @@ namespace ORB_SLAM2
 
       virtual bool GetPauseRequested();
 
-      virtual bool AcceptKeyFrames();
+      virtual bool GetIdle();
 
       virtual bool InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF);
 
@@ -154,7 +154,7 @@ namespace ORB_SLAM2
          virtual void HandleMapReset() { mpMapperServer->NotifyMapReset(); }
          virtual void HandleMapChanged(MapChangeEvent & mce) { mpMapperServer->NotifyMapChanged(mce); }
          virtual void HandlePauseRequested(bool b) { mpMapperServer->NotifyPauseRequested(b); }
-         virtual void HandleAcceptKeyFrames(bool b) { mpMapperServer->NotifyAcceptKeyFrames(b); }
+         virtual void HandleIdle(bool b) { mpMapperServer->NotifyIdle(b); }
       };
 
       PrivateMapperObserver mLocalMappingObserver;

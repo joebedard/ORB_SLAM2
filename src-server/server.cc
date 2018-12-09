@@ -544,9 +544,9 @@ public:
       Print("HandlePauseRequested: an exception was not caught");
    }
 
-   virtual void HandleAcceptKeyFrames(bool b) try
+   virtual void HandleIdle(bool b) try
    {
-      Print("begin HandleAcceptKeyFrames");
+      Print("begin HandleIdle");
       zmq::message_t message(sizeof(GeneralMessage) + sizeof(bool));
       GeneralMessage * pMsgData = message.data<GeneralMessage>();
       pMsgData->subscribeId = -1; // all trackers
@@ -555,19 +555,19 @@ public:
       *pBool = b;
       unique_lock<mutex> lock(gMutexPub);
       gSocketPub->send(message);
-      Print("end HandleAcceptKeyFrames");
+      Print("end HandleIdle");
    }
    catch (zmq::error_t & e)
    {
-      Print(string("HandleAcceptKeyFrames error_t: ") + e.what());
+      Print(string("HandleIdle error_t: ") + e.what());
    }
    catch (const std::exception & e)
    {
-      Print(string("HandleAcceptKeyFrames exception: ") + e.what());
+      Print(string("HandleIdle exception: ") + e.what());
    }
    catch (...)
    {
-      Print("HandleAcceptKeyFrames: an exception was not caught");
+      Print("HandleIdle: an exception was not caught");
    }
 };
 

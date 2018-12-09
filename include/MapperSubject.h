@@ -89,13 +89,13 @@ namespace ORB_SLAM2
          }
       }
 
-      void NotifyAcceptKeyFrames(bool b)
+      void NotifyIdle(bool b)
       {
          std::unique_lock<std::mutex> lock(mMutex);
 
          for (auto it : mObservers)
          {
-            it->HandleAcceptKeyFrames(b);
+            it->HandleIdle(b);
          }
       }
 
