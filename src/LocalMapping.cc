@@ -177,6 +177,7 @@ namespace ORB_SLAM2
 
    bool LocalMapping::InsertKeyFrame(KeyFrame * pKF, vector<MapPoint *> & mapPoints)
    {
+      Print("begin InsertKeyFrame");
       bool success = false;
       if (SetNotPause(true))
       {
@@ -207,8 +208,6 @@ namespace ORB_SLAM2
                }
             }
 
-            pKF->ComputeBoW(mVocab);
-
             // Update links in the Covisibility Graph
             pKF->UpdateConnections();
 
@@ -228,6 +227,7 @@ namespace ORB_SLAM2
          }
          SetNotPause(false);
       }
+      Print("end InsertKeyFrame");
       return success;
    }
 
@@ -247,6 +247,8 @@ namespace ORB_SLAM2
          mpCurrentKeyFrame = mlNewKeyFrames.front();
          mlNewKeyFrames.pop_front();
       }
+
+      mpCurrentKeyFrame->ComputeBoW(mVocab);
 
       mapChanges.updatedMapPoints = mpCurrentKeyFrame->GetMapPoints();
 
@@ -550,6 +552,9 @@ namespace ORB_SLAM2
 
             // Triangulation is succesfull
             MapPoint * pMP = new MapPoint(NewMapPointId(), x3D, mpCurrentKeyFrame);
+            //stringstream ss;
+            //ss << "New MapPoint id=" << pMP->GetId() << " for KeyFrame id=" << mpCurrentKeyFrame->GetId();
+            //Print(ss);
 
             pMP->AddObservation(mpCurrentKeyFrame, idx1);
             pMP->AddObservation(pKF2, idx2);
