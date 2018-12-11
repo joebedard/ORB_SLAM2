@@ -91,8 +91,12 @@ namespace ORB_SLAM2
          cv::Mat pos = pMP->GetWorldPos();
          if (pos.empty())
          {
-            Print(to_string(pMP->GetId()) + "=MapPointId GetWorldPos() is empty! replaced=" + (pMP->GetReplaced() ? "true" : "false"));
-            throw exception("GetWorldPos() is empty!!!!!!!!!!!!!!!!!!!!!!");
+            stringstream ss;
+            ss << pMP->GetId() << "=MapPointId GetWorldPos() is empty! replaced=";
+            ss << pMP->GetReplaced() ? "true" : "false";
+            //ss << mMap.GetReplacedMapPoint(pMP->GetId()) ? "true" : "false";
+            Print(ss);
+            //throw exception("GetWorldPos() is empty!!!!!!!!!!!!!!!!!!!!!!");
          }
          else
          {
