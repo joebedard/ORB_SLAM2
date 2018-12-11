@@ -92,8 +92,10 @@ namespace ORB_SLAM2
       mLoopCloser.RequestReset();
       Print("End Loop Closing Reset");
 
-      Print("unique_lock<mutex> lock(mMutexMapUpdate);");
+      Print("waiting to lock map");
       unique_lock<mutex> lock(mMutexMapUpdate);
+      Print("map is locked");
+
       ResetTrackerStatus();
 
       NotifyMapReset();

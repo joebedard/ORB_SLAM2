@@ -89,9 +89,6 @@ namespace ORB_SLAM2
          //Print("ResetIfRequested();");
          ResetIfRequested();
          {
-            //Print("unique_lock<mutex> lock(mMutexMapUpdate);");
-            //unique_lock<mutex> lock(mMutexMapUpdate);
-
             // Check if there are keyframes in the queue
             while (CheckNewKeyFrames())
             {
@@ -536,9 +533,9 @@ namespace ORB_SLAM2
       cv::Mat Twc = mpCurrentKF->GetPoseInverse();
 
       {
-         // Get Map Mutex
-         Print("unique_lock<mutex> lock(mMutexMapUpdate);");
+         Print("waiting to lock map");
          unique_lock<mutex> lock(mMutexMapUpdate);
+         Print("map is locked");
 
          Print("for (vector<KeyFrame*>::iterator vit = mvpCurrentConnectedKFs.begin(), vend = mvpCurrentConnectedKFs.end(); vit != vend; vit++)");
          for (vector<KeyFrame*>::iterator vit = mvpCurrentConnectedKFs.begin(), vend = mvpCurrentConnectedKFs.end(); vit != vend; vit++)
@@ -810,8 +807,9 @@ namespace ORB_SLAM2
                sleep(1000);
             }
 
-            Print("unique_lock<mutex> lock(mMutexMapUpdate);");
+            Print("waiting to lock map");
             unique_lock<mutex> lock(mMutexMapUpdate);
+            Print("map is locked");
 
             // Correct keyframes starting at map first keyframe
             list<KeyFrame*> lpKFtoCheck(mMap.mvpKeyFrameOrigins.begin(), mMap.mvpKeyFrameOrigins.end());

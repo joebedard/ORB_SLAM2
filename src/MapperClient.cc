@@ -117,7 +117,10 @@ namespace ORB_SLAM2
    void MapperClient::Reset()
    {
       Print("begin Reset");
+
+      Print("waiting to lock map");
       unique_lock<mutex> lock(mMutexMapUpdate);
+      Print("map is locked");
 
       zmq::message_t request(sizeof(GeneralRequest));
       GeneralRequest * pReqData = request.data<GeneralRequest>();
@@ -321,7 +324,11 @@ namespace ORB_SLAM2
    void MapperClient::ReceiveMapReset(zmq::message_t & message)
    {
       Print("begin ReceiveMapReset");
+
+      Print("waiting to lock map");
       unique_lock<mutex> lock(mMutexMapUpdate);
+      Print("map is locked");
+
       NotifyMapReset();
 
       // Clear BoW Database
@@ -345,7 +352,11 @@ namespace ORB_SLAM2
 
       GeneralMessage * pMsgData = message.data<GeneralMessage>();
       MapChangeEvent mce;
+
+      Print("waiting to lock map");
       unique_lock<mutex> lock(mMutexMapUpdate);
+      Print("map is locked");
+
       mce.ReadBytes(pMsgData + 1, mMap);
 
       // be careful - process map changes in the best order
@@ -634,6 +645,9 @@ namespace ORB_SLAM2
    void MapperClient::InitializeMonoServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2)
    {
       Print("begin InitializeMonoServer");
+
+      // serialize KF and MPs and then send to server
+
       size_t sizeMsg = sizeof(GeneralRequest);
       sizeMsg += pKF1->GetBufferSize();
       sizeMsg += pKF2->GetBufferSize();
@@ -658,6 +672,9 @@ namespace ORB_SLAM2
    void MapperClient::InitializeStereoServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF)
    {
       Print("begin InitializeStereoServer");
+
+      // serialize KF and MPs and then send to server
+
       size_t sizeMsg = sizeof(GeneralRequest);
       sizeMsg += pKF->GetBufferSize();
       sizeMsg += MapPoint::GetVectorBufferSize(mapPoints);
@@ -681,6 +698,8 @@ namespace ORB_SLAM2
    bool MapperClient::InsertKeyFrameServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF)
    {
       Print("begin InsertKeyFrameServer");
+
+      // serialize KF and MPs and then send to server
 
       size_t sizeMsg = sizeof(GeneralRequest);
       sizeMsg += pKF->GetBufferSize();
