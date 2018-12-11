@@ -980,24 +980,30 @@ namespace ORB_SLAM2
                if (!pMPinKF->isBad())
                {
                   if (pMPinKF->Observations() > pMP->Observations())
-                     pMP->Replace(pMPinKF, pMap);
-                  // TODO OK - if pMP.id != pMPinKF.id 
-                  // add pMP to deleted points
-                  // add pMPinKF to updated points
-                  if (pMP->GetId() != pMPinKF->GetId())
                   {
-                     mapChanges.deletedMapPoints.insert(pMP->GetId());
-                     mapChanges.updatedMapPoints.insert(pMPinKF);
+                     pMP->Replace(pMPinKF, pMap);
+                     // TODO OK - if pMP.id != pMPinKF.id 
+                     // add pMP to deleted points
+                     // add pMPinKF to updated points
+                     if (pMP->GetId() != pMPinKF->GetId())
+                     {
+                        //mapChanges.deletedMapPoints.insert(pMP->GetId());
+                        mapChanges.updatedMapPoints.insert(pMP);
+                        mapChanges.updatedMapPoints.insert(pMPinKF);
+                     }
                   }
                   else
-                     pMPinKF->Replace(pMP, pMap);
-                  // TODO OK - if pMP.id != pMPinKF.id 
-                  // add pMPinKF to deleted points
-                  // add pMP to updated points
-                  if (pMPinKF->GetId() != pMP->GetId())
                   {
-                     mapChanges.deletedMapPoints.insert(pMPinKF->GetId());
-                     mapChanges.updatedMapPoints.insert(pMP);
+                     pMPinKF->Replace(pMP, pMap);
+                     // TODO OK - if pMP.id != pMPinKF.id 
+                     // add pMPinKF to deleted points
+                     // add pMP to updated points
+                     if (pMPinKF->GetId() != pMP->GetId())
+                     {
+                        //mapChanges.deletedMapPoints.insert(pMPinKF->GetId());
+                        mapChanges.updatedMapPoints.insert(pMPinKF);
+                        mapChanges.updatedMapPoints.insert(pMP);
+                     }
                   }
                }
             }
