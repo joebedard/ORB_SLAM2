@@ -19,15 +19,22 @@
 */
 
 #include "Serializer.h"
+#include <sstream>
 
 namespace ORB_SLAM2
 {
+
+   using namespace std;
 
    size_t Serializer::GetMatBufferSize(const cv::Mat & mat)
    {
       //assert(mat.dims == 2);
       if (mat.dims != 2)
-         throw std::exception("only 2-dimensional matrices are supported");
+      {
+         stringstream ss;
+         ss <<  "Serializer::GetMatBufferSize only 2-dimensional matrices are supported, dimensions=" << mat.dims;
+         throw std::exception(ss.str().c_str());
+      }
 
       return sizeof(MatrixHeader) + mat.rows * mat.cols * mat.elemSize();
    }
