@@ -32,9 +32,11 @@ namespace ORB_SLAM2
       : SyncPrint("KeyFrame: ")
       , mnId(id)
 
-      // public references
+      // constants
       , mnGridCols(FRAME_GRID_COLS)
       , mnGridRows(FRAME_GRID_ROWS)
+
+      // public read-only access to private variables
       , timestamp(mTimestamp)
       , N(mN)
       , keysUn(mvKeysUn)
@@ -166,7 +168,7 @@ namespace ORB_SLAM2
       id_type * pData = (id_type *)(pQuantity + 1);
       for (MapPoint * pMP : mpv)
       {
-         SyncPrint::Print("KeyFrame: ", pMP ? "pMP != NULL" : "pMP == NULL");
+         //SyncPrint::Print("KeyFrame: ", pMP ? "pMP != NULL" : "pMP == NULL");
          if (pMP)
             *pData = pMP->GetId();
          else
@@ -581,10 +583,10 @@ namespace ORB_SLAM2
          }
       }
 
-      // This should not happen
+      // this is for the first stereo KeyFrame added to the map
       if (KFcounter.empty())
       {
-         Print("end UpdateConnections 1");
+         //Print("end UpdateConnections 1");
          return;
       }
 
@@ -1048,6 +1050,7 @@ namespace ORB_SLAM2
 
    size_t KeyFrame::GetBufferSize()
    {
+      Print("begin GetBufferSize");
       unsigned int size = sizeof(KeyFrame::Header);
       size += Serializer::GetKeyPointVectorBufferSize(mvKeys);
       size += Serializer::GetKeyPointVectorBufferSize(mvKeysUn);
@@ -1069,6 +1072,7 @@ namespace ORB_SLAM2
       size += Serializer::GetVectorBufferSize<int>(mvOrderedWeights.size());
       size += Serializer::GetVectorBufferSize<id_type>(mspChildrens.size());
       size += Serializer::GetVectorBufferSize<id_type>(mspLoopEdges.size());
+      Print("end GetBufferSize");
       return size;
    }
 
@@ -1125,7 +1129,6 @@ namespace ORB_SLAM2
       // rebuild mGrid
       AssignFeaturesToGrid();
 
-      // just in case
       UpdateConnections();
 
       return pData;
