@@ -478,7 +478,6 @@ namespace ORB_SLAM2
             else
                MonocularInitialization();
 
-            //mpFrameDrawer->Update(*this, mMapper.GetMap());
             mpFrameDrawer->Update(
                mbOnlyTracking, 
                mState, 
@@ -873,18 +872,31 @@ namespace ORB_SLAM2
    void Tracking::CheckReplacedInLastFrame()
    {
       Print("begin CheckReplacedInLastFrame");
+
+      // replace or erase MapPoint matches
       for (int i = 0; i < mLastFrame.N; i++)
       {
-         MapPoint* pMP = mLastFrame.mvpMapPoints[i];
-
+         MapPoint * pMP = mLastFrame.mvpMapPoints[i];
          if (pMP)
          {
-            MapPoint* pRep = pMP->GetReplaced();
-            if (pRep)
+            MapPoint * pRep = MapPoint::FindFinalReplacement(pMP);
+            if (pRep->isBad())
+            {
+               mLastFrame.mvpMapPoints[i] = NULL;
+            }
+            else if (pRep != pMP)
             {
                mLastFrame.mvpMapPoints[i] = pRep;
             }
          }
+         //if (pMP)
+         //{
+         //   MapPoint* pRep = pMP->GetReplaced();
+         //   if (pRep)
+         //   {
+         //      mLastFrame.mvpMapPoints[i] = pRep;
+         //   }
+         //}
       }
       Print("end CheckReplacedInLastFrame");
    }
