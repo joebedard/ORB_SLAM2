@@ -120,6 +120,32 @@ namespace ORB_SLAM2
          vector<KeyFrame*> & vpEdgeKFStereo,
          vector<MapPoint*> & vpMapPointEdgeStereo);
 
+      static void CreateGraphOptimize(
+         KeyFrame * pCurKF,
+         KeyFrame * pLoopKF, 
+         mutex & mutexMapUpdate,
+         MapChangeEvent & mapChanges, 
+         g2o::SparseOptimizer & optimizer,
+         const vector<KeyFrame *> & vpKFs, 
+         const vector<MapPoint *> & vpMPs,
+         const LoopClosing::KeyFrameAndPose & NonCorrectedSim3,
+         const LoopClosing::KeyFrameAndPose & CorrectedSim3,
+         const std::map<KeyFrame *, set<KeyFrame *> > & LoopConnections, 
+         const bool & bFixScale,
+         vector<g2o::Sim3, Eigen::aligned_allocator<g2o::Sim3> > & vScw,
+         vector<g2o::Sim3, Eigen::aligned_allocator<g2o::Sim3> > & vCorrectedSwc,
+         vector<g2o::VertexSim3Expmap*> & vpVertices);
+         
+      static void Optimizer::RecoverGraphOptimize(
+         KeyFrame * pCurKF,
+         mutex & mutexMapUpdate,
+         MapChangeEvent & mapChanges, 
+         g2o::SparseOptimizer & optimizer,
+         const vector<KeyFrame *> & vpKFs, 
+         const vector<MapPoint *> & vpMPs,
+         vector<g2o::Sim3, Eigen::aligned_allocator<g2o::Sim3> > & vScw,
+         vector<g2o::Sim3, Eigen::aligned_allocator<g2o::Sim3> > & vCorrectedSwc);
+         
       static void CreateGraphGlobalBundleAdjustment(
          Map & theMap,
          g2o::SparseOptimizer & optimizer,

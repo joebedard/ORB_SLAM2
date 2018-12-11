@@ -934,38 +934,25 @@ namespace ORB_SLAM2
       Print("end LocalBundleAdjustment 2");
    }
 
-
-   void Optimizer::OptimizeEssentialGraph(
-      Map & theMap,
-      std::mutex & mutexMapUpdate, 
-      KeyFrame * pLoopKF, 
+   void Optimizer::CreateGraphOptimize(
       KeyFrame * pCurKF,
+      KeyFrame * pLoopKF, 
+      mutex & mutexMapUpdate,
+      MapChangeEvent & mapChanges, 
+      g2o::SparseOptimizer & optimizer,
+      const vector<KeyFrame *> & vpKFs, 
+      const vector<MapPoint *> & vpMPs,
       const LoopClosing::KeyFrameAndPose & NonCorrectedSim3,
       const LoopClosing::KeyFrameAndPose & CorrectedSim3,
       const std::map<KeyFrame *, set<KeyFrame *> > & LoopConnections, 
       const bool & bFixScale,
-      MapChangeEvent & mapChanges)
+      vector<g2o::Sim3, Eigen::aligned_allocator<g2o::Sim3> > & vScw,
+      vector<g2o::Sim3, Eigen::aligned_allocator<g2o::Sim3> > & vCorrectedSwc,
+      vector<g2o::VertexSim3Expmap*> & vpVertices)
    {
-      Print("begin OptimizeEssentialGraph");
-      // Setup optimizer
-      g2o::SparseOptimizer optimizer;
-      optimizer.setVerbose(false);
-      g2o::BlockSolver_7_3::LinearSolverType * linearSolver =
-         new g2o::LinearSolverEigen<g2o::BlockSolver_7_3::PoseMatrixType>();
-      g2o::BlockSolver_7_3 * solver_ptr = new g2o::BlockSolver_7_3(linearSolver);
-      g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
-
-      solver->setUserLambdaInit(1e-16);
-      optimizer.setAlgorithm(solver);
-
-      const vector<KeyFrame*> vpKFs = theMap.GetAllKeyFrames();
-      const vector<MapPoint*> vpMPs = theMap.GetAllMapPoints();
-
-      const unsigned int nMaxKFid = theMap.GetMaxKFid();
-
-      vector<g2o::Sim3, Eigen::aligned_allocator<g2o::Sim3> > vScw(nMaxKFid + 1);
-      vector<g2o::Sim3, Eigen::aligned_allocator<g2o::Sim3> > vCorrectedSwc(nMaxKFid + 1);
-      vector<g2o::VertexSim3Expmap*> vpVertices(nMaxKFid + 1);
+      Print("waiting to lock map");
+      unique_lock<mutex> lock(mutexMapUpdate);
+      Print("map is locked");
 
       const int minFeat = 100;
 
@@ -1144,11 +1131,18 @@ namespace ORB_SLAM2
             }
          }
       }
+   }
 
-      // Optimize!
-      optimizer.initializeOptimization();
-      optimizer.optimize(20);
-
+   void Optimizer::RecoverGraphOptimize(
+      KeyFrame * pCurKF,
+      mutex & mutexMapUpdate,
+      MapChangeEvent & mapChanges, 
+      g2o::SparseOptimizer & optimizer,
+      const vector<KeyFrame *> & vpKFs, 
+      const vector<MapPoint *> & vpMPs,
+      vector<g2o::Sim3, Eigen::aligned_allocator<g2o::Sim3> > & vScw,
+      vector<g2o::Sim3, Eigen::aligned_allocator<g2o::Sim3> > & vCorrectedSwc)
+   {
       Print("waiting to lock map");
       unique_lock<mutex> lock(mutexMapUpdate);
       Print("map is locked");
@@ -1210,6 +1204,73 @@ namespace ORB_SLAM2
          // TODO OK - add to map changes
          mapChanges.updatedMapPoints.insert(pMP);
       }
+   }
+
+   void Optimizer::OptimizeEssentialGraph(
+      Map & theMap,
+      std::mutex & mutexMapUpdate, 
+      KeyFrame * pLoopKF, 
+      KeyFrame * pCurKF,
+      const LoopClosing::KeyFrameAndPose & NonCorrectedSim3,
+      const LoopClosing::KeyFrameAndPose & CorrectedSim3,
+      const std::map<KeyFrame *, set<KeyFrame *> > & LoopConnections, 
+      const bool & bFixScale,
+      MapChangeEvent & mapChanges)
+   {
+      Print("begin OptimizeEssentialGraph");
+
+      // Setup optimizer
+      g2o::SparseOptimizer optimizer;
+      optimizer.setVerbose(false);
+      g2o::BlockSolver_7_3::LinearSolverType * linearSolver =
+         new g2o::LinearSolverEigen<g2o::BlockSolver_7_3::PoseMatrixType>();
+      g2o::BlockSolver_7_3 * solver_ptr = new g2o::BlockSolver_7_3(linearSolver);
+      g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
+
+      solver->setUserLambdaInit(1e-16);
+      optimizer.setAlgorithm(solver);
+
+      const vector<KeyFrame*> vpKFs = theMap.GetAllKeyFrames();
+      const vector<MapPoint*> vpMPs = theMap.GetAllMapPoints();
+
+      const unsigned int nMaxKFid = theMap.GetMaxKFid();
+
+      vector<g2o::Sim3, Eigen::aligned_allocator<g2o::Sim3> > vScw(nMaxKFid + 1);
+      vector<g2o::Sim3, Eigen::aligned_allocator<g2o::Sim3> > vCorrectedSwc(nMaxKFid + 1);
+      vector<g2o::VertexSim3Expmap*> vpVertices(nMaxKFid + 1);
+
+      CreateGraphOptimize(
+         pCurKF,
+         pLoopKF,
+         mutexMapUpdate,
+         mapChanges, 
+         optimizer,
+         vpKFs, 
+         vpMPs,
+         NonCorrectedSim3,
+         CorrectedSim3,
+         LoopConnections,
+         bFixScale,
+         vScw,
+         vCorrectedSwc,
+         vpVertices);
+
+      // Optimize!
+      if (optimizer.initializeOptimization())
+         optimizer.optimize(20);
+      else
+         throw exception("optimizer.initializeOptimization() failed");
+
+      RecoverGraphOptimize(
+         pCurKF,
+         mutexMapUpdate,
+         mapChanges, 
+         optimizer,
+         vpKFs, 
+         vpMPs,
+         vScw,
+         vCorrectedSwc);
+
       Print("end OptimizeEssentialGraph");
    }
 
