@@ -82,8 +82,6 @@ namespace ORB_SLAM2
 
    void MapperServer::Reset()
    {
-      Print("Begin Reset");
-
       // Reset Local Mapping
       Print("Begin Local Mapper Reset");
       mLocalMapper.RequestReset();
