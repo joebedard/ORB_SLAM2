@@ -42,10 +42,10 @@ namespace ORB_SLAM2
    {
    public:
 
-      // constructor for map points
+      // de-serialization constructor
       MapPoint(id_type id);
 
-      // constructor for map points
+      // tracking or mapping constructor
       MapPoint(id_type id, const cv::Mat &Pos, KeyFrame* pRefKF);
 
       id_type MapPoint::GetId();
@@ -69,7 +69,8 @@ namespace ORB_SLAM2
       bool isBad();
 
       void Replace(MapPoint* pMP, Map * pMap);
-      MapPoint* GetReplaced();
+      MapPoint * GetReplaced();
+      static MapPoint * FindFinalReplacement(MapPoint * pMP);
 
       void IncreaseVisible(int n = 1);
       void IncreaseFound(int n = 1);

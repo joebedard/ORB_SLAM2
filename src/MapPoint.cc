@@ -181,11 +181,26 @@ namespace ORB_SLAM2
          pMap->EraseMapPoint(this);
    }
 
-   MapPoint* MapPoint::GetReplaced()
+   MapPoint * MapPoint::GetReplaced()
    {
       unique_lock<mutex> lock1(mMutexFeatures);
       unique_lock<mutex> lock2(mMutexPos);
       return mpReplaced;
+   }
+
+   MapPoint * MapPoint::FindFinalReplacement(MapPoint * pMP)
+   {
+      if (!pMP)
+         throw exception("MapPoint::FindFinalReplacement pMP == NULL");
+
+      // search through replacement points until it finds the last one
+      MapPoint * pNext = pMP->GetReplaced();
+      while (pNext)
+      {
+         pMP = pNext;
+         pNext = pMP->GetReplaced();
+      }
+      return pMP;
    }
 
    void MapPoint::Replace(MapPoint* pMP, Map * pMap)
