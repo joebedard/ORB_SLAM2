@@ -85,22 +85,27 @@ namespace ORB_SLAM2
                // Tracking will see that Local Mapping is busy
                SetIdle(false);
 
-               MapChangeEvent mapChanges;
-
                // update KF connections
-               ProcessNewKeyFrame(mapChanges);
+               ProcessNewKeyFrame();
 
-               // Check recent MapPoints
-               MapPointCulling(mapChanges);
-
-               // Triangulate new MapPoints
-               CreateNewMapPoints(mapChanges);
-
-               if (!CheckNewKeyFrames())
                {
-                  // Find more matches in neighbor keyframes and fuse point duplications
-                  // updates mpCurrentKeyFrame and neighbor keyframes, deletes (replaces) points, updates points
-                  SearchInNeighbors(mapChanges);
+                  Print("waiting to lock map");
+                  unique_lock<mutex> lock(mMutexMapUpdate);
+                  Print("map is locked");
+
+                  // Check recent MapPoints
+                  MapPointCulling();
+
+                  // Triangulate new MapPoints
+                  CreateNewMapPoints();
+
+                  if (!CheckNewKeyFrames())
+                  {
+                     // Find more matches in neighbor keyframes and fuse point duplications
+                     // updates mpCurrentKeyFrame and neighbor keyframes, deletes (replaces) points, updates points
+                     SearchInNeighbors();
+                  }
+
                }
 
                mbAbortBA = false;
@@ -111,16 +116,19 @@ namespace ORB_SLAM2
                   if (mMap.KeyFramesInMap() > 2)
                   {
                      // deletes points, updates keyframes, updates points
-                     Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame, &mbAbortBA, mMap, mMutexMapUpdate, mapChanges);
+                     Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame, &mbAbortBA, mMap, mMutexMapUpdate);
 
+                     Print("waiting to lock map");
+                     unique_lock<mutex> lock(mMutexMapUpdate);
+                     Print("map is locked");
                      // Check for redundant local Keyframes, and delete them
-                     KeyFrameCulling(mapChanges);
+                     KeyFrameCulling();
                   }
                }
 
                // mpCurrentKeyFrame added/updated, 0..N keyframes updated, 0..N keyframes deleted, 0..N points added, 0..N points updated, 0..N points deleted
                // TODO OK - notify map changes
-               NotifyMapChanged(mapChanges);
+               NotifyMapChanged(mMap);
 
                mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
             }
@@ -185,14 +193,17 @@ namespace ORB_SLAM2
          // Otherwise send a signal to interrupt BA
          if ( GetIdle() || (!mbMonocular && KeyframesInQueue() < 3) )
          {
+            //Print("1");
             // TODO - add keyframe and new points to map
             mMap.AddKeyFrame(pKF);
 
+            //Print("2");
             for (MapPoint * pMP : mapPoints)
             {
                mMap.AddMapPoint(pMP);
             }
 
+            //Print("3");
             // associate MapPoints to the new keyframe, update normal and compute descriptor
             std::vector<MapPoint *> matches = pKF->GetMapPointMatches();
             MapPoint * pMP = static_cast<MapPoint *>(NULL);
@@ -202,15 +213,21 @@ namespace ORB_SLAM2
                pMP = matches[i];
                if (pMP && !pMP->isBad())
                {
-                  pMP->AddObservation(pKF, i);
+                  //Print("3a");
+                  //pMP->AddObservation(pKF, i);
+                  pMP->Link(*pKF, i);
+                  //Print("3b");
                   pMP->UpdateNormalAndDepth();
+                  //Print("3c");
                   pMP->ComputeDistinctiveDescriptors();
                }
             }
 
+            //Print("4");
             // Update links in the Covisibility Graph
             pKF->UpdateConnections();
 
+            //Print("5");
             unique_lock<mutex> lock(mMutexNewKFs);
             mlNewKeyFrames.push_back(pKF);
             if (!mapPoints.empty())
@@ -238,7 +255,7 @@ namespace ORB_SLAM2
    }
 
 
-   void LocalMapping::ProcessNewKeyFrame(MapChangeEvent & mapChanges)
+   void LocalMapping::ProcessNewKeyFrame()
    {
       Print("begin ProcessNewKeyFrame");
 
@@ -250,27 +267,25 @@ namespace ORB_SLAM2
 
       mpCurrentKeyFrame->ComputeBoW(mVocab);
 
-      mapChanges.updatedMapPoints = mpCurrentKeyFrame->GetMapPoints();
-
-      mapChanges.updatedKeyFrames.insert(mpCurrentKeyFrame);
-
       Print("end ProcessNewKeyFrame");
    }
 
 
-   void LocalMapping::MapPointCulling(MapChangeEvent & mapChanges)
+   void LocalMapping::MapPointCulling()
    {
       Print("begin MapPointCulling");
+      const int KEY_FRAME_ID_SPAN = 2;
       // Check Recent Added MapPoints
       list<MapPoint *>::iterator lit = mlpRecentAddedMapPoints.begin();
       const id_type nCurrentKFid = mpCurrentKeyFrame->GetId();
 
-      int nThObs;
-      if (mbMonocular)
-         nThObs = 2;
-      else
-         nThObs = 3;
-      const int cnThObs = nThObs;
+      //int nThObs;
+      //if (mbMonocular)
+      //   nThObs = 2;
+      //else
+      //   nThObs = 3;
+      //const int cnThObs = nThObs;
+      const int cnThObs = mbMonocular ? 2 : 3;
 
       while (lit != mlpRecentAddedMapPoints.end())
       {
@@ -281,31 +296,22 @@ namespace ORB_SLAM2
          if (pMP->isBad())
          {
             // this shouldn't happen but if it does, remove it
-            // TODO OK - add to deleted points
-            mapChanges.deletedMapPoints.insert(pMP->GetId());
-            mapChanges.updatedMapPoints.erase(pMP);
             lit = mlpRecentAddedMapPoints.erase(lit);
             //Print(to_string(pMP->GetId()) + "=MapPointId erased 1");
          }
          else if (pMP->GetFoundRatio() < 0.25f)
          {
             pMP->SetBadFlag(&mMap);
-            // TODO OK - add to deleted points
-            mapChanges.deletedMapPoints.insert(pMP->GetId());
-            mapChanges.updatedMapPoints.erase(pMP);
             lit = mlpRecentAddedMapPoints.erase(lit);
             //Print(to_string(pMP->GetId()) + "=MapPointId erased 2");
          }
-         else if ((nCurrentKFid - pMP->mnFirstKFid) >= 2 && pMP->Observations() <= cnThObs)
+         else if ((nCurrentKFid - pMP->firstKFid) >= 2 * KEY_FRAME_ID_SPAN && pMP->Observations() <= cnThObs)
          {
             pMP->SetBadFlag(&mMap);
-            // TODO OK - add to deleted points
-            mapChanges.deletedMapPoints.insert(pMP->GetId());
-            mapChanges.updatedMapPoints.erase(pMP);
             lit = mlpRecentAddedMapPoints.erase(lit);
             //Print(to_string(pMP->GetId()) + "=MapPointId erased 3");
          }
-         else if ((nCurrentKFid - pMP->mnFirstKFid) >= 3)
+         else if ((nCurrentKFid - pMP->firstKFid) >= 3 * KEY_FRAME_ID_SPAN)
          {
             // this MapPoint was not recently added, so don't consider it for culling
             lit = mlpRecentAddedMapPoints.erase(lit);
@@ -320,7 +326,7 @@ namespace ORB_SLAM2
    }
 
 
-   void LocalMapping::CreateNewMapPoints(MapChangeEvent & mapChanges)
+   void LocalMapping::CreateNewMapPoints()
    {
       Print("begin CreateNewMapPoints");
       // Retrieve neighbor keyframes in covisibility graph
@@ -331,6 +337,7 @@ namespace ORB_SLAM2
 
       ORBmatcher matcher(0.6, false);
 
+      //Print("01");
       cv::Mat Rcw1 = mpCurrentKeyFrame->GetRotation();
       cv::Mat Rwc1 = Rcw1.t();
       cv::Mat tcw1 = mpCurrentKeyFrame->GetTranslation();
@@ -339,6 +346,7 @@ namespace ORB_SLAM2
       tcw1.copyTo(Tcw1.col(3));
       cv::Mat Ow1 = mpCurrentKeyFrame->GetCameraCenter();
 
+      //Print("02");
       const float &fx1 = mpCurrentKeyFrame->mFC.fx;
       const float &fy1 = mpCurrentKeyFrame->mFC.fy;
       const float &cx1 = mpCurrentKeyFrame->mFC.cx;
@@ -346,6 +354,7 @@ namespace ORB_SLAM2
       const float &invfx1 = mpCurrentKeyFrame->mFC.invfx;
       const float &invfy1 = mpCurrentKeyFrame->mFC.invfy;
 
+      //Print("03");
       const float ratioFactor = 1.5f*mpCurrentKeyFrame->scaleFactor;
 
       int nnew = 0;
@@ -353,6 +362,7 @@ namespace ORB_SLAM2
       // Search matches with epipolar restriction and triangulate
       for (size_t i = 0; i < vpNeighKFs.size(); i++)
       {
+         //Print("04");
          if (i > 0 && CheckNewKeyFrames())
          {
             Print("end CreateNewMapPoints 1");
@@ -361,6 +371,7 @@ namespace ORB_SLAM2
 
          KeyFrame * pKF2 = vpNeighKFs[i];
 
+         //Print("05");
          // Check first that baseline is not too short
          cv::Mat Ow2 = pKF2->GetCameraCenter();
          cv::Mat vBaseline = Ow2 - Ow1;
@@ -380,9 +391,11 @@ namespace ORB_SLAM2
                continue;
          }
 
+         //Print("06");
          // Compute Fundamental Matrix
          cv::Mat F12 = ComputeF12(mpCurrentKeyFrame, pKF2);
 
+         //Print("07");
          // Search matches that fullfil epipolar constraint
          vector<pair<size_t, size_t> > vMatchedIndices;
          matcher.SearchForTriangulation(mpCurrentKeyFrame, pKF2, F12, vMatchedIndices, false);
@@ -401,6 +414,7 @@ namespace ORB_SLAM2
          const float &invfx2 = pKF2->mFC.invfx;
          const float &invfy2 = pKF2->mFC.invfy;
 
+         //Print("08");
          // Triangulate each match
          const int nmatches = vMatchedIndices.size();
          for (int ikp = 0; ikp < nmatches; ikp++)
@@ -416,10 +430,12 @@ namespace ORB_SLAM2
             const float kp2_ur = pKF2->right[idx2];
             bool bStereo2 = kp2_ur >= 0;
 
+            //Print("09");
             // Check parallax between rays
             cv::Mat xn1 = (cv::Mat_<float>(3, 1) << (kp1.pt.x - cx1)*invfx1, (kp1.pt.y - cy1)*invfy1, 1.0);
             cv::Mat xn2 = (cv::Mat_<float>(3, 1) << (kp2.pt.x - cx2)*invfx2, (kp2.pt.y - cy2)*invfy2, 1.0);
 
+            //Print("10");
             cv::Mat ray1 = Rwc1 * xn1;
             cv::Mat ray2 = Rwc2 * xn2;
             const float cosParallaxRays = ray1.dot(ray2) / (cv::norm(ray1)*cv::norm(ray2));
@@ -428,6 +444,7 @@ namespace ORB_SLAM2
             float cosParallaxStereo1 = cosParallaxStereo;
             float cosParallaxStereo2 = cosParallaxStereo;
 
+            //Print("11");
             if (bStereo1)
                cosParallaxStereo1 = cos(2 * atan2(mpCurrentKeyFrame->mFC.bl / 2, mpCurrentKeyFrame->depth[idx1]));
             else if (bStereo2)
@@ -438,6 +455,7 @@ namespace ORB_SLAM2
             cv::Mat x3D;
             if (cosParallaxRays < cosParallaxStereo && cosParallaxRays>0 && (bStereo1 || bStereo2 || cosParallaxRays < 0.9998))
             {
+               //Print("12");
                // Linear Triangulation Method
                cv::Mat A(4, 4, CV_32F);
                A.row(0) = xn1.at<float>(0)*Tcw1.row(2) - Tcw1.row(0);
@@ -459,15 +477,21 @@ namespace ORB_SLAM2
             }
             else if (bStereo1 && cosParallaxStereo1 < cosParallaxStereo2)
             {
+               //Print("13");
                x3D = mpCurrentKeyFrame->UnprojectStereo(idx1);
             }
             else if (bStereo2 && cosParallaxStereo2 < cosParallaxStereo1)
             {
+               //Print("14");
                x3D = pKF2->UnprojectStereo(idx2);
             }
             else
+            {
+               //Print("15");
                continue; //No stereo and very low parallax
+            }
 
+            //Print("16");
             cv::Mat x3Dt = x3D.t();
 
             //Check triangulation in front of cameras
@@ -479,6 +503,7 @@ namespace ORB_SLAM2
             if (z2 <= 0)
                continue;
 
+            //Print("17");
             //Check reprojection error in first keyframe
             const float &sigmaSquare1 = mpCurrentKeyFrame->levelSigma2[kp1.octave];
             const float x1 = Rcw1.row(0).dot(x3Dt) + tcw1.at<float>(0);
@@ -487,6 +512,7 @@ namespace ORB_SLAM2
 
             if (!bStereo1)
             {
+               //Print("18");
                float u1 = fx1 * x1*invz1 + cx1;
                float v1 = fy1 * y1*invz1 + cy1;
                float errX1 = u1 - kp1.pt.x;
@@ -496,6 +522,7 @@ namespace ORB_SLAM2
             }
             else
             {
+               //Print("19");
                float u1 = fx1 * x1*invz1 + cx1;
                float u1_r = u1 - mpCurrentKeyFrame->mFC.blfx * invz1;
                float v1 = fy1 * y1*invz1 + cy1;
@@ -506,6 +533,7 @@ namespace ORB_SLAM2
                   continue;
             }
 
+            //Print("20");
             //Check reprojection error in second keyframe
             const float sigmaSquare2 = pKF2->levelSigma2[kp2.octave];
             const float x2 = Rcw2.row(0).dot(x3Dt) + tcw2.at<float>(0);
@@ -513,6 +541,7 @@ namespace ORB_SLAM2
             const float invz2 = 1.0 / z2;
             if (!bStereo2)
             {
+               //Print("21");
                float u2 = fx2 * x2*invz2 + cx2;
                float v2 = fy2 * y2*invz2 + cy2;
                float errX2 = u2 - kp2.pt.x;
@@ -522,6 +551,7 @@ namespace ORB_SLAM2
             }
             else
             {
+               //Print("22");
                float u2 = fx2 * x2*invz2 + cx2;
                float u2_r = u2 - mpCurrentKeyFrame->mFC.blfx * invz2;
                float v2 = fy2 * y2*invz2 + cy2;
@@ -532,6 +562,7 @@ namespace ORB_SLAM2
                   continue;
             }
 
+            //Print("23");
             //Check scale consistency
             cv::Mat normal1 = x3D - Ow1;
             float dist1 = cv::norm(normal1);
@@ -550,31 +581,41 @@ namespace ORB_SLAM2
             if (ratioDist*ratioFactor<ratioOctave || ratioDist>ratioOctave*ratioFactor)
                continue;
 
+            //Print("24");
             // Triangulation is succesfull
             MapPoint * pMP = new MapPoint(NewMapPointId(), x3D, mpCurrentKeyFrame);
-            //stringstream ss;
-            //ss << "New MapPoint id=" << pMP->GetId() << " for KeyFrame id=" << mpCurrentKeyFrame->GetId();
-            //Print(ss);
+            stringstream ss;
+            ss << "New MapPoint id=" << pMP->GetId() << " for KeyFrame id=" << mpCurrentKeyFrame->GetId() << " and id=" << pKF2->GetId();
+            Print(ss);
 
-            pMP->AddObservation(mpCurrentKeyFrame, idx1);
-            pMP->AddObservation(pKF2, idx2);
+            stringstream ss1;
+            ss1 << pMP->GetId() << "->Link(" << mpCurrentKeyFrame->GetId() << ", " << idx1 << ")";
+            Print(ss1);
+            //pMP->AddObservation(mpCurrentKeyFrame, idx1);
+            pMP->Link(*mpCurrentKeyFrame, idx1);
+            stringstream ss2;
+            ss2 << pMP->GetId() << "->Link(" << pKF2->GetId() << ", " << idx2 << ")";
+            Print(ss2);
+            //pMP->AddObservation(pKF2, idx2);
+            pMP->Link(*pKF2, idx2);
 
-            mpCurrentKeyFrame->AddMapPoint(pMP, idx1);
-            pKF2->AddMapPoint(pMP, idx2);
+            //stringstream ss3;
+            //ss3 << mpCurrentKeyFrame->GetId() << "->AddMapPoint(" << pMP->GetId() << ", " << idx1 << ")";
+            //Print(ss3);
+            //mpCurrentKeyFrame->AddMapPoint(pMP, idx1);
+            //stringstream ss4;
+            //ss4 << pKF2->GetId() << "->AddMapPoint(" << pMP->GetId() << ", " << idx2 << ")";
+            //Print(ss4);
+            //pKF2->AddMapPoint(pMP, idx2);
 
-            // TODO OK - add to updated keyframes
-            mapChanges.updatedKeyFrames.insert(mpCurrentKeyFrame);
-            mapChanges.updatedKeyFrames.insert(pKF2);
-
+            //Print("25");
             pMP->ComputeDistinctiveDescriptors();
 
+            //Print("26");
             pMP->UpdateNormalAndDepth();
 
             mMap.AddMapPoint(pMP);
             mlpRecentAddedMapPoints.push_back(pMP);
-
-            // TODO OK - add to created points
-            mapChanges.updatedMapPoints.insert(pMP);
 
             nnew++;
          }
@@ -583,7 +624,7 @@ namespace ORB_SLAM2
    }
 
 
-   void LocalMapping::SearchInNeighbors(MapChangeEvent & mapChanges)
+   void LocalMapping::SearchInNeighbors()
    {
       Print("begin SearchInNeighbors");
       // Retrieve neighbor keyframes
@@ -621,7 +662,7 @@ namespace ORB_SLAM2
       for (vector<KeyFrame *>::iterator vit = vpTargetKFs.begin(), vend = vpTargetKFs.end(); vit != vend; vit++)
       {
          KeyFrame * pKFi = *vit;
-         matcher.Fuse(mapChanges, pKFi, vpMapPointMatches, &mMap);
+         matcher.Fuse(pKFi, vpMapPointMatches, &mMap);
       }
 
       // Search matches by projection from target KFs in current KF
@@ -644,17 +685,16 @@ namespace ORB_SLAM2
          }
       }
 
-      matcher.Fuse(mapChanges, mpCurrentKeyFrame, vpFuseCandidates, &mMap);
+      matcher.Fuse(mpCurrentKeyFrame, vpFuseCandidates, &mMap);
 
       // Update points
-      // TODO OK - only update points that were touched during Fuse
       vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
       for (size_t i = 0, iend = vpMapPointMatches.size(); i < iend; i++)
       {
          MapPoint * pMP = vpMapPointMatches[i];
          if (pMP)
          {
-            if (!pMP->isBad() && mapChanges.updatedMapPoints.count(pMP) == 1)
+            if (!pMP->isBad())
             {
                pMP->ComputeDistinctiveDescriptors();
                pMP->UpdateNormalAndDepth();
@@ -670,21 +710,33 @@ namespace ORB_SLAM2
 
    cv::Mat LocalMapping::ComputeF12(KeyFrame *&pKF1, KeyFrame *&pKF2)
    {
+      //Print("begin ComputeF12");
+      stringstream ss;
       cv::Mat R1w = pKF1->GetRotation();
+      //ss << "R1w: " << R1w << endl;
       cv::Mat t1w = pKF1->GetTranslation();
+      //ss << "t1w: " << t1w << endl;
       cv::Mat R2w = pKF2->GetRotation();
+      //ss << "R2w: " << R2w << endl;
       cv::Mat t2w = pKF2->GetTranslation();
+      //ss << "t2w: " << t2w << endl;
+      //Print(ss);
 
       cv::Mat R12 = R1w * R2w.t();
       cv::Mat t12 = -R1w * R2w.t()*t2w + t1w;
 
       cv::Mat t12x = SkewSymmetricMatrix(t12);
 
+      //stringstream ss2;
       const cv::Mat &K1 = pKF1->mFC.K;
+      //ss2 << "K1: " << K1 << endl;
       const cv::Mat &K2 = pKF2->mFC.K;
+      //ss2 << "K2: " << K2 << endl;
+      //Print(ss2);
 
-
-      return K1.t().inv()*t12x*R12*K2.inv();
+      cv::Mat ret = K1.t().inv()*t12x*R12*K2.inv();
+      //Print("end ComputeF12");
+      return ret;
    }
 
 
@@ -741,12 +793,16 @@ namespace ORB_SLAM2
       else
       {
          unique_lock<mutex> lock3(mMutexNewKFs);
+
          for (list<KeyFrame *>::iterator lit = mlNewKeyFrames.begin(), lend = mlNewKeyFrames.end(); lit != lend; lit++)
          {
-            mMap.EraseKeyFrame(*lit);
+            //mMap.EraseKeyFrame(*lit);
             //delete *lit; // do not delete keyframes, they might be in Tracking::mLastFrame.mpReferenceKF
+            KeyFrame * pKF = *lit;
+            pKF->SetBadFlag(mMap, mKeyFrameDB);
          }
          mlNewKeyFrames.clear();
+         NotifyMapChanged(mMap);
 
          mbPaused = false;
          mbPauseRequested = false;
@@ -794,7 +850,7 @@ namespace ORB_SLAM2
    }
 
 
-   void LocalMapping::KeyFrameCulling(MapChangeEvent & mapChanges)
+   void LocalMapping::KeyFrameCulling()
    {
       Print("begin KeyFrameCulling");
       // Check redundant keyframes (only local keyframes)
@@ -831,9 +887,9 @@ namespace ORB_SLAM2
                   if (pMP->Observations() > thObs)
                   {
                      const int &scaleLevel = pKF->keysUn[i].octave;
-                     const map<KeyFrame *, size_t> observations = pMP->GetObservations();
+                     const unordered_map<KeyFrame *, size_t> observations = pMP->GetObservations();
                      int nObs = 0;
-                     for (map<KeyFrame *, size_t>::const_iterator mit = observations.begin(), mend = observations.end(); mit != mend; mit++)
+                     for (unordered_map<KeyFrame *, size_t>::const_iterator mit = observations.begin(), mend = observations.end(); mit != mend; mit++)
                      {
                         KeyFrame * pKFi = mit->first;
                         if (pKFi == pKF)
@@ -858,11 +914,8 @@ namespace ORB_SLAM2
 
          if (nRedundantObservations > 0.9*nMPs)
          {
-            if (pKF->SetBadFlag(&mMap, &mKeyFrameDB))
-            {
-               // TODO OK - add to deleted keyframes
-               mapChanges.deletedKeyFrames.insert(pKF->GetId());
-            }
+            Print("pKF->SetBadFlag(&mMap, &mKeyFrameDB);");
+            pKF->SetBadFlag(mMap, mKeyFrameDB);
          }
       }
       Print("end KeyFrameCulling");

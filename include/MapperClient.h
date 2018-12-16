@@ -186,6 +186,8 @@ namespace ORB_SLAM2
 
       bool InsertKeyFrameServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF);
 
+      void InsertKeyFrameClient(vector<MapPoint *> & mapPoints, KeyFrame * pKF);
+
    };
 
 }

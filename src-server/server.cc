@@ -201,7 +201,7 @@ zmq::message_t LogoutTracker(zmq::message_t & request)
 
 zmq::message_t UpdatePose(zmq::message_t & request)
 {
-   gOutServ.Print("begin UpdatePose");
+   //gOutServ.Print("begin UpdatePose");
    GeneralRequest * pReqData = request.data<GeneralRequest>();
    void * pData = pReqData + 1;
    cv::Mat poseTcw;
@@ -227,13 +227,18 @@ zmq::message_t UpdatePose(zmq::message_t & request)
    GeneralReply * pRepData = reply.data<GeneralReply>();
    pRepData->replyCode = ReplyCode::SUCCEEDED;
 
-   gOutServ.Print("end UpdatePose");
+   //gOutServ.Print("end UpdatePose");
    return reply;
 }
 
 zmq::message_t InitializeMono(zmq::message_t & request)
 {
    gOutServ.Print("begin InitializeMono");
+
+   gOutServ.Print("waiting to lock map");
+   unique_lock<mutex> lock(gMapper->GetMutexMapUpdate());
+   gOutServ.Print("map is locked");
+
    std::unordered_map<id_type, KeyFrame *> newKeyFrames;
    std::unordered_map<id_type, MapPoint *> newMapPoints;
 
@@ -278,6 +283,11 @@ zmq::message_t InitializeMono(zmq::message_t & request)
 zmq::message_t InitializeStereo(zmq::message_t & request)
 {
    gOutServ.Print("begin InitializeStereo");
+
+   gOutServ.Print("waiting to lock map");
+   unique_lock<mutex> lock(gMapper->GetMutexMapUpdate());
+   gOutServ.Print("map is locked");
+
    std::unordered_map<id_type, KeyFrame *> newKeyFrames;
    std::unordered_map<id_type, MapPoint *> newMapPoints;
 
@@ -289,7 +299,7 @@ zmq::message_t InitializeStereo(zmq::message_t & request)
    pData = KeyFrame::Read(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, &pKF);
    if (newKeyFrames.size() != 1)
       throw exception("InitializeStereo newKeyFrames.size() != 1");
-   
+
    // read MapPoints
    std::vector<MapPoint*> mapPoints;
    pData = MapPoint::ReadVector(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, mapPoints);
@@ -324,13 +334,16 @@ zmq::message_t GetMap(zmq::message_t & request)
 
    {
       // lock map and send it via pub-sub to the tracking client
+      gOutServ.Print("waiting to lock map");
       unique_lock<mutex> lock1(gMapper->GetMutexMapUpdate());
+      gOutServ.Print("map is locked");
+
       std::set<id_type> noDeletes; // no deleted MapPoints or KeyFrames
       MapChangeEvent mce;
       mce.updatedKeyFrames = gMapper->GetMap().GetKeyFrameSet();
       mce.deletedKeyFrames = noDeletes;
       mce.updatedMapPoints = gMapper->GetMap().GetMapPointSet();
-      mce.deletedMapPoints = noDeletes;
+      //mce.deletedMapPoints = noDeletes;
 
       size_t msgSize = sizeof(GeneralMessage) + mce.GetBufferSize();
       zmq::message_t message(msgSize);
@@ -354,6 +367,11 @@ zmq::message_t GetMap(zmq::message_t & request)
 zmq::message_t InsertKeyFrame(zmq::message_t & request)
 {
    gOutServ.Print("begin InsertKeyFrame");
+   
+   gOutServ.Print("waiting to lock map");
+   unique_lock<mutex> lock(gMapper->GetMutexMapUpdate());
+   gOutServ.Print("map is locked");
+
    std::unordered_map<id_type, KeyFrame *> newKeyFrames;
    std::unordered_map<id_type, MapPoint *> newMapPoints;
 
@@ -362,15 +380,49 @@ zmq::message_t InsertKeyFrame(zmq::message_t & request)
 
    // read KeyFrame
    KeyFrame * pKF = NULL;
+   gOutServ.Print(string("gMapper->MapPointsInMap()==") + to_string(gMapper->MapPointsInMap()));
    pData = KeyFrame::Read(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, &pKF);
+   gOutServ.Print(string("newMapPoints.size()==") + to_string(newMapPoints.size()));
    if (newKeyFrames.size() != 1)
-      throw exception("InsertKeyFrame newKeyFrames.size() != 1");
+      throw exception("KeyFrame::Read newKeyFrames.size() != 1");
 
    // read MapPoints
    std::vector<MapPoint*> mapPoints;
    pData = MapPoint::ReadVector(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, mapPoints);
+   gOutServ.Print(string("newMapPoints.size()==") + to_string(newMapPoints.size()));
+   if (newKeyFrames.size() != 1)
+      throw exception("MapPoint::ReadVector newKeyFrames.size() != 1");
    if (newMapPoints.size() != mapPoints.size())
-      throw exception("InsertKeyFrame newMapPoints.size() != mapPoints.size()");
+   {
+      stringstream ss;
+      ss << "MapPoint::ReadVector newMapPoints.size() != mapPoints.size() " << newMapPoints.size() << "!=" << mapPoints.size();
+      gOutServ.Print(ss);
+      throw exception(ss.str().c_str());
+   }
+
+   // replace or erase MapPoint matches
+   vector<MapPoint *> vpMP = pKF->GetMapPointMatches();
+   int numDeleted = 0, numReplaced = 0;
+   int n = vpMP.size();
+   for (int i = 0; i < n; i++)
+   {
+      MapPoint * pMP = vpMP[i];
+      if (pMP)
+      {
+         MapPoint * pRep = MapPoint::FindFinalReplacement(pMP);
+         if (pRep->isBad())
+         {
+            numDeleted++;
+            pKF->EraseMapPointMatch(i);
+         }
+         else if (pRep != pMP)
+         {
+            numReplaced++;
+            pKF->ReplaceMapPointMatch(i, pRep);
+         }
+      }
+   }
+   gOutServ.Print(to_string(numReplaced) + " Replaced, " + to_string(numDeleted) + " Deleted MapPoints");
 
    bool inserted = gMapper->InsertKeyFrame(pReqData->trackerId, mapPoints, pKF);
    if (!inserted)
@@ -434,6 +486,7 @@ void RunServer(void * param) try
          } 
          catch (std::exception & e)
          {
+            gOutServ.Print(string("exception: ") + e.what());
             zmq::message_t reply = BuildReplyString(ReplyCode::FAILED, e.what());
             socket.send(reply);
          }
@@ -496,11 +549,25 @@ public:
    virtual void HandleMapChanged(MapChangeEvent & mce) try
    {
       Print("begin HandleMapChanged");
-      zmq::message_t message(sizeof(GeneralMessage) + mce.GetBufferSize());
+      size_t size = sizeof(GeneralMessage) + mce.GetBufferSize();
+      stringstream ss;
+      ss << "MapChangeEvent: "
+         << mce.updatedMapPoints.size() << " updatedMapPoints, "
+         //<< mce.deletedMapPoints.size() << " deletedMapPoints, "
+         << mce.updatedKeyFrames.size() << " updatedKeyFrames, "
+         << mce.deletedKeyFrames.size() << " deletedKeyFrames, "
+         << size << " size in bytes";
+      Print(ss);
+      zmq::message_t message(size);
+      //Print("1");
       GeneralMessage * pMsgData = message.data<GeneralMessage>();
+      //Print("2");
       pMsgData->subscribeId = -1; // all trackers
+      //Print("3");
       pMsgData->messageId = MessageId::MAP_CHANGE;
+      //Print("4");
       mce.WriteBytes(pMsgData + 1);
+      //Print("5");
       unique_lock<mutex> lock(gMutexPub);
       gSocketPub->send(message);
       Print("end HandleMapChanged");

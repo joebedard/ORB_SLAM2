@@ -145,7 +145,6 @@ namespace ORB_SLAM2
       if (bDrawKF)
       {
          glLineWidth(mKeyFrameLineWidth);
-         glColor3f(0.0f, 0.0f, 1.0f);
          for (size_t i = 0; i < vpKFs.size(); i++)
          {
             KeyFrame* pKF = vpKFs[i];
@@ -153,6 +152,11 @@ namespace ORB_SLAM2
 
             glPushMatrix();
             glMultMatrixf(Twc.ptr<GLfloat>(0));
+
+            if (pKF->isBad())
+               glColor3f(0.0f, 0.0f, 0.2f);
+            else
+               glColor3f(0.0f, 0.0f, 1.0f);
 
             glBegin(GL_LINES);
             glVertex3f(0, 0, 0);
@@ -184,11 +188,11 @@ namespace ORB_SLAM2
       if (bDrawGraph)
       {
          glLineWidth(mGraphLineWidth);
-         glColor4f(0.0f, 1.0f, 0.0f, 0.6f);
          glBegin(GL_LINES);
 
          for (size_t i = 0; i < vpKFs.size(); i++)
          {
+            glColor4f(0.0f, 1.0f, 0.0f, 0.6f);
             // Covisibility Graph
             const vector<KeyFrame*> vCovKFs = vpKFs[i]->GetCovisiblesByWeight(100);
             cv::Mat Ow = vpKFs[i]->GetCameraCenter();
@@ -204,6 +208,7 @@ namespace ORB_SLAM2
                }
             }
 
+            glColor4f(0.0f, 1.0f, 1.0f, 0.6f);
             // Spanning tree
             KeyFrame* pParent = vpKFs[i]->GetParent();
             if (pParent)
@@ -213,6 +218,7 @@ namespace ORB_SLAM2
                glVertex3f(Owp.at<float>(0), Owp.at<float>(1), Owp.at<float>(2));
             }
 
+            glColor4f(1.0f, 1.0f, 0.0f, 0.6f);
             // Loops
             set<KeyFrame*> sLoopKFs = vpKFs[i]->GetLoopEdges();
             for (set<KeyFrame*>::iterator sit = sLoopKFs.begin(), send = sLoopKFs.end(); sit != send; sit++)

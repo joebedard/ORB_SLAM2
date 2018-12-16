@@ -164,6 +164,7 @@ namespace ORB_SLAM2
       // pKF1->UpdateConnections();
 
       vector<MapPoint *> noPoints;
+      // TODO - refactor, some code in InsertKeyFrame was already called by tracking initialize
       if (mLocalMapper.InsertKeyFrame(pKF2, noPoints))
       {
          UpdateTrackerStatus(trackerId, mapPoints);
@@ -303,13 +304,13 @@ namespace ORB_SLAM2
 
    void MapperServer::UpdatePose(unsigned int trackerId, const cv::Mat & poseTcw)
    {
-      Print("begin UpdatePose");
+      //Print("begin UpdatePose");
       unique_lock<mutex> lock(mMutexTrackerStatus);
 
       ValidateTracker(trackerId);
 
       mPoseTcw[trackerId] = poseTcw.clone();
-      Print("end UpdatePose");
+      //Print("end UpdatePose");
    }
 
    vector<cv::Mat> MapperServer::GetTrackerPoses()

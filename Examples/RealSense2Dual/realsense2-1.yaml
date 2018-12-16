@@ -15,10 +15,10 @@ Camera.k1: 0.0
 Camera.k2: 0.0
 Camera.p1: 0.0
 Camera.p2: 0.0
-#Camera.bl: 0.0498142205178738
+Camera.bl: 0.0498142205178738
 
 # manual calibration
-Camera.bl: 0.0500099753281999
+#Camera.bl: 0.0500099753281999
 
 Camera.width: 640
 Camera.height: 480
@@ -42,49 +42,49 @@ DepthMapFactor: 1.0
 Pivot.rx: 0.0
 Pivot.ry: 0.0
 Pivot.rz: 0.0
-Pivot.tx: -0.3
-Pivot.ty: 0.0
-Pivot.tz: 0.0
+Pivot.tx: 0.1848
+Pivot.ty: 0.0040
+Pivot.tz: 0.0477
 
 #--------------------------------------------------------------------------------------------
 # Stereo Rectification. Only if you need to pre-rectify the images.
 # Camera.fx, .fy, etc must be the same as in LEFT.P
 #--------------------------------------------------------------------------------------------
-LEFT.height: 480
-LEFT.width: 640
-LEFT.D: !!opencv-matrix
-   rows: 1
-   cols: 5
-   dt: d
-   data:[0.00208435167267380, 0.00228682097726736, -0.00628108434705365, 0, 0]
-LEFT.K: !!opencv-matrix
-   rows: 3
-   cols: 3
-   dt: d
-   data: [390.466582059095, 0, 327.457772524385, 0, 390.742655525892, 238.936968657323, 0, 0, 1]
-LEFT.R:  !!opencv-matrix
-   rows: 3
-   cols: 3
-   dt: d
-   data: [1, 0, 0, 0, 1, 0, 0, 0, 1]
+#LEFT.height: 480
+#LEFT.width: 640
+#LEFT.D: !!opencv-matrix
+#   rows: 1
+#   cols: 5
+#   dt: d
+#   data:[0.00208435167267380, 0.00228682097726736, -0.00628108434705365, 0, 0]
+#LEFT.K: !!opencv-matrix
+#   rows: 3
+#   cols: 3
+#   dt: d
+#   data: [390.466582059095, 0, 327.457772524385, 0, 390.742655525892, 238.936968657323, 0, 0, 1]
+#LEFT.R:  !!opencv-matrix
+#   rows: 3
+#   cols: 3
+#   dt: d
+#   data: [1, 0, 0, 0, 1, 0, 0, 0, 1]
 
-RIGHT.height: 480
-RIGHT.width: 640
-RIGHT.D: !!opencv-matrix
-   rows: 1
-   cols: 5
-   dt: d
-   data:[0.00562715607619361, -0.00545089361615492, -0.00151600637927101, 0, 0]
-RIGHT.K: !!opencv-matrix
-   rows: 3
-   cols: 3
-   dt: d
-   data: [390.323104349061, 0, 327.440208952775, 0, 390.616962658652, 239.606197708230, 0, 0, 1]
-RIGHT.R:  !!opencv-matrix
-   rows: 3
-   cols: 3
-   dt: d
-   data: [1, 0, 0, 0, 1, 0, 0, 0, 1]
+#RIGHT.height: 480
+#RIGHT.width: 640
+#RIGHT.D: !!opencv-matrix
+#   rows: 1
+#   cols: 5
+#   dt: d
+#   data:[0.00562715607619361, -0.00545089361615492, -0.00151600637927101, 0, 0]
+#RIGHT.K: !!opencv-matrix
+#   rows: 3
+#   cols: 3
+#   dt: d
+#   data: [390.323104349061, 0, 327.440208952775, 0, 390.616962658652, 239.606197708230, 0, 0, 1]
+#RIGHT.R:  !!opencv-matrix
+#   rows: 3
+#   cols: 3
+#   dt: d
+#   data: [1, 0, 0, 0, 1, 0, 0, 0, 1]
 
 #--------------------------------------------------------------------------------------------
 # ORB Parameters

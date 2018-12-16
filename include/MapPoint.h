@@ -34,6 +34,8 @@
 
 namespace ORB_SLAM2
 {
+   using namespace std;
+
    class KeyFrame;
    class Map;
    class Frame;
@@ -56,19 +58,18 @@ namespace ORB_SLAM2
       cv::Mat GetNormal();
       KeyFrame* GetReferenceKeyFrame();
 
-      std::map<KeyFrame*, size_t> GetObservations();
+      unordered_map<KeyFrame*, size_t> GetObservations();
       int Observations();
-
-      void AddObservation(KeyFrame* pKF, size_t idx);
-      void EraseObservation(KeyFrame* pKF, Map * pMap);
 
       int GetIndexInKeyFrame(KeyFrame* pKF);
       bool IsObserving(KeyFrame* pKF);
+      void Link(KeyFrame & rKF, size_t idx);
+      void Unlink(KeyFrame & rKF);
+      void ReplaceWith(MapPoint & rMP);
 
       void SetBadFlag(Map * pMap);
       bool isBad();
 
-      void Replace(MapPoint* pMP, Map * pMap);
       MapPoint * GetReplaced();
       static MapPoint * FindFinalReplacement(MapPoint * pMP);
 
@@ -90,46 +91,49 @@ namespace ORB_SLAM2
       int PredictScale(const float &currentDist, KeyFrame*pKF);
       int PredictScale(const float &currentDist, Frame* pF);
 
-      static MapPoint * Find(const id_type id, const Map & map, std::unordered_map<id_type, MapPoint *> & newMapPoints);
+      static MapPoint * Find(const id_type id, Map & map, unordered_map<id_type, MapPoint *> & newMapPoints);
 
-      static size_t GetVectorBufferSize(const std::vector<MapPoint *> & mpv);
+      static size_t GetVectorBufferSize(const vector<MapPoint *> & mpv);
 
       static void * ReadVector(
          void * buffer, 
-         const Map & map, 
-         std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
-         std::unordered_map<id_type, MapPoint *> & newMapPoints,
-         std::vector<MapPoint *> & mpv);
+         Map & theMap, 
+         unordered_map<id_type, KeyFrame *> & newKeyFrames,
+         unordered_map<id_type, MapPoint *> & newMapPoints,
+         vector<MapPoint *> & mpv);
 
       static void * WriteVector(
          void * buffer,
-         std::vector<MapPoint *> & mpv);
+         vector<MapPoint *> & mpv);
 
-      static size_t GetSetBufferSize(const std::set<MapPoint *> & mps);
+      static size_t GetSetBufferSize(const set<MapPoint *> & mps);
 
       static void * ReadSet(
          void * buffer, 
-         const Map & map, 
-         std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
-         std::unordered_map<id_type, MapPoint *> & newMapPoints, 
-         std::set<MapPoint *> & mps);
+         Map & theMap, 
+         unordered_map<id_type, KeyFrame *> & newKeyFrames, 
+         unordered_map<id_type, MapPoint *> & newMapPoints, 
+         set<MapPoint *> & mps);
 
       static void * WriteSet(
          void * buffer,
-         std::set<MapPoint *> & mps);
+         set<MapPoint *> & mps);
 
       size_t GetBufferSize();
 
       void * ReadBytes(
          void * const buffer, 
-         const Map & map, 
-         std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
-         std::unordered_map<id_type, MapPoint *> & newMapPoints);
+         Map & theMap, 
+         unordered_map<id_type, KeyFrame *> & newKeyFrames, 
+         unordered_map<id_type, MapPoint *> & newMapPoints);
 
       void * WriteBytes(void * const buffer);
 
+      bool GetModified();
+      void SetModified(bool b);
+
    public:
-      id_type mnFirstKFid;
+      const id_type & firstKFid;
 
       // Variables used by the tracking
       float mTrackProjX;
@@ -152,16 +156,23 @@ namespace ORB_SLAM2
       cv::Mat mPosGBA;
       unsigned long int mnBAGlobalForKF;
 
-      static std::mutex mGlobalMutex;
+      static mutex mGlobalMutex;
+
+   protected:
+
+      virtual void PrintPrefix(ostream & out);
 
    private:
+
+      id_type mnFirstKFid;
+
       int nObs;
 
       // Position in absolute coordinates
       cv::Mat mWorldPos;
 
       // Keyframes observing the point and associated index in keyframe
-      std::map<KeyFrame*, size_t> mObservations;
+      unordered_map<KeyFrame*, size_t> mObservations;
 
       // Mean viewing direction
       cv::Mat mNormalVector;
@@ -184,11 +195,14 @@ namespace ORB_SLAM2
       float mfMinDistance;
       float mfMaxDistance;
 
-      std::mutex mMutexPos;
-      std::mutex mMutexFeatures;
+      mutex mMutexPos;
+      recursive_mutex mMutexObservations;
 
    private:
       id_type mnId;
+
+      mutex mMutexModified;
+      bool mModified;
 
       struct Header
       {
@@ -212,14 +226,16 @@ namespace ORB_SLAM2
 
       static id_type PeekId(void * const buffer);
 
-      static void * ReadObservations(
+      void * ReadObservations(
          void * const buffer,
-         const Map & map,
-         std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
-         std::map<KeyFrame *, size_t> & observations);
+         Map & map,
+         unordered_map<id_type, KeyFrame *> & newKeyFrames);
 
-      static void * WriteObservations(void * const buffer, std::map<KeyFrame *, size_t> & observations);
+      void * WriteObservations(void * const buffer);
 
+      //void AddObservation(KeyFrame* pKF, size_t idx);
+      //void EraseObservation(KeyFrame* pKF, Map * pMap);
+      //void Replace(MapPoint* pMP, Map * pMap);
    };
 
 } //namespace ORB_SLAM

@@ -48,8 +48,10 @@ namespace ORB_SLAM2
    {
    public:
 
+      // de-serialization constructor
       KeyFrame(id_type id);
 
+      // tracking constructor
       KeyFrame(id_type id, Frame &F);
 
       id_type GetId();
@@ -77,9 +79,6 @@ namespace ORB_SLAM2
       int GetWeight(KeyFrame * pKF);
 
       // Spanning tree functions
-      void AddChild(KeyFrame * pKF);
-      void EraseChild(KeyFrame * pKF);
-      void ChangeParent(KeyFrame * pKF);
       std::set<KeyFrame *> GetChilds();
       KeyFrame * GetParent();
       bool hasChild(KeyFrame * pKF);
@@ -89,14 +88,13 @@ namespace ORB_SLAM2
       std::set<KeyFrame *> GetLoopEdges();
 
       // MapPoint observation functions
-      void AddMapPoint(MapPoint* pMP, const size_t idx);
-      void EraseMapPointMatch(const size_t &idx);
-      void EraseMapPointMatch(MapPoint* pMP);
-      void ReplaceMapPointMatch(const size_t &idx, MapPoint* pMP);
+      void Link(MapPoint & rMP, size_t idx);
+      void Unlink(size_t idx);
       std::set<MapPoint*> GetMapPoints();
       std::vector<MapPoint*> GetMapPointMatches();
       int TrackedMapPoints(const int &minObs);
       MapPoint* GetMapPoint(const size_t idx);
+      //void ReplaceMapPoints(unordered_map<id_type, MapPoint *> & replacements);
 
       // KeyPoint functions
       std::vector<size_t> GetFeaturesInArea(const float &x, const float  &y, const float  &r) const;
@@ -110,22 +108,22 @@ namespace ORB_SLAM2
 
       // called by LoopClosing, allows keyframes to be deleted, performs pending deletes
       // returns true if this object is deleted, false otherwise
-      bool SetErase(Map* pMap, KeyFrameDatabase* pKeyFrameDB);
+      bool SetErase(Map & theMap, KeyFrameDatabase & keyFrameDB);
 
       // Set/check bad flag
       // returns true if this object is deleted, false otherwise
-      bool SetBadFlag(Map* pMap, KeyFrameDatabase* pKeyFrameDB);
+      bool SetBadFlag(Map & theMap, KeyFrameDatabase & keyFrameDB);
 
       bool isBad();
 
       // Compute Scene Depth (q=2 median). Used in monocular.
       float ComputeSceneMedianDepth(const int q);
 
-      static KeyFrame * Find(id_type id, const Map & map, std::unordered_map<id_type, KeyFrame *> & newKeyFrames);
+      static KeyFrame * Find(id_type id, Map & map, std::unordered_map<id_type, KeyFrame *> & newKeyFrames);
 
       static void * Read(
          void * buffer, 
-         const Map & map, 
+         Map & map, 
          std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
          std::unordered_map<id_type, MapPoint *> & newMapPoints,
          KeyFrame ** const ppKF);
@@ -134,7 +132,7 @@ namespace ORB_SLAM2
 
       static void * ReadVector(
          void * buffer, 
-         const Map & map, 
+         Map & map, 
          std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
          std::unordered_map<id_type, MapPoint *> & newMapPoints,
          std::vector<KeyFrame *> & kfv);
@@ -143,7 +141,7 @@ namespace ORB_SLAM2
 
       static void * ReadSet(
          void * buffer, 
-         const Map & map, 
+         Map & map, 
          std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
          std::unordered_map<id_type, MapPoint *> & newMapPoints,
          std::set<KeyFrame *> & kfs);
@@ -156,11 +154,14 @@ namespace ORB_SLAM2
 
       void * ReadBytes(
          const void * data, 
-         const Map & map, 
+         Map & map, 
          std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
          std::unordered_map<id_type, MapPoint *> & newMapPoints);
 
       void * WriteBytes(const void * data);
+
+      bool GetModified();
+      void SetModified(bool b);
 
       static bool weightComp(int a, int b) {
          return a > b;
@@ -269,7 +270,9 @@ namespace ORB_SLAM2
 
       std::mutex mMutexPose;
       std::mutex mMutexConnections;
-      std::mutex mMutexFeatures;
+      std::recursive_mutex mMutexMapPoints;
+
+      virtual void PrintPrefix(ostream & out);
 
    private:
       struct Header
@@ -321,11 +324,19 @@ namespace ORB_SLAM2
       const int mnGridCols;
       const int mnGridRows;
 
+      std::mutex mMutexModified;
+      bool mModified;
+
+      // Spanning tree functions
+      void AddChild(KeyFrame * pKF);
+      void EraseChild(KeyFrame * pKF);
+      void ChangeParent(KeyFrame * pKF);
+
       static id_type PeekId(const void * data);
 
       static void * ReadMapPointIds(
          void * const buffer, 
-         const Map & map, 
+         Map & map, 
          std::unordered_map<id_type, MapPoint *> & newMapPoints, 
          std::vector<MapPoint *> & mpv);
 
@@ -333,7 +344,7 @@ namespace ORB_SLAM2
 
       static void * ReadKeyFrameWeights(
          void * const buffer, 
-         const Map & map, 
+         Map & map, 
          std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
          std::map<KeyFrame *, int> & kfWeights);
     
@@ -341,7 +352,7 @@ namespace ORB_SLAM2
 
       static void * ReadKeyFrameIds(
          void * const buffer, 
-         const Map & map, 
+         Map & map, 
          std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
          std::vector<KeyFrame *> & kfv);
 
@@ -349,7 +360,7 @@ namespace ORB_SLAM2
 
       static void * ReadKeyFrameIds(
          void * const buffer, 
-         const Map & map, 
+         Map & map, 
          std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
          std::set<KeyFrame *> & kfs);
 
@@ -359,7 +370,10 @@ namespace ORB_SLAM2
 
       void AssignFeaturesToGrid();
 
-      void PrintPrefix(ostream & out);
+      //void AddMapPoint(MapPoint* pMP, const size_t idx);
+      //void EraseMapPointMatch(const size_t &idx);
+      //void EraseMapPointMatch(MapPoint* pMP);
+      //void ReplaceMapPointMatch(const size_t &idx, MapPoint* pMP);
 };
 
 } //namespace ORB_SLAM

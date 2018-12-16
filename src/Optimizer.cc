@@ -56,6 +56,7 @@ namespace ORB_SLAM2
       id_type & maxKFid)
    {
       vpKFs = theMap.GetAllKeyFrames();
+      set<KeyFrame *> spKFs = theMap.GetKeyFrameSet();
       vpMPs = theMap.GetAllMapPoints();
       vbNotIncludedMP.resize(vpMPs.size());
 
@@ -94,15 +95,16 @@ namespace ORB_SLAM2
          if (!optimizer.addVertex(vPoint))
             Print("optimizer.addVertex(vPoint) failed");
 
-         const map<KeyFrame*, size_t> observations = pMP->GetObservations();
+         const unordered_map<KeyFrame*, size_t> observations = pMP->GetObservations();
 
          int nEdges = 0;
          //SET EDGES
-         for (map<KeyFrame*, size_t>::const_iterator mit = observations.begin(); mit != observations.end(); mit++)
+         for (unordered_map<KeyFrame*, size_t>::const_iterator mit = observations.begin(); mit != observations.end(); mit++)
          {
 
             KeyFrame* pKF = mit->first;
-            if (pKF->isBad() || pKF->GetId() > maxKFid)
+            if (pKF->isBad() || pKF->GetId() > maxKFid) // TODO - fix this logic
+            //if (pKF->isBad() || optimizer.vertex(pKF->GetId()) == 0)
                continue;
 
             nEdges++;
@@ -183,7 +185,6 @@ namespace ORB_SLAM2
 
    void Optimizer::RecoverGraphGlobalBundleAdjustment(
       Map & theMap,
-      MapChangeEvent & mapChanges,
       g2o::SparseOptimizer & optimizer,
       const id_type loopKeyFrameId,
       vector<KeyFrame*> & vpKFs,
@@ -210,7 +211,6 @@ namespace ORB_SLAM2
          {
             // TODO OK - add to map changes
             pKF->SetPose(Converter::toCvMat(SE3quat));
-            mapChanges.updatedKeyFrames.insert(pKF);
          }
          else
          {
@@ -237,8 +237,6 @@ namespace ORB_SLAM2
          {
             pMP->SetWorldPos(Converter::toCvMat(vPoint->estimate()));
             pMP->UpdateNormalAndDepth();
-            // TODO OK - add to map changes
-            mapChanges.updatedMapPoints.insert(pMP);
          }
          else
          {
@@ -253,7 +251,6 @@ namespace ORB_SLAM2
    void Optimizer::GlobalBundleAdjustment(
       Map & theMap,
       mutex & mutexMapUpdate,
-      MapChangeEvent & mapChanges,
       int nIterations, 
       bool * pbStopFlag, 
       const id_type loopKeyFrameId, 
@@ -300,7 +297,7 @@ namespace ORB_SLAM2
          throw exception("optimizer.initializeOptimization() failed");
 
       // Recover optimized data
-      RecoverGraphGlobalBundleAdjustment(theMap, mapChanges, optimizer, loopKeyFrameId, vpKFs, vpMPs, vbNotIncludedMP, maxKFid);
+      RecoverGraphGlobalBundleAdjustment(theMap, optimizer, loopKeyFrameId, vpKFs, vpMPs, vbNotIncludedMP, maxKFid);
 
       Print("end GlobalBundleAdjustment");
    }
@@ -578,8 +575,8 @@ namespace ORB_SLAM2
       list<KeyFrame*> lFixedCameras;
       for (list<MapPoint*>::iterator lit = lLocalMapPoints.begin(), lend = lLocalMapPoints.end(); lit != lend; lit++)
       {
-         std::map<KeyFrame *, size_t> observations = (*lit)->GetObservations();
-         for (std::map<KeyFrame *, size_t>::iterator mit = observations.begin(), mend = observations.end(); mit != mend; mit++)
+         unordered_map<KeyFrame *, size_t> obs = (*lit)->GetObservations();
+         for (unordered_map<KeyFrame *, size_t>::iterator mit = obs.begin(), mend = obs.end(); mit != mend; mit++)
          {
             KeyFrame* pKFi = mit->first;
 
@@ -646,10 +643,10 @@ namespace ORB_SLAM2
          if (!optimizer.addVertex(vPoint))
             Print("optimizer.addVertex(vPoint) failed");
 
-         const std::map<KeyFrame*, size_t> observations = pMP->GetObservations();
+         const unordered_map<KeyFrame*, size_t> obs = pMP->GetObservations();
 
          //Set edges
-         for (std::map<KeyFrame*, size_t>::const_iterator mit = observations.begin(), mend = observations.end(); mit != mend; mit++)
+         for (unordered_map<KeyFrame*, size_t>::const_iterator mit = obs.begin(), mend = obs.end(); mit != mend; mit++)
          {
             KeyFrame* pKFi = mit->first;
 
@@ -768,7 +765,6 @@ namespace ORB_SLAM2
    void Optimizer::RecoverGraphLocalBundleAdjustment(
       Map & theMap, 
       std::mutex & mutexMapUpdate, 
-      MapChangeEvent & mapChanges,
       g2o::SparseOptimizer & optimizer,
       id_type & maxKFid,
       list<KeyFrame*> & lLocalKeyFrames,
@@ -825,13 +821,9 @@ namespace ORB_SLAM2
          {
             KeyFrame* pKFi = vToErase[i].first;
             MapPoint* pMPi = vToErase[i].second;
-            pKFi->EraseMapPointMatch(pMPi);
-            // TODO OK - add to updated keyframes
-            mapChanges.updatedKeyFrames.insert(pKFi);
-
-            pMPi->EraseObservation(pKFi, &theMap);
-            // TODO OK - add to updated points
-            mapChanges.updatedMapPoints.insert(pMPi);
+            //pKFi->EraseMapPointMatch(pMPi);
+            //pMPi->EraseObservation(pKFi, &theMap);
+            pMPi->Unlink(*pKFi);
          }
       }
 
@@ -844,8 +836,6 @@ namespace ORB_SLAM2
          g2o::VertexSE3Expmap* vSE3 = static_cast<g2o::VertexSE3Expmap*>(optimizer.vertex(pKF->GetId()));
          g2o::SE3Quat SE3quat = vSE3->estimate();
          pKF->SetPose(Converter::toCvMat(SE3quat));
-         // TODO OK - add to updated keyframes
-         mapChanges.updatedKeyFrames.insert(pKF);
       }
 
       //Points
@@ -855,8 +845,6 @@ namespace ORB_SLAM2
          g2o::VertexSBAPointXYZ* vPoint = static_cast<g2o::VertexSBAPointXYZ*>(optimizer.vertex(pMP->GetId() + maxKFid + 1));
          pMP->SetWorldPos(Converter::toCvMat(vPoint->estimate()));
          pMP->UpdateNormalAndDepth();
-         // TODO OK - add to updated points
-         mapChanges.updatedMapPoints.insert(pMP);
       }
    }
 
@@ -864,8 +852,7 @@ namespace ORB_SLAM2
       KeyFrame * pKF,
       bool * pbStopFlag,
       Map & map, 
-      std::mutex & mutexMapUpdate, 
-      MapChangeEvent & mapChanges)
+      std::mutex & mutexMapUpdate)
    {
       Print("begin LocalBundleAdjustment");
 
@@ -926,7 +913,7 @@ namespace ORB_SLAM2
 
       }
 
-      RecoverGraphLocalBundleAdjustment(map, mutexMapUpdate, mapChanges, optimizer,
+      RecoverGraphLocalBundleAdjustment(map, mutexMapUpdate, optimizer,
          maxKFid, lLocalKeyFrames, lLocalMapPoints,
          vpEdgesMono, vpEdgeKFMono, vpMapPointEdgeMono,
          vpEdgesStereo, vpEdgeKFStereo, vpMapPointEdgeStereo);
@@ -938,7 +925,6 @@ namespace ORB_SLAM2
       KeyFrame * pCurKF,
       KeyFrame * pLoopKF, 
       mutex & mutexMapUpdate,
-      MapChangeEvent & mapChanges, 
       g2o::SparseOptimizer & optimizer,
       const vector<KeyFrame *> & vpKFs, 
       const vector<MapPoint *> & vpMPs,
@@ -1136,7 +1122,6 @@ namespace ORB_SLAM2
    void Optimizer::RecoverGraphOptimize(
       KeyFrame * pCurKF,
       mutex & mutexMapUpdate,
-      MapChangeEvent & mapChanges, 
       g2o::SparseOptimizer & optimizer,
       const vector<KeyFrame *> & vpKFs, 
       const vector<MapPoint *> & vpMPs,
@@ -1166,8 +1151,6 @@ namespace ORB_SLAM2
          cv::Mat Tiw = Converter::toCvSE3(eigR, eigt);
 
          pKFi->SetPose(Tiw);
-         // TODO OK - add to map changes
-         mapChanges.updatedKeyFrames.insert(pKFi);
       }
 
       // Correct points. Transform to "non-optimized" reference keyframe pose and transform back with optimized pose
@@ -1201,8 +1184,6 @@ namespace ORB_SLAM2
          pMP->SetWorldPos(cvCorrectedP3Dw);
 
          pMP->UpdateNormalAndDepth();
-         // TODO OK - add to map changes
-         mapChanges.updatedMapPoints.insert(pMP);
       }
    }
 
@@ -1214,8 +1195,7 @@ namespace ORB_SLAM2
       const LoopClosing::KeyFrameAndPose & NonCorrectedSim3,
       const LoopClosing::KeyFrameAndPose & CorrectedSim3,
       const std::map<KeyFrame *, set<KeyFrame *> > & LoopConnections, 
-      const bool & bFixScale,
-      MapChangeEvent & mapChanges)
+      const bool & bFixScale)
    {
       Print("begin OptimizeEssentialGraph");
 
@@ -1243,7 +1223,6 @@ namespace ORB_SLAM2
          pCurKF,
          pLoopKF,
          mutexMapUpdate,
-         mapChanges, 
          optimizer,
          vpKFs, 
          vpMPs,
@@ -1264,7 +1243,6 @@ namespace ORB_SLAM2
       RecoverGraphOptimize(
          pCurKF,
          mutexMapUpdate,
-         mapChanges, 
          optimizer,
          vpKFs, 
          vpMPs,

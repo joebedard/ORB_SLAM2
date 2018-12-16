@@ -24,28 +24,32 @@
 #include <set>
 #include "MapPoint.h"
 #include "KeyFrame.h"
+#include "SyncPrint.h"
 
 namespace ORB_SLAM2
 {
 
    // collects all map changes into a composite event
-   class MapChangeEvent
+   class MapChangeEvent : protected SyncPrint
    {
    public:
 
       MapChangeEvent();
 
-      set<KeyFrame *> updatedKeyFrames;
+      std::set<KeyFrame *> updatedKeyFrames;
 
-      set<id_type> deletedKeyFrames;
+      std::set<id_type> deletedKeyFrames;
 
-      set<MapPoint *> updatedMapPoints;
+      std::set<MapPoint *> updatedMapPoints;
 
-      set<id_type> deletedMapPoints;
+      // The id of the deleted MapPoint id is the key. The replacer MapPoint, is the value.
+      //std::unordered_map<id_type, MapPoint *> replacedMapPoints;
+
+      //std::set<id_type> deletedMapPoints;
 
       inline bool empty()
       {
-         return updatedKeyFrames.empty() && deletedKeyFrames.empty() && updatedMapPoints.empty() && deletedMapPoints.empty();
+         return updatedKeyFrames.empty() && deletedKeyFrames.empty() && updatedMapPoints.empty() /*&& deletedMapPoints.empty()*/;
       }
 
       size_t GetBufferSize();
@@ -53,6 +57,23 @@ namespace ORB_SLAM2
       void * ReadBytes(void * const buffer, Map & map);
 
       void * WriteBytes(void * const buffer);
+
+   private:
+
+      struct MapPointReplacement
+      {
+         id_type deletedId;
+         id_type replacerId;
+      };
+
+      static void * ReadReplacements(
+         void * const buffer,
+         Map & map,
+         std::unordered_map<id_type, MapPoint *> & newMapPoints,
+         std::unordered_map<id_type, MapPoint *> & replacements);
+
+      static void * WriteReplacements(void * const buffer, std::unordered_map<id_type, MapPoint *> & replacements);
+
    };
 
 }

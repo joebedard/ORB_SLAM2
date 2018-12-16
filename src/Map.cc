@@ -131,9 +131,9 @@ namespace ORB_SLAM2
       return allKeyFrames;
    }
 
-   KeyFrame * Map::GetKeyFrame(const id_type keyFrameId) const
+   KeyFrame * Map::GetKeyFrame(const id_type keyFrameId)
    {
-      //unique_lock<mutex> lock(mMutexMap);
+      unique_lock<mutex> lock(mMutexMap);
       return (mKeyFrames.count(keyFrameId) == 1) ? mKeyFrames.at(keyFrameId) : NULL;
    }
 
@@ -165,9 +165,9 @@ namespace ORB_SLAM2
       return allMapPoints;
    }
 
-   MapPoint * Map::GetMapPoint(id_type mapPointId) const
+   MapPoint * Map::GetMapPoint(id_type mapPointId)
    {
-      //unique_lock<mutex> lock(mMutexMap);
+      unique_lock<mutex> lock(mMutexMap);
       return (mMapPoints.count(mapPointId) == 1) ? mMapPoints.at(mapPointId) : NULL;
    }
 
@@ -219,5 +219,25 @@ namespace ORB_SLAM2
       }
       return (*this);
    }
+
+   //unordered_map<id_type, MapPoint *> Map::GetReplacementMap()
+   //{
+   //   unique_lock<mutex> lock(mMutexReplacementMap);
+   //   return mReplacementMap;
+   //}
+
+   //void Map::ReplaceMapPoint(id_type deletedId, MapPoint * replacer)
+   //{
+   //   if (replacer == NULL)
+   //      return;
+   //   unique_lock<mutex> lock(mMutexReplacementMap);
+   //   mReplacementMap[deletedId] = replacer;
+   //}
+
+   //MapPoint * Map::GetReplacedMapPoint(id_type id)
+   //{
+   //   unique_lock<mutex> lock(mMutexReplacementMap);
+   //   return mReplacementMap.count(id) ? mReplacementMap.at(id) : NULL;
+   //}
 
 } //namespace ORB_SLAM

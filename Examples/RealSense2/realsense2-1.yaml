@@ -42,9 +42,9 @@ DepthMapFactor: 1.0
 Pivot.rx: 0.0
 Pivot.ry: 0.0
 Pivot.rz: 0.0
-Pivot.tx: 0.0
-Pivot.ty: 0.0
-Pivot.tz: 0.0
+Pivot.tx: 0.1848
+Pivot.ty: 0.0040
+Pivot.tz: 0.0477
 
 #--------------------------------------------------------------------------------------------
 # Stereo Rectification. Only if you need to pre-rectify the images.

@@ -79,6 +79,54 @@ namespace ORB_SLAM2
          }
       }
 
+      void NotifyMapChanged(Map & theMap)
+      {
+         MapChangeEvent mapChanges;
+
+         set<KeyFrame *> setKFs = theMap.GetKeyFrameSet();
+         for (KeyFrame * pKF : setKFs)
+         {
+            if (pKF->GetModified())
+            {
+               if (pKF->isBad())
+                  mapChanges.deletedKeyFrames.insert(pKF->GetId());
+               else
+                  mapChanges.updatedKeyFrames.insert(pKF);
+            }
+         }
+
+         set<MapPoint *> setMPs = theMap.GetMapPointSet();
+         for (MapPoint * pMP : setMPs)
+         {
+            if (pMP->GetModified())
+            {
+               //if (pMP->isBad())
+               //   mapChanges.deletedMapPoints.insert(pMP->GetId());
+               //else
+                  mapChanges.updatedMapPoints.insert(pMP);
+            }
+         }
+
+         NotifyMapChanged(mapChanges);
+
+         for (KeyFrame * pKF : setKFs)
+         {
+            if (pKF->GetModified())
+            {
+               pKF->SetModified(false);
+            }
+         }
+
+         for (MapPoint * pMP : setMPs)
+         {
+            if (pMP->GetModified())
+            {
+               pMP->SetModified(false);
+            }
+         }
+
+      }
+
       void NotifyPauseRequested(bool b)
       {
          std::unique_lock<std::mutex> lock(mMutex);

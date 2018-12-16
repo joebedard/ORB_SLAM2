@@ -41,7 +41,7 @@ namespace ORB_SLAM2
 
    void * Serializer::ReadMatrix(void * const buffer, cv::Mat & mat)
    {
-      assert(mat.dims == 2);
+      mat.dims = 2;
       MatrixHeader * pMH = (MatrixHeader *)buffer;
       mat.create(pMH->rows, pMH->cols, pMH->type);
       char * pData = (char *)(pMH + 1);
@@ -65,7 +65,11 @@ namespace ORB_SLAM2
 
    void * Serializer::WriteMatrix(void * const buffer, const cv::Mat & mat)
    {
-      assert(mat.dims == 2);
+      if (mat.dims != 2)
+      {
+         string msg = string("Serializer::WriteMatrix mat.dims==") + to_string(mat.dims);
+         throw exception(msg.c_str());
+      }
       MatrixHeader * pMH = (MatrixHeader *)buffer;
       pMH->rows = mat.rows;
       pMH->cols = mat.cols;

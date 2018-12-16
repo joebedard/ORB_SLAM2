@@ -63,13 +63,13 @@ namespace ORB_SLAM2
 
       std::set<KeyFrame *> GetKeyFrameSet();
 
-      KeyFrame * GetKeyFrame(id_type keyFrameId) const;
+      KeyFrame * GetKeyFrame(id_type keyFrameId);
 
       std::vector<MapPoint *> GetAllMapPoints();
 
       std::set<MapPoint *> GetMapPointSet();
 
-      MapPoint * GetMapPoint(id_type mapPointId) const;
+      MapPoint * GetMapPoint(id_type mapPointId);
 
       size_t MapPointsInMap();
 
@@ -79,9 +79,15 @@ namespace ORB_SLAM2
 
       void Clear();
 
+      //std::unordered_map<id_type, MapPoint *> GetReplacementMap();
+
+      //void ReplaceMapPoint(id_type deletedId, MapPoint * replacer);
+
+      //MapPoint * GetReplacedMapPoint(id_type id);
+
       Map & operator=(const Map & map);
 
-      vector<KeyFrame *> mvpKeyFrameOrigins;
+      std::vector<KeyFrame *> mvpKeyFrameOrigins;
 
    protected:
 
@@ -96,9 +102,14 @@ namespace ORB_SLAM2
       // This avoids that two points (with same id) are created simultaneously in separate threads (id conflict)
       std::mutex mMutexPointCreation;
 
+      std::mutex mMutexReplacementMap;
+
       std::unordered_map<id_type, MapPoint *> mMapPoints;
 
       std::unordered_map<id_type, KeyFrame *> mKeyFrames;
+
+      // The id of the deleted MapPoint id is the key. The replacer MapPoint, is the value.
+      std::unordered_map<id_type, MapPoint *> mReplacementMap;
    };
 
 } //namespace ORB_SLAM

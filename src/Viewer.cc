@@ -38,8 +38,7 @@ namespace ORB_SLAM2
       mbFinished(true),
       mbStopped(true),
       mbStopRequested(false),
-      mbResetting(false),
-      mWindowTitle("ORB-SLAM2-TEAM Viewer")
+      mbResetting(false)
    {
       if (pFrameDrawer)
          mvFrameDrawers.push_back(pFrameDrawer);
@@ -49,6 +48,8 @@ namespace ORB_SLAM2
 
       if (pTracking)
          mvTrackers.push_back(pTracking);
+
+      SetWindowTitle();
    }
 
    Viewer::Viewer(vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers, Mapper & mapper, bool embeddedFrameDrawers) :
@@ -62,9 +63,17 @@ namespace ORB_SLAM2
       mbFinished(true),
       mbStopped(true),
       mbStopRequested(false),
-      mbResetting(false),
-      mWindowTitle("ORB-SLAM2-TEAM Viewer")
+      mbResetting(false)
    {
+      SetWindowTitle();
+   }
+
+   void Viewer::SetWindowTitle()
+   {
+      if (mvTrackers.empty())
+         mWindowTitle.append("ORB-SLAM2-TEAM Server");
+      else
+         mWindowTitle.append("ORB-SLAM2-TEAM Viewer");
    }
 
    void Viewer::Run() try
@@ -78,7 +87,7 @@ namespace ORB_SLAM2
       mbFinished = false;
       mbStopped = false;
 
-      pangolin::CreateWindowAndBind(mWindowTitle, WINDOW_WIDTH, WINDOW_HEIGHT);
+      pangolin::WindowInterface & winface = pangolin::CreateWindowAndBind(mWindowTitle, WINDOW_WIDTH, WINDOW_HEIGHT);
 
       GLint maxTextureBufferSize;
       glGetIntegerv(GL_MAX_TEXTURE_BUFFER_SIZE, &maxTextureBufferSize);

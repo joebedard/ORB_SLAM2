@@ -31,6 +31,7 @@
 #include <MapDrawer.h>
 #include <Mapper.h>
 #include <SyncPrint.h>
+#include <Sleep.h>
 
 using namespace ORB_SLAM2;
 
@@ -117,14 +118,16 @@ void RunTracker(void * param) try
 
    std::chrono::steady_clock::time_point tStart = std::chrono::steady_clock::now();
 
+   sleep(1000000); // wait for camera to stabilize
+
    gOutTrak.Print("while (gShouldRun)");
    while (gShouldRun)
    {
-      gOutTrak.Print("rs2::frameset data = pipe.wait_for_frames();");
+      //gOutTrak.Print("rs2::frameset data = pipe.wait_for_frames();");
       rs2::frameset data = pipe.wait_for_frames(); // Wait for next set of frames from the camera
-      gOutTrak.Print("rs2::video_frame irFrame1 = data.get_infrared_frame(1);");
+      //gOutTrak.Print("rs2::video_frame irFrame1 = data.get_infrared_frame(1);");
       rs2::video_frame irFrame1 = data.get_infrared_frame(1);
-      gOutTrak.Print("rs2::video_frame irFrame2 = data.get_infrared_frame(2);");
+      //gOutTrak.Print("rs2::video_frame irFrame2 = data.get_infrared_frame(2);");
       rs2::video_frame irFrame2 = data.get_infrared_frame(2);
 
       // Create OpenCV matrix of size (width, height)
@@ -242,11 +245,6 @@ int main(int paramc, char * paramv[]) try
    gOutMain.Print(NULL, ss1);
 
    ORBVocabulary vocab;
-   MapperClient mapperClient(mapperSettings, vocab, false);
-   MapDrawer mapDrawer(mapperSettings, mapperClient);
-   FrameDrawer frameDrawer(trackerSettings);
-   Tracking tracker(trackerSettings, vocab, mapperClient, &frameDrawer, NULL, SensorType::STEREO);
-
    //Load ORB Vocabulary
    SyncPrint::Print(NULL, "Loading ORB Vocabulary. This could take a while...");
    bool bVocLoad = vocab.loadFromFile(gVocabFilename);
@@ -256,6 +254,11 @@ int main(int paramc, char * paramv[]) try
       exit(-1);
    }
    SyncPrint::Print(NULL, "Vocabulary loaded!");
+
+   MapperClient mapperClient(mapperSettings, vocab, false);
+   MapDrawer mapDrawer(mapperSettings, mapperClient);
+   FrameDrawer frameDrawer(trackerSettings);
+   Tracking tracker(trackerSettings, vocab, mapperClient, &frameDrawer, NULL, SensorType::STEREO);
 
    ThreadParam threadParam;
    threadParam.serial = &serial;

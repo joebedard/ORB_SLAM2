@@ -223,13 +223,13 @@ namespace ORB_SLAM2
       mOw = -mRcw.t()*mtcw;
    }
 
-   bool Frame::isInFrustum(MapPoint *pMP, float viewingCosLimit)
+   bool Frame::isInFrustum(MapPoint *pMP, float viewingCosLimit) try 
    {
       pMP->mbTrackInView = false;
 
       // 3D in absolute coordinates
       cv::Mat P = pMP->GetWorldPos();
-
+      
       // 3D in camera coordinates
       const cv::Mat Pc = mRcw * P + mtcw;
       const float &PcX = Pc.at<float>(0);
@@ -261,7 +261,7 @@ namespace ORB_SLAM2
 
       // Check viewing angle
       cv::Mat Pn = pMP->GetNormal();
-
+      
       const float viewCos = PO.dot(Pn) / dist;
 
       if (viewCos < viewingCosLimit)
@@ -280,6 +280,16 @@ namespace ORB_SLAM2
 
       return true;
    }
+   catch (cv::Exception & e)
+   {
+      stringstream ss1;
+      ss1 << e.what() << endl;
+      ss1 << "MapPoint id=" << pMP->GetId() << endl;
+      ss1 << "->GetWorldPos()=" << pMP->GetWorldPos() << endl;
+      ss1 << "->GetNormal()=" << pMP->GetNormal() << endl;
+      SyncPrint::Print("Frame::isInFrustum: cv::Exception\n", ss1);
+   }
+
 
    vector<size_t> Frame::GetFeaturesInArea(const float &x, const float  &y, const float  &r, const int minLevel, const int maxLevel) const
    {

@@ -151,7 +151,8 @@ namespace ORB_SLAM2
    bool MapperClient::GetIdle()
    {
       unique_lock<mutex> lock(mMutexIdle);
-      return mIdle;
+      //return mIdle;
+      return false;
    }
 
    void MapperClient::InitializeMono(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2)
@@ -163,23 +164,15 @@ namespace ORB_SLAM2
       if (trackerId != 0)
          throw exception("Only the first Tracker (id=0) may initialize the map.");
 
-      pKF1->ComputeBoW(mVocab);
-      pKF2->ComputeBoW(mVocab);
-
-      // stereo and RGBD modes will create MapPoints
-      for (auto it : mapPoints)
-      {
-         mMap.AddMapPoint(it);
-      }
+      InitializeMonoServer(trackerId, mapPoints, pKF1, pKF2);
 
       // is this needed for tracking client?
       mMap.mvpKeyFrameOrigins.push_back(pKF1);
 
-      // Insert KeyFrame in the map
-      mMap.AddKeyFrame(pKF1);
-      mMap.AddKeyFrame(pKF2);
 
-      InitializeMonoServer(trackerId, mapPoints, pKF1, pKF2);
+      InsertKeyFrameClient(mapPoints, pKF1);
+      vector<MapPoint *> noPoints;
+      InsertKeyFrameClient(noPoints, pKF2);
 
       mInitialized = true;
       Print("end InitializeMono");
@@ -194,21 +187,12 @@ namespace ORB_SLAM2
       if (trackerId != 0)
          throw exception("Only the first Tracker (id=0) may initialize the map.");
 
-      pKF->ComputeBoW(mVocab);
-
-      // stereo and RGBD modes will create MapPoints
-      for (auto it : mapPoints)
-      {
-         mMap.AddMapPoint(it);
-      }
+      InitializeStereoServer(trackerId, mapPoints, pKF);
 
       // is this needed for tracking client?
       mMap.mvpKeyFrameOrigins.push_back(pKF);
 
-      // Insert KeyFrame in the map
-      mMap.AddKeyFrame(pKF);
-
-      InitializeStereoServer(trackerId, mapPoints, pKF);
+      InsertKeyFrameClient(mapPoints, pKF);
 
       mInitialized = true;
       Print("end InitializeStereo");
@@ -217,18 +201,9 @@ namespace ORB_SLAM2
    bool MapperClient::InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF)
    {
       Print("begin InsertKeyFrame");
-      // client: serialize KF and MPs and then send to server
       if (InsertKeyFrameServer(trackerId, mapPoints, pKF))
       {
-         pKF->ComputeBoW(mVocab);
-         // add points and keyframes to allow for map synchronization with the server
-         // which will happen after the Tracking client unlocks mMutexMapUpdate
-         for (MapPoint * pMP : mapPoints)
-         {
-            mMap.AddMapPoint(pMP);
-         }
-         mMap.AddKeyFrame(pKF);
-
+         InsertKeyFrameClient(mapPoints, pKF);
          Print("end InsertKeyFrame 1");
          return true;
       }
@@ -361,8 +336,8 @@ namespace ORB_SLAM2
 
       // be careful - process map changes in the best order
 
-      stringstream ss1; ss1 << "mce.updatedMapPoints.size() == " << mce.updatedMapPoints.size();
-      Print(ss1);
+      //stringstream ss1; ss1 << "mce.updatedMapPoints.size() == " << mce.updatedMapPoints.size();
+      //Print(ss1);
       for (MapPoint * mp : mce.updatedMapPoints)
       {
          MapPoint * pMP = mMap.GetMapPoint(mp->GetId());
@@ -376,8 +351,23 @@ namespace ORB_SLAM2
          }
       }
 
-      stringstream ss2; ss2 << "mce.updatedKeyFrames.size() == " << mce.updatedKeyFrames.size();
-      Print(ss2);
+      //stringstream ss1; ss1 << "mce.replacedMapPoints.size() == " << mce.replacedMapPoints.size();
+      //Print(ss1);
+      //for (pair<id_type, MapPoint *> p : mce.replacedMapPoints)
+      //{
+      //   MapPoint * pMP = mMap.GetReplacedMapPoint(p.second->GetId());
+      //   if (pMP == NULL)
+      //   {
+      //      mMap.ReplaceMapPoint(p.first, p.second);
+      //   }
+      //   else
+      //   {
+      //      //pMP->Update(mp);
+      //   }
+      //}
+
+      //stringstream ss2; ss2 << "mce.updatedKeyFrames.size() == " << mce.updatedKeyFrames.size();
+      //Print(ss2);
       for (KeyFrame * kf : mce.updatedKeyFrames)
       {
          //stringstream ss; ss << "kf->GetId() == " << kf->GetId(); Print(ss);
@@ -394,8 +384,8 @@ namespace ORB_SLAM2
          }
       }
 
-      stringstream ss3; ss3 << "mce.deletedKeyFrames.size() == " << mce.deletedKeyFrames.size();
-      Print(ss3);
+      //stringstream ss3; ss3 << "mce.deletedKeyFrames.size() == " << mce.deletedKeyFrames.size();
+      //Print(ss3);
       for (unsigned long int id : mce.deletedKeyFrames)
       {
          KeyFrame * pKF = mMap.GetKeyFrame(id);
@@ -406,12 +396,12 @@ namespace ORB_SLAM2
          }
       }
 
-      stringstream ss4; ss4 << "mce.deletedMapPoints.size() == " << mce.deletedMapPoints.size();
-      Print(ss4);
-      for (unsigned long int id : mce.deletedMapPoints)
-      {
-         mMap.EraseMapPoint(id);
-      }
+      //stringstream ss4; ss4 << "mce.deletedMapPoints.size() == " << mce.deletedMapPoints.size();
+      //Print(ss4);
+      //for (unsigned long int id : mce.deletedMapPoints)
+      //{
+      //   //mMap.EraseMapPoint(id);
+      //}
 
       mInitialized = true;
       NotifyMapChanged(mce);
@@ -454,7 +444,12 @@ namespace ORB_SLAM2
       unique_lock<mutex> lock(mMutexTrackerStatus);
       cv::Mat poseTcw;
       void * pData = Serializer::ReadMatrix(pMsgData + 1, poseTcw);
-      stringstream ss; ss << poseTcw; Print(ss);
+      
+      //stringstream ss; 
+      //ss << "pMsgData->trackerId==" << pMsgData->trackerId << endl;
+      //ss << poseTcw;
+      //Print(ss);
+      
       mPoseTcw[pMsgData->trackerId] = poseTcw.clone();
       Print("end ReceivePoseUpdate");
    }
@@ -723,4 +718,35 @@ namespace ORB_SLAM2
       return pRepData->inserted;
    }
 
+   void MapperClient::InsertKeyFrameClient(vector<MapPoint *> & mapPoints, KeyFrame * pKF)
+   {
+      // add points and keyframes to allow for map synchronization with the server
+      // which will happen after the Tracking client unlocks mMutexMapUpdate
+      mMap.AddKeyFrame(pKF);
+
+      for (MapPoint * pMP : mapPoints)
+      {
+         mMap.AddMapPoint(pMP);
+      }
+
+      // associate MapPoints to the new keyframe, update normal and compute descriptor
+      std::vector<MapPoint *> matches = pKF->GetMapPointMatches();
+      MapPoint * pMP = static_cast<MapPoint *>(NULL);
+      const int n = matches.size();
+      for (int i = 0; i < n; i++)
+      {
+         pMP = matches[i];
+         if (pMP && !pMP->isBad())
+         {
+            //pMP->AddObservation(pKF, i);
+            pMP->Link(*pKF, i);
+            pMP->UpdateNormalAndDepth();
+            pMP->ComputeDistinctiveDescriptors();
+         }
+      }
+
+      pKF->UpdateConnections();
+      pKF->ComputeBoW(mVocab);
+      mKeyFrameDB.add(pKF);
+   }
 }

@@ -844,7 +844,7 @@ namespace ORB_SLAM2
       return nmatches;
    }
 
-   int ORBmatcher::Fuse(MapChangeEvent & mapChanges, KeyFrame *pKF, const vector<MapPoint *> &vpMapPoints, Map * pMap, const float th)
+   int ORBmatcher::Fuse(KeyFrame *pKF, const vector<MapPoint *> &vpMapPoints, Map * pMap, const float th)
    {
       Print("begin Fuse 1");
       cv::Mat Rcw = pKF->GetRotation();
@@ -981,40 +981,21 @@ namespace ORB_SLAM2
                {
                   if (pMPinKF->Observations() > pMP->Observations())
                   {
-                     pMP->Replace(pMPinKF, pMap);
-                     // TODO OK - if pMP.id != pMPinKF.id 
-                     // add pMP to deleted points
-                     // add pMPinKF to updated points
-                     if (pMP->GetId() != pMPinKF->GetId())
-                     {
-                        //mapChanges.deletedMapPoints.insert(pMP->GetId());
-                        mapChanges.updatedMapPoints.insert(pMP);
-                        mapChanges.updatedMapPoints.insert(pMPinKF);
-                     }
+                     //pMP->Replace(pMPinKF, pMap);
+                     pMP->ReplaceWith(*pMPinKF);
                   }
                   else
                   {
-                     pMPinKF->Replace(pMP, pMap);
-                     // TODO OK - if pMP.id != pMPinKF.id 
-                     // add pMPinKF to deleted points
-                     // add pMP to updated points
-                     if (pMPinKF->GetId() != pMP->GetId())
-                     {
-                        //mapChanges.deletedMapPoints.insert(pMPinKF->GetId());
-                        mapChanges.updatedMapPoints.insert(pMPinKF);
-                        mapChanges.updatedMapPoints.insert(pMP);
-                     }
+                     //pMPinKF->Replace(pMP, pMap);
+                     pMPinKF->ReplaceWith(*pMP);
                   }
                }
             }
             else
             {
-               pMP->AddObservation(pKF, bestIdx);
-               // TODO OK - add this point to updated points
-               mapChanges.updatedMapPoints.insert(pMP);
-               pKF->AddMapPoint(pMP, bestIdx);
-               // TODO OK - add this keyframe to updated keyframes
-               mapChanges.updatedKeyFrames.insert(pKF);
+               //pMP->AddObservation(pKF, bestIdx);
+               //pKF->AddMapPoint(pMP, bestIdx);
+               pKF->Link(*pMP, bestIdx);
             }
             nFused++;
          }
@@ -1024,7 +1005,7 @@ namespace ORB_SLAM2
       return nFused;
    }
 
-   int ORBmatcher::Fuse(MapChangeEvent & mapChanges, KeyFrame *pKF, cv::Mat Scw, const vector<MapPoint *> &vpPoints, float th, vector<MapPoint *> &vpReplacePoint)
+   int ORBmatcher::Fuse(KeyFrame *pKF, cv::Mat Scw, const vector<MapPoint *> &vpPoints, float th, vector<MapPoint *> &vpReplacePoint)
    {
       Print("begin Fuse 2");
       // Get Calibration Parameters for later projection
@@ -1140,13 +1121,9 @@ namespace ORB_SLAM2
             }
             else
             {
-               pMP->AddObservation(pKF, bestIdx);
-               // TODO OK - add pMP to updated points
-               mapChanges.updatedMapPoints.insert(pMP);
-
-               pKF->AddMapPoint(pMP, bestIdx);
-               // TODO OK - add pKF to updated keyframes
-               mapChanges.updatedKeyFrames.insert(pKF);
+               //pMP->AddObservation(pKF, bestIdx);
+               //pKF->AddMapPoint(pMP, bestIdx);
+               pKF->Link(*pMP, bestIdx);
             }
             nFused++;
          }

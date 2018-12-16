@@ -86,6 +86,8 @@ namespace ORB_SLAM2
       std::mutex mMutexStop;
 
       bool mbResetting;
+
+      void SetWindowTitle();
    };
 
 }

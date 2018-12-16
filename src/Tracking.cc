@@ -652,7 +652,8 @@ namespace ORB_SLAM2
             {
                cv::Mat x3D = mCurrentFrame.UnprojectStereo(i);
                MapPoint* pNewMP = new MapPoint(NewMapPointId(), x3D, pKFini);
-               pKFini->AddMapPoint(pNewMP, i);
+               //pKFini->AddMapPoint(pNewMP, i);
+               pKFini->Link(*pNewMP, i);
                points.push_back(pNewMP);
                mCurrentFrame.mvpMapPoints[i] = pNewMP;
             }
@@ -782,11 +783,13 @@ namespace ORB_SLAM2
          cv::Mat worldPos(mvIniP3D[i]);
          MapPoint* pMP = new MapPoint(NewMapPointId(), worldPos, pKFcur);
 
-         pKFini->AddMapPoint(pMP, i);
-         pKFcur->AddMapPoint(pMP, mvIniMatches[i]);
+         //pKFini->AddMapPoint(pMP, i);
+         //pKFcur->AddMapPoint(pMP, mvIniMatches[i]);
 
-         pMP->AddObservation(pKFini, i);
-         pMP->AddObservation(pKFcur, mvIniMatches[i]);
+         //pMP->AddObservation(pKFini, i);
+         //pMP->AddObservation(pKFcur, mvIniMatches[i]);
+         pMP->Link(*pKFini, i);
+         pMP->Link(*pKFcur, mvIniMatches[i]);
 
          pMP->ComputeDistinctiveDescriptors();
          pMP->UpdateNormalAndDepth();
@@ -805,8 +808,7 @@ namespace ORB_SLAM2
       pKFcur->UpdateConnections();
 
       // Bundle Adjustment
-      MapChangeEvent mapChanges;
-      Optimizer::GlobalBundleAdjustment(map, mMapper.GetMutexMapUpdate(), mapChanges, 20);
+      Optimizer::GlobalBundleAdjustment(map, mMapper.GetMutexMapUpdate(), 20);
 
       // Set median depth to 1
       float medianDepth = pKFini->ComputeSceneMedianDepth(2);
@@ -871,7 +873,8 @@ namespace ORB_SLAM2
 
    void Tracking::CheckReplacedInLastFrame()
    {
-      Print("begin CheckReplacedInLastFrame");
+      //Print("begin CheckReplacedInLastFrame");
+      int numDeleted = 0, numReplaced = 0;
 
       // replace or erase MapPoint matches
       for (int i = 0; i < mLastFrame.N; i++)
@@ -882,10 +885,12 @@ namespace ORB_SLAM2
             MapPoint * pRep = MapPoint::FindFinalReplacement(pMP);
             if (pRep->isBad())
             {
+               numDeleted++;
                mLastFrame.mvpMapPoints[i] = NULL;
             }
             else if (pRep != pMP)
             {
+               numReplaced++;
                mLastFrame.mvpMapPoints[i] = pRep;
             }
          }
@@ -898,13 +903,14 @@ namespace ORB_SLAM2
          //   }
          //}
       }
-      Print("end CheckReplacedInLastFrame");
+      Print(string("CheckReplacedInLastFrame: ") + to_string(numReplaced) + " Replaced, " + to_string(numDeleted) + " Deleted MapPoints");
+      //Print("end CheckReplacedInLastFrame");
    }
 
 
    bool Tracking::TrackReferenceKeyFrame()
    {
-      Print("begin TrackReferenceKeyFrame");
+      //Print("begin TrackReferenceKeyFrame");
       // Compute Bag of Words vector
       mCurrentFrame.ComputeBoW(mVocab);
 
@@ -914,10 +920,11 @@ namespace ORB_SLAM2
       vector<MapPoint*> vpMapPointMatches;
 
       int nmatches = matcher.SearchByBoW(mLastFrame.mpReferenceKF, mCurrentFrame, vpMapPointMatches);
+      //Print(to_string(vpMapPointMatches.size()) + "==vpMapPointMatches.size()");
 
       if (nmatches < 15)
       {
-         Print("end TrackReferenceKeyFrame 1");
+         //Print("end TrackReferenceKeyFrame 1");
          return false;
       }
 
@@ -928,6 +935,8 @@ namespace ORB_SLAM2
 
       // Discard outliers
       int nmatchesMap = 0;
+      //Print(to_string(mCurrentFrame.N) + "==mCurrentFrame.N");
+      //Print(to_string(nmatches) + "==nmatches");
       for (int i = 0; i < mCurrentFrame.N; i++)
       {
          if (mCurrentFrame.mvpMapPoints[i])
@@ -947,13 +956,15 @@ namespace ORB_SLAM2
          }
       }
 
-      Print("end TrackReferenceKeyFrame 2");
+      //Print(to_string(nmatches) + "==nmatches");
+      //Print(to_string(nmatchesMap) + "==nmatchesMap");
+      //Print("end TrackReferenceKeyFrame 2");
       return nmatchesMap >= 10;
    }
 
    bool Tracking::TrackWithMotionModel()
    {
-      Print("begin TrackWithMotionModel");
+      //Print("begin TrackWithMotionModel");
       ORBmatcher matcher(0.9, true);
 
       // Update last frame pose according to its reference keyframe
@@ -986,7 +997,7 @@ namespace ORB_SLAM2
 
       if (nmatches < 20)
       {
-         Print("end TrackWithMotionModel 1");
+         //Print("end TrackWithMotionModel 1");
          return false;
       }
 
@@ -1013,13 +1024,13 @@ namespace ORB_SLAM2
                nmatchesMap++;
          }
       }
-      Print("end TrackWithMotionModel 2");
+      //Print("end TrackWithMotionModel 2");
       return nmatchesMap >= 10;
    }
 
    bool Tracking::TrackLocalMap()
    {
-      Print("begin TrackLocalMap");
+      //Print("begin TrackLocalMap");
       // We have an estimation of the camera pose and some map points tracked in the frame.
       // We retrieve the local map and try to find matches to points in the local map.
 
@@ -1058,18 +1069,18 @@ namespace ORB_SLAM2
       // More restrictive if there was a relocalization recently
       if (mCurrentFrame.mnId < mnLastRelocFrameId + mMaxFrames && mnMatchesInliers < 50)
       {
-         Print("end TrackLocalMap 1");
+         //Print("end TrackLocalMap 1");
          return false;
       }
 
       if (mnMatchesInliers < 30)
       {
-         Print("end TrackLocalMap 2");
+         //Print("end TrackLocalMap 2");
          return false;
       }
       else
       {
-         Print("end TrackLocalMap 3");
+         //Print("end TrackLocalMap 3");
          return true;
       }
    }
@@ -1257,8 +1268,8 @@ namespace ORB_SLAM2
             }
             else
             {
-               const map<KeyFrame *, size_t> observations = pMP->GetObservations();
-               for (map<KeyFrame *, size_t>::const_iterator it = observations.begin(), itend = observations.end(); it != itend; it++)
+               const unordered_map<KeyFrame *, size_t> obs = pMP->GetObservations();
+               for (unordered_map<KeyFrame *, size_t>::const_iterator it = obs.begin(), itend = obs.end(); it != itend; it++)
                   keyframeVotes[it->first]++;
             }
          }
@@ -1625,7 +1636,8 @@ namespace ORB_SLAM2
                {
                   cv::Mat x3D = currentFrame.UnprojectStereo(i);
                   MapPoint* pNewMP = new MapPoint(NewMapPointId(), x3D, pKF);
-                  pKF->AddMapPoint(pNewMP, i);
+                  //pKF->AddMapPoint(pNewMP, i);
+                  pKF->Link(*pNewMP, i);
                   newPoints.push_back(pNewMP);
                }
                if (vDepthIdx[j].first > currentFrame.mFC->thDepth && j > 99)
@@ -1653,7 +1665,8 @@ namespace ORB_SLAM2
          // delete MapPoints and KeyFrame
          for (MapPoint * pMP : newPoints)
          {
-            pKF->EraseMapPointMatch(pMP);
+            //pKF->EraseMapPointMatch(pMP);
+            pMP->Unlink(*pKF);
             Print(to_string(pMP->GetId()) + "=id MapPoint deleted");
             delete pMP;
          }

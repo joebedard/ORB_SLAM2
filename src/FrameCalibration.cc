@@ -55,35 +55,35 @@ namespace ORB_SLAM2
    }
 
    FrameCalibration::FrameCalibration(
-      const cv::Mat & K,
-      const cv::Mat & distCoef,
-      const int & width,
-      const int & height,
-      const float & blfx,
-      const float & thDepth) : FrameCalibration()
+      const cv::Mat & _K,
+      const cv::Mat & _distCoef,
+      const int & _width,
+      const int & _height,
+      const float & _blfx,
+      const float & _thDepth) : FrameCalibration()
    {
-      Initialize(K, distCoef, width, height, blfx, thDepth);
+      Initialize(_K, _distCoef, _width, _height, _blfx, _thDepth);
    }
 
    void FrameCalibration::Initialize(
-      const cv::Mat & K, 
-      const cv::Mat & distCoef, 
-      const int & width, 
-      const int & height, 
-      const float & blfx,
-      const float & thDepth)
+      const cv::Mat & _K, 
+      const cv::Mat & _distCoef, 
+      const int & _width, 
+      const int & _height, 
+      const float & _blfx,
+      const float & _thDepth)
    {
-      if (distCoef.at<float>(0) != 0.0)
+      if (_distCoef.at<float>(0) != 0.0)
       {
          cv::Mat mat(4, 2, CV_32F);
          mat.at<float>(0, 0) = 0.0; mat.at<float>(0, 1) = 0.0;
-         mat.at<float>(1, 0) = width; mat.at<float>(1, 1) = 0.0;
-         mat.at<float>(2, 0) = 0.0; mat.at<float>(2, 1) = height;
-         mat.at<float>(3, 0) = width; mat.at<float>(3, 1) = height;
+         mat.at<float>(1, 0) = _width; mat.at<float>(1, 1) = 0.0;
+         mat.at<float>(2, 0) = 0.0; mat.at<float>(2, 1) = _height;
+         mat.at<float>(3, 0) = _width; mat.at<float>(3, 1) = _height;
 
          // Undistort corners
          mat = mat.reshape(2);
-         cv::undistortPoints(mat, mat, K, distCoef, cv::Mat(), K);
+         cv::undistortPoints(mat, mat, _K, _distCoef, cv::Mat(), _K);
          mat = mat.reshape(1);
 
          mMinX = min(mat.at<float>(0, 0), mat.at<float>(2, 0));
@@ -94,26 +94,26 @@ namespace ORB_SLAM2
       else
       {
          mMinX = 0.0f;
-         mMaxX = width;
+         mMaxX = _width;
          mMinY = 0.0f;
-         mMaxY = height;
+         mMaxY = _height;
       }
 
-      mWidth = width;
-      mHeight = height;
-      mK = K;
-      mDistCoef = distCoef;
-      mFx = K.at<float>(0, 0);
-      mFy = K.at<float>(1, 1);
-      mCx = K.at<float>(0, 2);
-      mCy = K.at<float>(1, 2);
+      mWidth = _width;
+      mHeight = _height;
+      mK = _K;
+      mDistCoef = _distCoef;
+      mFx = _K.at<float>(0, 0);
+      mFy = _K.at<float>(1, 1);
+      mCx = _K.at<float>(0, 2);
+      mCy = _K.at<float>(1, 2);
       mInvfx = 1.0f / mFx;
       mInvfy = 1.0f / mFy;
       mGridElementWidthInv = static_cast<float>(FRAME_GRID_COLS) / (mMaxX - mMinX);
       mGridElementHeightInv = static_cast<float>(FRAME_GRID_ROWS) / (mMaxY - mMinY);
-      mBlfx = blfx;
-      mBl = blfx / mFx;
-      mThDepth = thDepth;
+      mBlfx = _blfx;
+      mBl = _blfx / mFx;
+      mThDepth = _thDepth;
    }
 
    size_t FrameCalibration::GetBufferSize() const
@@ -127,18 +127,18 @@ namespace ORB_SLAM2
    void * FrameCalibration::ReadBytes(void * const buffer)
    {
       FrameCalibration::Header * pHeader = (FrameCalibration::Header *)buffer;
-      int width = pHeader->mWidth;
-      int height = pHeader->mHeight;
-      float bl = pHeader->mBl;
-      float thDepth = pHeader->mThDepth;
+      int _width = pHeader->mWidth;
+      int _height = pHeader->mHeight;
+      float _bl = pHeader->mBl;
+      float _thDepth = pHeader->mThDepth;
 
       // read variable-length data
-      cv::Mat K, distCoef;
+      cv::Mat _K, _distCoef;
       void * pData = pHeader + 1;
-      pData = Serializer::ReadMatrix(pData, K);
-      pData = Serializer::ReadMatrix(pData, distCoef);
+      pData = Serializer::ReadMatrix(pData, _K);
+      pData = Serializer::ReadMatrix(pData, _distCoef);
 
-      Initialize(K, distCoef, width, height, bl, thDepth);
+      Initialize(_K, _distCoef, _width, _height, _bl, _thDepth);
 
       return pData;
    }
