@@ -152,7 +152,7 @@ namespace ORB_SLAM2
          nObs += 2;
       else
          nObs++;
-      if (mpRefKF = NULL)
+      if (mpRefKF == NULL)
          mpRefKF = &rKF;
    }
 
