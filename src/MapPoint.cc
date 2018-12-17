@@ -269,7 +269,7 @@ namespace ORB_SLAM2
          mbBad = true;
          obs = mObservations;
          mObservations.clear();
-         mpRefKF == NULL;
+         mpRefKF = NULL;
          SetModified(true);
       }
       for (unordered_map<KeyFrame*, size_t>::iterator mit = obs.begin(), mend = obs.end(); mit != mend; mit++)
@@ -795,7 +795,7 @@ namespace ORB_SLAM2
          Print("the reference KeyFrame was deleted by the server, and the client did not know yet");
          Print(string("MapPoint id=") + to_string(mnId));
          if (mObservations.empty())
-            mpRefKF == NULL;
+            mpRefKF = NULL;
          else
             mpRefKF = mObservations.begin()->first;
       }
