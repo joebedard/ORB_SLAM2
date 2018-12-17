@@ -46,7 +46,7 @@ namespace ORB_SLAM2
    const int ORBmatcher::HISTO_LENGTH = 30;
 
    ORBmatcher::ORBmatcher(float nnratio, bool checkOri) 
-      : SyncPrint("ORBmatcher: ", false)
+      : SyncPrint("ORBmatcher: ")
       , mfNNratio(nnratio)
       , mbCheckOrientation(checkOri)
    {

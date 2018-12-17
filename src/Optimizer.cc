@@ -942,6 +942,7 @@ namespace ORB_SLAM2
 
       const int minFeat = 100;
 
+      //Print("// Set KeyFrame vertices");
       // Set KeyFrame vertices
       for (size_t i = 0, iend = vpKFs.size(); i < iend;i++)
       {
@@ -986,6 +987,7 @@ namespace ORB_SLAM2
 
       const Eigen::Matrix<double, 7, 7> matLambda = Eigen::Matrix<double, 7, 7>::Identity();
 
+      //Print("// Set Loop edges");
       // Set Loop edges
       for (std::map<KeyFrame *, set<KeyFrame *> >::const_iterator mit = LoopConnections.begin(), mend = LoopConnections.end(); mit != mend; mit++)
       {
@@ -1017,6 +1019,7 @@ namespace ORB_SLAM2
          }
       }
 
+      //Print("// Set normal edges");
       // Set normal edges
       for (KeyFrame * pKF : vpKFs)
       {
@@ -1036,28 +1039,38 @@ namespace ORB_SLAM2
          // Spanning tree edge
          if (pParentKF)
          {
+            Print("// Spanning tree edge");
             int nIDj = pParentKF->GetId();
 
             g2o::Sim3 Sjw;
 
+            Print("1");
             LoopClosing::KeyFrameAndPose::const_iterator itj = NonCorrectedSim3.find(pParentKF);
 
+            Print("2");
             if (itj != NonCorrectedSim3.end())
                Sjw = itj->second;
             else
                Sjw = vScw[nIDj];
 
+            Print("3");
             g2o::Sim3 Sji = Sjw * Swi;
 
             g2o::EdgeSim3* e = new g2o::EdgeSim3();
+            Print("4");
             e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(nIDj)));
+            Print("5");
             e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(nIDi)));
+            Print("6");
             e->setMeasurement(Sji);
 
+            Print("7");
             e->information() = matLambda;
+            Print("8");
             optimizer.addEdge(e);
          }
 
+         //Print("// Loop edges");
          // Loop edges
          const set<KeyFrame*> sLoopEdges = pKF->GetLoopEdges();
          for (set<KeyFrame*>::const_iterator sit = sLoopEdges.begin(), send = sLoopEdges.end(); sit != send; sit++)
@@ -1084,6 +1097,7 @@ namespace ORB_SLAM2
             }
          }
 
+         //Print("// Covisibility graph edges");
          // Covisibility graph edges
          const vector<KeyFrame*> vpConnectedKFs = pKF->GetCovisiblesByWeight(minFeat);
          for (vector<KeyFrame*>::const_iterator vit = vpConnectedKFs.begin(); vit != vpConnectedKFs.end(); vit++)

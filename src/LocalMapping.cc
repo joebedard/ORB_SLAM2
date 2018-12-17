@@ -89,9 +89,9 @@ namespace ORB_SLAM2
                ProcessNewKeyFrame();
 
                {
-                  Print("waiting to lock map");
-                  unique_lock<mutex> lock(mMutexMapUpdate);
-                  Print("map is locked");
+                  //Print("waiting to lock map");
+                  //unique_lock<mutex> lock(mMutexMapUpdate);
+                  //Print("map is locked");
 
                   // Check recent MapPoints
                   MapPointCulling();
@@ -278,7 +278,7 @@ namespace ORB_SLAM2
       // Check Recent Added MapPoints
       list<MapPoint *>::iterator lit = mlpRecentAddedMapPoints.begin();
       const id_type nCurrentKFid = mpCurrentKeyFrame->GetId();
-
+      unsigned int quantBad = 0, quantLowFoundRatio = 0, quantOldAndLowObs = 0, quantVeryOld = 0;
       //int nThObs;
       //if (mbMonocular)
       //   nThObs = 2;
@@ -286,6 +286,7 @@ namespace ORB_SLAM2
       //   nThObs = 3;
       //const int cnThObs = nThObs;
       const int cnThObs = mbMonocular ? 2 : 3;
+      //const int cnThObs = mbMonocular ? 2 : 2;
 
       while (lit != mlpRecentAddedMapPoints.end())
       {
@@ -297,24 +298,28 @@ namespace ORB_SLAM2
          {
             // this shouldn't happen but if it does, remove it
             lit = mlpRecentAddedMapPoints.erase(lit);
+            quantBad++;
             //Print(to_string(pMP->GetId()) + "=MapPointId erased 1");
          }
          else if (pMP->GetFoundRatio() < 0.25f)
          {
+            Print(to_string(pMP->GetId()) + "=MapPointId bad found ratio");
             pMP->SetBadFlag(&mMap);
             lit = mlpRecentAddedMapPoints.erase(lit);
-            //Print(to_string(pMP->GetId()) + "=MapPointId erased 2");
+            quantLowFoundRatio++;
          }
          else if ((nCurrentKFid - pMP->firstKFid) >= 2 * KEY_FRAME_ID_SPAN && pMP->Observations() <= cnThObs)
          {
+            Print(to_string(pMP->GetId()) + "=MapPointId bad age and observations");
             pMP->SetBadFlag(&mMap);
             lit = mlpRecentAddedMapPoints.erase(lit);
-            //Print(to_string(pMP->GetId()) + "=MapPointId erased 3");
+            quantOldAndLowObs++;
          }
          else if ((nCurrentKFid - pMP->firstKFid) >= 3 * KEY_FRAME_ID_SPAN)
          {
             // this MapPoint was not recently added, so don't consider it for culling
             lit = mlpRecentAddedMapPoints.erase(lit);
+            quantVeryOld++;
             //Print(to_string(pMP->GetId()) + "=MapPointId removed 4");
          }
          else
@@ -322,6 +327,9 @@ namespace ORB_SLAM2
             lit++;
          }
       }
+      stringstream ss;
+      ss << "quantBad = " << quantBad << ", quantLowFoundRatio = " << quantLowFoundRatio << ", quantOldAndLowObs = " << quantOldAndLowObs << ", quantVeryOld = " << quantVeryOld;
+      Print(ss);
       Print("end MapPointCulling");
    }
 
@@ -634,7 +642,7 @@ namespace ORB_SLAM2
 
       const vector<KeyFrame *> vpNeighKFs = mpCurrentKeyFrame->GetBestCovisibilityKeyFrames(nn);
       vector<KeyFrame *> vpTargetKFs;
-
+      Print("1");
       for (vector<KeyFrame *>::const_iterator vit = vpNeighKFs.begin(), vend = vpNeighKFs.end(); vit != vend; vit++)
       {
          KeyFrame * pKFi = *vit;
@@ -656,6 +664,7 @@ namespace ORB_SLAM2
          }
       }
 
+      Print("2");
       // Search matches by projection from current KF in target KFs
       ORBmatcher matcher;
       vector<MapPoint *> vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
@@ -665,6 +674,7 @@ namespace ORB_SLAM2
          matcher.Fuse(pKFi, vpMapPointMatches, &mMap);
       }
 
+      Print("3");
       // Search matches by projection from target KFs in current KF
       vector<MapPoint *> vpFuseCandidates;
       vpFuseCandidates.reserve(vpTargetKFs.size()*vpMapPointMatches.size());
@@ -685,8 +695,10 @@ namespace ORB_SLAM2
          }
       }
 
+      Print("4");
       matcher.Fuse(mpCurrentKeyFrame, vpFuseCandidates, &mMap);
 
+      Print("5");
       // Update points
       vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
       for (size_t i = 0, iend = vpMapPointMatches.size(); i < iend; i++)
@@ -702,6 +714,7 @@ namespace ORB_SLAM2
          }
       }
 
+      Print("6");
       // Update connections in covisibility graph
       mpCurrentKeyFrame->UpdateConnections();
       Print("end SearchInNeighbors");

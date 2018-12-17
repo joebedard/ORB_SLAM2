@@ -883,12 +883,13 @@ namespace ORB_SLAM2
          if (pMP)
          {
             MapPoint * pRep = MapPoint::FindFinalReplacement(pMP);
-            if (pRep->isBad())
-            {
-               numDeleted++;
-               mLastFrame.mvpMapPoints[i] = NULL;
-            }
-            else if (pRep != pMP)
+            //if (pRep->isBad())
+            //{
+            //   numDeleted++;
+            //   mLastFrame.mvpMapPoints[i] = NULL;
+            //}
+            //else 
+            if (pRep != pMP)
             {
                numReplaced++;
                mLastFrame.mvpMapPoints[i] = pRep;
@@ -1030,7 +1031,7 @@ namespace ORB_SLAM2
 
    bool Tracking::TrackLocalMap()
    {
-      //Print("begin TrackLocalMap");
+      Print("begin TrackLocalMap");
       // We have an estimation of the camera pose and some map points tracked in the frame.
       // We retrieve the local map and try to find matches to points in the local map.
 
@@ -1067,20 +1068,24 @@ namespace ORB_SLAM2
 
       // Decide if the tracking was succesful
       // More restrictive if there was a relocalization recently
-      if (mCurrentFrame.mnId < mnLastRelocFrameId + mMaxFrames && mnMatchesInliers < 50)
+      //if (mCurrentFrame.mnId < mnLastRelocFrameId + mMaxFrames && mnMatchesInliers < 50)
+      if (mCurrentFrame.mnId < mnLastRelocFrameId + mMaxFrames && mnMatchesInliers < 40)
       {
-         //Print("end TrackLocalMap 1");
+         Print(string("mnMatchesInliers==") + to_string(mnMatchesInliers));
+         Print("end TrackLocalMap 1");
          return false;
       }
 
-      if (mnMatchesInliers < 30)
+      //if (mnMatchesInliers < 30)
+      if (mnMatchesInliers < 20)
       {
-         //Print("end TrackLocalMap 2");
+         Print(string("mnMatchesInliers==") + to_string(mnMatchesInliers));
+         Print("end TrackLocalMap 2");
          return false;
       }
       else
       {
-         //Print("end TrackLocalMap 3");
+         Print("end TrackLocalMap 3");
          return true;
       }
    }

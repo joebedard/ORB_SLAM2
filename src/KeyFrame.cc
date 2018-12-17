@@ -504,6 +504,9 @@ namespace ORB_SLAM2
    }
 
    void KeyFrame::Unlink(size_t idx) {
+      stringstream ss; 
+      ss << "Unlink(" << idx << ")";
+      Print(ss);
       unique_lock<recursive_mutex> lock(mMutexMapPoints);
       MapPoint * prevMP = mvpMapPoints.at(idx);
       if (prevMP == NULL)
@@ -655,7 +658,7 @@ namespace ORB_SLAM2
 
    void KeyFrame::UpdateConnections()
    {
-      Print("begin UpdateConnections");
+      //Print("begin UpdateConnections");
 
       // quantity of MapPoints shared with each KeyFrame
       map<KeyFrame *, int> KFcounter;
@@ -667,7 +670,7 @@ namespace ORB_SLAM2
          vpMP = mvpMapPoints;
       }
       
-      Print("1");
+      //Print("1");
       //For all map points in keyframe check in which other keyframes are they seen
       //Increase counter for those keyframes
       for (vector<MapPoint *>::iterator vit = vpMP.begin(), vend = vpMP.end(); vit != vend; vit++)
@@ -702,7 +705,7 @@ namespace ORB_SLAM2
       KeyFrame * pKFmax = NULL;
       int th = 15;
 
-      Print("2");
+      //Print("2");
       vector<pair<int, KeyFrame *> > vPairs;
       vPairs.reserve(KFcounter.size());
       for (map<KeyFrame *, int>::iterator mit = KFcounter.begin(), mend = KFcounter.end(); mit != mend; mit++)
@@ -719,14 +722,14 @@ namespace ORB_SLAM2
          }
       }
 
-      Print("3");
+      //Print("3");
       if (vPairs.empty())
       {
          vPairs.push_back(make_pair(nmax, pKFmax));
          pKFmax->AddConnection(this, nmax);
       }
 
-      Print("4");
+      //Print("4");
       sort(vPairs.begin(), vPairs.end());
       list<KeyFrame *> lKFs;
       list<int> lWs;
@@ -737,7 +740,7 @@ namespace ORB_SLAM2
       }
 
       {
-         Print("5");
+         //Print("5");
          unique_lock<mutex> lockCon(mMutexConnections);
 
          // mspConnectedKeyFrames = spConnectedKeyFrames;
@@ -754,7 +757,7 @@ namespace ORB_SLAM2
          }
 
       }
-      Print("end UpdateConnections 2");
+      //Print("end UpdateConnections 2");
    }
 
    void KeyFrame::AddChild(KeyFrame *pKF)
@@ -817,7 +820,7 @@ namespace ORB_SLAM2
 
    bool KeyFrame::SetErase(Map & theMap, KeyFrameDatabase & keyFrameDB)
    {
-      Print("begin SetErase");
+      //Print("begin SetErase");
       {
          unique_lock<mutex> lock(mMutexConnections);
          if (mspLoopEdges.empty())
@@ -829,10 +832,10 @@ namespace ORB_SLAM2
       if (mbToBeErased)
       {
          bool b = SetBadFlag(theMap, keyFrameDB);
-         Print("end SetErase 1");
+         //Print("end SetErase 1");
          return b;
       }
-      Print("end SetErase 2");
+      //Print("end SetErase 2");
       return false;
    }
 

@@ -283,7 +283,7 @@ namespace ORB_SLAM2
          return true;
       }
 
-      // never reached?
+      // never reached. why is this here?
       Print("SetErase 4");
       mpCurrentKF->SetErase(mMap, mKeyFrameDB);
       NotifyMapChanged(mMap);

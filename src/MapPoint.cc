@@ -86,8 +86,10 @@ namespace ORB_SLAM2
       // public read-only access to private variables
       , firstKFid(mnFirstKFid)
    {
+      if (mnId == 0)
+         Print(mpRefKF ? "MapPoint: mnId == 0 && mpRefKF != NULL" : "MapPoint: mnId == 0 && mpRefKF == NULL");
       if (worldPos.empty())
-         throw exception("MapPoint::SetWorldPos([])!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+         throw exception("MapPoint::MapPoint: worldPos is empty!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
    }
 
    void MapPoint::PrintPrefix(ostream & out)
@@ -146,7 +148,7 @@ namespace ORB_SLAM2
          throw e;
       }
 
-      // at this point, all linking is successful and complete
+      // at this point, all linking of rKF is successful and complete
       SetModified(true);
       if (rKF.right[idx] >= 0)
          nObs += 2;
@@ -157,6 +159,9 @@ namespace ORB_SLAM2
    }
 
    void MapPoint::Unlink(KeyFrame & rKF) {
+      stringstream ss; 
+      ss << "Unlink(" << rKF.GetId() << ")";
+      Print(ss);
       unique_lock<recursive_mutex> lock(mMutexObservations);
       if (mObservations.count(&rKF) > 0) {
          size_t prevIdx = mObservations[&rKF];
@@ -169,7 +174,7 @@ namespace ORB_SLAM2
             throw e;
          }
 
-         // at this point, all unlinking is successful and complete
+         // at this point, all unlinking of rKF is successful and complete
          SetModified(true);
          if (rKF.right[prevIdx] >= 0)
             nObs -= 2;
@@ -181,9 +186,16 @@ namespace ORB_SLAM2
             else
                mpRefKF = mObservations.begin()->first;
          }
-         // If only 2 observations or less, discard point
+         // If 2 observations or less, recursively remove remaining keyframes
          if (nObs <= 2)
-            SetBadFlag(NULL);
+         {
+            if (nObs == 0)
+               mbBad = true;
+            else
+               Unlink(*mObservations.begin()->first);
+            //Print("MapPoint::Unlink call to SetBadFlag");
+            //SetBadFlag(NULL);
+         }
       }
    }
 
@@ -264,22 +276,28 @@ namespace ORB_SLAM2
       Print("begin SetBadFlag");
       unordered_map<KeyFrame*, size_t> obs;
       {
+         //Print("1");
          unique_lock<recursive_mutex> lock1(mMutexObservations);
-         unique_lock<mutex> lock2(mMutexPos);
+         //Print("2");
+         //unique_lock<mutex> lock2(mMutexPos);
          mbBad = true;
+         //Print("3");
          obs = mObservations;
-         mObservations.clear();
+         //Print("4");
+         for (unordered_map<KeyFrame*, size_t>::iterator mit = obs.begin(), mend = obs.end(); mit != mend; mit++)
+         {
+            KeyFrame * pKF = mit->first;
+            stringstream ss3;
+            ss3 << "KeyFrame{id=" << pKF->GetId() << "}->Unlink(" << mit->second << ")";
+            Print(ss3);
+            //pKF->EraseMapPointMatch(mit->second);
+            pKF->Unlink(mit->second);
+         }
+         if (mObservations.size() > 0)
+            Print("MapPoint::SetBadFlag did not remove all observations");
+         //mObservations.clear();
          mpRefKF = NULL;
          SetModified(true);
-      }
-      for (unordered_map<KeyFrame*, size_t>::iterator mit = obs.begin(), mend = obs.end(); mit != mend; mit++)
-      {
-         KeyFrame * pKF = mit->first;
-         stringstream ss3;
-         ss3 << pKF->GetId() << "->Unlink(" << mit->second << ")";
-         Print(ss3);
-         //pKF->EraseMapPointMatch(mit->second);
-         pKF->Unlink(mit->second);
       }
 
       //if (pMap)
@@ -290,7 +308,7 @@ namespace ORB_SLAM2
    MapPoint * MapPoint::GetReplaced()
    {
       unique_lock<recursive_mutex> lock1(mMutexObservations);
-      unique_lock<mutex> lock2(mMutexPos);
+      //unique_lock<mutex> lock2(mMutexPos);
       return mpReplaced;
    }
 
@@ -360,7 +378,7 @@ namespace ORB_SLAM2
    bool MapPoint::isBad()
    {
       unique_lock<recursive_mutex> lock(mMutexObservations);
-      unique_lock<mutex> lock2(mMutexPos);
+      //unique_lock<mutex> lock2(mMutexPos);
       return mbBad;
    }
 
@@ -506,7 +524,6 @@ namespace ORB_SLAM2
       cv::Mat Pos;
       {
          unique_lock<recursive_mutex> lock1(mMutexObservations);
-         unique_lock<mutex> lock2(mMutexPos);
          if (mbBad)
          {
             //Print("end UpdateNormalAndDepth 1");
@@ -514,6 +531,7 @@ namespace ORB_SLAM2
          }
          obs = mObservations;
          pRefKF = mpRefKF;
+         unique_lock<mutex> lock2(mMutexPos);
          Pos = mWorldPos.clone();
       }
 
@@ -722,6 +740,7 @@ namespace ORB_SLAM2
       //Print("size += Serializer::GetMatBufferSize(mDescriptor);");
       //size += Serializer::GetMatBufferSize(mDescriptor);
       //Print("size += Serializer::GetVectorBufferSize<Observation>(mObservations.size());");
+      unique_lock<recursive_mutex> lock(mMutexObservations);
       size += Serializer::GetVectorBufferSize<Observation>(mObservations.size());
       //Print("end GetBufferSize");
       return size;
@@ -733,6 +752,7 @@ namespace ORB_SLAM2
       std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
       std::unordered_map<id_type, MapPoint *> & newMapPoints)
    {
+      unique_lock<mutex> lock(mMutexPos);
       //Print("begin ReadBytes");
       MapPoint::Header * pHeader = (MapPoint::Header *)buffer;
       if (mnId != pHeader->mnId)
@@ -809,6 +829,7 @@ namespace ORB_SLAM2
 
    void * MapPoint::WriteBytes(void * const buffer)
    {
+      unique_lock<mutex> lock(mMutexPos);
       //string msg = string("WriteBytes id=") + to_string(GetId());
       //Print(msg);
       MapPoint::Header * pHeader = (MapPoint::Header *)buffer;
