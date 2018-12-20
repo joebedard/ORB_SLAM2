@@ -942,11 +942,11 @@ namespace ORB_SLAM2
 
       const int minFeat = 100;
 
-      //Print("// Set KeyFrame vertices");
+      Print("// Set KeyFrame vertices");
       // Set KeyFrame vertices
       for (size_t i = 0, iend = vpKFs.size(); i < iend;i++)
       {
-         KeyFrame* pKF = vpKFs[i];
+         KeyFrame* pKF = vpKFs.at(i);
          if (pKF->isBad())
             continue;
          g2o::VertexSim3Expmap* VSim3 = new g2o::VertexSim3Expmap();
@@ -957,7 +957,7 @@ namespace ORB_SLAM2
 
          if (it != CorrectedSim3.end())
          {
-            vScw[nIDi] = it->second;
+            vScw.at(nIDi) = it->second;
             VSim3->setEstimate(it->second);
          }
          else
@@ -965,7 +965,7 @@ namespace ORB_SLAM2
             Eigen::Matrix<double, 3, 3> Rcw = Converter::toMatrix3d(pKF->GetRotation());
             Eigen::Matrix<double, 3, 1> tcw = Converter::toVector3d(pKF->GetTranslation());
             g2o::Sim3 Siw(Rcw, tcw, 1.0);
-            vScw[nIDi] = Siw;
+            vScw.at(nIDi) = Siw;
             VSim3->setEstimate(Siw);
          }
 
@@ -979,7 +979,7 @@ namespace ORB_SLAM2
          if (!optimizer.addVertex(VSim3))
             Print("optimizer.addVertex(VSim3) failed");
 
-         vpVertices[nIDi] = VSim3;
+         vpVertices.at(nIDi) = VSim3;
       }
 
 
@@ -987,14 +987,14 @@ namespace ORB_SLAM2
 
       const Eigen::Matrix<double, 7, 7> matLambda = Eigen::Matrix<double, 7, 7>::Identity();
 
-      //Print("// Set Loop edges");
+      Print("// Set Loop edges");
       // Set Loop edges
       for (std::map<KeyFrame *, set<KeyFrame *> >::const_iterator mit = LoopConnections.begin(), mend = LoopConnections.end(); mit != mend; mit++)
       {
          KeyFrame* pKF = mit->first;
          const long unsigned int nIDi = pKF->GetId();
          const set<KeyFrame*> &spConnections = mit->second;
-         const g2o::Sim3 Siw = vScw[nIDi];
+         const g2o::Sim3 Siw = vScw.at(nIDi);
          const g2o::Sim3 Swi = Siw.inverse();
 
          for (set<KeyFrame*>::const_iterator sit = spConnections.begin(), send = spConnections.end(); sit != send; sit++)
@@ -1003,7 +1003,7 @@ namespace ORB_SLAM2
             if ((nIDi != pCurKF->GetId() || nIDj != pLoopKF->GetId()) && pKF->GetWeight(*sit) < minFeat)
                continue;
 
-            const g2o::Sim3 Sjw = vScw[nIDj];
+            const g2o::Sim3 Sjw = vScw.at(nIDj);
             const g2o::Sim3 Sji = Sjw * Swi;
 
             g2o::EdgeSim3* e = new g2o::EdgeSim3();
@@ -1019,7 +1019,7 @@ namespace ORB_SLAM2
          }
       }
 
-      //Print("// Set normal edges");
+      Print("// Set normal edges");
       // Set normal edges
       for (KeyFrame * pKF : vpKFs)
       {
@@ -1032,7 +1032,7 @@ namespace ORB_SLAM2
          if (iti != NonCorrectedSim3.end())
             Swi = (iti->second).inverse();
          else
-            Swi = vScw[nIDi].inverse();
+            Swi = vScw.at(nIDi).inverse();
 
          KeyFrame* pParentKF = pKF->GetParent();
 
@@ -1044,33 +1044,33 @@ namespace ORB_SLAM2
 
             g2o::Sim3 Sjw;
 
-            Print("1");
+            //Print("1");
             LoopClosing::KeyFrameAndPose::const_iterator itj = NonCorrectedSim3.find(pParentKF);
 
             Print("2");
             if (itj != NonCorrectedSim3.end())
                Sjw = itj->second;
             else
-               Sjw = vScw[nIDj];
+               Sjw = vScw.at(nIDj);
 
-            Print("3");
+            //Print("3");
             g2o::Sim3 Sji = Sjw * Swi;
 
             g2o::EdgeSim3* e = new g2o::EdgeSim3();
-            Print("4");
+            //Print("4");
             e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(nIDj)));
-            Print("5");
+            //Print("5");
             e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(nIDi)));
-            Print("6");
+            //Print("6");
             e->setMeasurement(Sji);
 
-            Print("7");
+            //Print("7");
             e->information() = matLambda;
             Print("8");
             optimizer.addEdge(e);
          }
 
-         //Print("// Loop edges");
+         Print("// Loop edges");
          // Loop edges
          const set<KeyFrame*> sLoopEdges = pKF->GetLoopEdges();
          for (set<KeyFrame*>::const_iterator sit = sLoopEdges.begin(), send = sLoopEdges.end(); sit != send; sit++)
@@ -1085,7 +1085,7 @@ namespace ORB_SLAM2
                if (itl != NonCorrectedSim3.end())
                   Slw = itl->second;
                else
-                  Slw = vScw[pLKF->GetId()];
+                  Slw = vScw.at(pLKF->GetId());
 
                g2o::Sim3 Sli = Slw * Swi;
                g2o::EdgeSim3* el = new g2o::EdgeSim3();
@@ -1097,7 +1097,7 @@ namespace ORB_SLAM2
             }
          }
 
-         //Print("// Covisibility graph edges");
+         Print("// Covisibility graph edges");
          // Covisibility graph edges
          const vector<KeyFrame*> vpConnectedKFs = pKF->GetCovisiblesByWeight(minFeat);
          for (vector<KeyFrame*>::const_iterator vit = vpConnectedKFs.begin(); vit != vpConnectedKFs.end(); vit++)
@@ -1117,7 +1117,7 @@ namespace ORB_SLAM2
                   if (itn != NonCorrectedSim3.end())
                      Snw = itn->second;
                   else
-                     Snw = vScw[pKFn->GetId()];
+                     Snw = vScw.at(pKFn->GetId());
 
                   g2o::Sim3 Sni = Snw * Swi;
 

@@ -159,9 +159,9 @@ namespace ORB_SLAM2
    }
 
    void MapPoint::Unlink(KeyFrame & rKF) {
-      stringstream ss; 
-      ss << "Unlink(" << rKF.GetId() << ")";
-      Print(ss);
+      //stringstream ss; 
+      //ss << "Unlink(" << rKF.GetId() << ")";
+      //Print(ss);
       unique_lock<recursive_mutex> lock(mMutexObservations);
       if (mObservations.count(&rKF) > 0) {
          size_t prevIdx = mObservations[&rKF];
@@ -273,7 +273,7 @@ namespace ORB_SLAM2
 
    void MapPoint::SetBadFlag(Map * pMap)
    {
-      Print("begin SetBadFlag");
+      //Print("begin SetBadFlag");
       unordered_map<KeyFrame*, size_t> obs;
       {
          //Print("1");
@@ -287,9 +287,9 @@ namespace ORB_SLAM2
          for (unordered_map<KeyFrame*, size_t>::iterator mit = obs.begin(), mend = obs.end(); mit != mend; mit++)
          {
             KeyFrame * pKF = mit->first;
-            stringstream ss3;
-            ss3 << "KeyFrame{id=" << pKF->GetId() << "}->Unlink(" << mit->second << ")";
-            Print(ss3);
+            //stringstream ss3;
+            //ss3 << "KeyFrame{id=" << pKF->GetId() << "}->Unlink(" << mit->second << ")";
+            //Print(ss3);
             //pKF->EraseMapPointMatch(mit->second);
             pKF->Unlink(mit->second);
          }
@@ -302,7 +302,7 @@ namespace ORB_SLAM2
 
       //if (pMap)
       //   pMap->EraseMapPoint(this);
-      Print("end SetBadFlag");
+      //Print("end SetBadFlag");
    }
 
    MapPoint * MapPoint::GetReplaced()

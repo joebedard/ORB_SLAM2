@@ -1031,7 +1031,7 @@ namespace ORB_SLAM2
 
    bool Tracking::TrackLocalMap()
    {
-      Print("begin TrackLocalMap");
+      //Print("begin TrackLocalMap");
       // We have an estimation of the camera pose and some map points tracked in the frame.
       // We retrieve the local map and try to find matches to points in the local map.
 
@@ -1071,21 +1071,21 @@ namespace ORB_SLAM2
       //if (mCurrentFrame.mnId < mnLastRelocFrameId + mMaxFrames && mnMatchesInliers < 50)
       if (mCurrentFrame.mnId < mnLastRelocFrameId + mMaxFrames && mnMatchesInliers < 40)
       {
-         Print(string("mnMatchesInliers==") + to_string(mnMatchesInliers));
-         Print("end TrackLocalMap 1");
+         //Print(string("mnMatchesInliers==") + to_string(mnMatchesInliers));
+         //Print("end TrackLocalMap 1");
          return false;
       }
 
       //if (mnMatchesInliers < 30)
       if (mnMatchesInliers < 20)
       {
-         Print(string("mnMatchesInliers==") + to_string(mnMatchesInliers));
-         Print("end TrackLocalMap 2");
+         //Print(string("mnMatchesInliers==") + to_string(mnMatchesInliers));
+         //Print("end TrackLocalMap 2");
          return false;
       }
       else
       {
-         Print("end TrackLocalMap 3");
+         //Print("end TrackLocalMap 3");
          return true;
       }
    }
@@ -1093,17 +1093,17 @@ namespace ORB_SLAM2
 
    bool Tracking::NeedNewKeyFrame()
    {
-      Print("begin NeedNewKeyFrame");
+      //Print("begin NeedNewKeyFrame");
       if (mbOnlyTracking)
       {
-         Print("end NeedNewKeyFrame 1");
+         //Print("end NeedNewKeyFrame 1");
          return false;
       }
 
       // If Local Mapping is freezed by a Loop Closure do not insert keyframes
       if (mMapper.GetPauseRequested())
       {
-         Print("end NeedNewKeyFrame 2");
+         //Print("end NeedNewKeyFrame 2");
          return false;
       }
 
@@ -1112,7 +1112,7 @@ namespace ORB_SLAM2
       // Do not insert keyframes if not enough frames have passed from last relocalisation
       if (mCurrentFrame.mnId<mnLastRelocFrameId + mMaxFrames && nKFs>mMaxFrames)
       {
-         Print("end NeedNewKeyFrame 3");
+         //Print("end NeedNewKeyFrame 3");
          return false;
       }
 
@@ -1161,13 +1161,13 @@ namespace ORB_SLAM2
       // Condition 2: Few tracked points compared to reference keyframe. Lots of visual odometry compared to map matches.
       const bool c2 = ((mnMatchesInliers < (nRefMatches * thRefRatio)) || bNeedToInsertClose) && (mnMatchesInliers > 15);
 
-      Print("end NeedNewKeyFrame 4");
+      //Print("end NeedNewKeyFrame 4");
       return ((c1a || c1b || c1c) && c2);
    }
 
    void Tracking::SearchLocalPoints()
    {
-      Print("begin SearchLocalPoints");
+      //Print("begin SearchLocalPoints");
 
       // Do not search map points already matched
       for (vector<MapPoint*>::iterator vit = mCurrentFrame.mvpMapPoints.begin(), vend = mCurrentFrame.mvpMapPoints.end(); vit != vend; vit++)
@@ -1217,19 +1217,19 @@ namespace ORB_SLAM2
             th = 5;
          matcher.SearchByProjection(mCurrentFrame, mvpLocalMapPoints, th);
       }
-      Print("end SearchLocalPoints");
+      //Print("end SearchLocalPoints");
    }
 
    void Tracking::UpdateLocalMap()
    {
-      Print("begin UpdateLocalMap");
+      //Print("begin UpdateLocalMap");
 
       // post: relevant keyframes are in mvpLocalKeyFrames, and set mCurrentFrame.mReferenceKF to closest KeyFrame
       UpdateLocalMapKeyFrames();
 
       // post: potential map points are in mvpLocalMapPoints
       UpdateLocalMapPoints();
-      Print("end UpdateLocalMap");
+      //Print("end UpdateLocalMap");
    }
 
    void Tracking::UpdateLocalMapPoints()

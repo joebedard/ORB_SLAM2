@@ -504,9 +504,9 @@ namespace ORB_SLAM2
    }
 
    void KeyFrame::Unlink(size_t idx) {
-      stringstream ss; 
-      ss << "Unlink(" << idx << ")";
-      Print(ss);
+      //stringstream ss; 
+      //ss << "Unlink(" << idx << ")";
+      //Print(ss);
       unique_lock<recursive_mutex> lock(mMutexMapPoints);
       MapPoint * prevMP = mvpMapPoints.at(idx);
       if (prevMP == NULL)
