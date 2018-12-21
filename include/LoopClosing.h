@@ -58,7 +58,6 @@ namespace ORB_SLAM2
 
       LoopClosing(
          Map & map,
-         std::mutex & mutexMapUpdate, 
          KeyFrameDatabase & kfDB, 
          ORBVocabulary & vocab,
          const bool bFixScale

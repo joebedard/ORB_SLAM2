@@ -43,7 +43,6 @@ namespace ORB_SLAM2
 
       static void GlobalBundleAdjustment(
          Map & theMap,
-         mutex & mutexMapUpdate,
          MapChangeEvent & mapChanges,
          int nIterations = 5,
          bool * pbStopFlag = NULL,
@@ -53,8 +52,7 @@ namespace ORB_SLAM2
       static void LocalBundleAdjustment(
          KeyFrame * pKF,
          bool * pbStopFlag,
-         Map & map,
-         std::mutex & mutexMapUpdate,
+         Map & theMap,
          MapChangeEvent & mapChanges);
 
       static int PoseOptimization(Frame* pFrame);
@@ -62,7 +60,6 @@ namespace ORB_SLAM2
       // if bFixScale is true, 6DoF optimization (stereo,rgbd), 7DoF otherwise (mono)
       static void OptimizeEssentialGraph(
          Map & theMap,
-         std::mutex & mutexMapUpdate,
          KeyFrame * pLoopKF,
          KeyFrame * pCurKF,
          const LoopClosing::KeyFrameAndPose & NonCorrectedSim3,
@@ -107,7 +104,6 @@ namespace ORB_SLAM2
 
       static void RecoverGraphLocalBundleAdjustment(
          Map & theMap,
-         std::mutex & mutexMapUpdate,
          MapChangeEvent & mapChanges,
          g2o::SparseOptimizer & optimizer,
          id_type & maxKFid,

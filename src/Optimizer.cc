@@ -252,7 +252,6 @@ namespace ORB_SLAM2
 
    void Optimizer::GlobalBundleAdjustment(
       Map & theMap,
-      mutex & mutexMapUpdate,
       MapChangeEvent & mapChanges,
       int nIterations, 
       bool * pbStopFlag, 
@@ -287,7 +286,7 @@ namespace ORB_SLAM2
       {
          // GBA is called from LoopClosing, we should lock the map
          Print("waiting to lock map");
-         unique_lock<mutex> lock(mutexMapUpdate);
+         unique_lock<mutex> lock(theMap.mutexMapUpdate);
          Print("map is locked");
 
          CreateGraphGlobalBundleAdjustment(theMap, optimizer, bRobust, vpKFs, vpMPs, vbNotIncludedMP, maxKFid);
@@ -767,7 +766,6 @@ namespace ORB_SLAM2
 
    void Optimizer::RecoverGraphLocalBundleAdjustment(
       Map & theMap, 
-      std::mutex & mutexMapUpdate, 
       MapChangeEvent & mapChanges,
       g2o::SparseOptimizer & optimizer,
       id_type & maxKFid,
@@ -816,7 +814,7 @@ namespace ORB_SLAM2
 
       // Get Map Mutex
       Print("waiting to lock map");
-      unique_lock<mutex> lock(mutexMapUpdate);
+      unique_lock<mutex> lock(theMap.mutexMapUpdate);
       Print("map is locked");
 
       if (!vToErase.empty())
@@ -863,8 +861,7 @@ namespace ORB_SLAM2
    void Optimizer::LocalBundleAdjustment(
       KeyFrame * pKF,
       bool * pbStopFlag,
-      Map & map, 
-      std::mutex & mutexMapUpdate, 
+      Map & theMap, 
       MapChangeEvent & mapChanges)
    {
       Print("begin LocalBundleAdjustment");
@@ -893,7 +890,7 @@ namespace ORB_SLAM2
       vector<KeyFrame*> vpEdgeKFStereo;
       vector<MapPoint*> vpMapPointEdgeStereo;
 
-      CreateGraphLocalBundleAdjustment(mutexMapUpdate, pKF, optimizer, maxKFid, lLocalKeyFrames, lLocalMapPoints, 
+      CreateGraphLocalBundleAdjustment(theMap.mutexMapUpdate, pKF, optimizer, maxKFid, lLocalKeyFrames, lLocalMapPoints, 
          vpEdgesMono, vpEdgeKFMono, vpMapPointEdgeMono, vpEdgesStereo, vpEdgeKFStereo, vpMapPointEdgeStereo);
 
       if (pbStopFlag)
@@ -916,7 +913,7 @@ namespace ORB_SLAM2
 
       if (bDoMore)
       {
-         CheckGraphLocalBundleAdjustment(mutexMapUpdate, vpEdgesMono, vpMapPointEdgeMono, vpEdgesStereo, vpMapPointEdgeStereo);
+         CheckGraphLocalBundleAdjustment(theMap.mutexMapUpdate, vpEdgesMono, vpMapPointEdgeMono, vpEdgesStereo, vpMapPointEdgeStereo);
 
          // Optimize again without the outliers
          if (optimizer.initializeOptimization())
@@ -926,7 +923,7 @@ namespace ORB_SLAM2
 
       }
 
-      RecoverGraphLocalBundleAdjustment(map, mutexMapUpdate, mapChanges, optimizer,
+      RecoverGraphLocalBundleAdjustment(theMap, mapChanges, optimizer,
          maxKFid, lLocalKeyFrames, lLocalMapPoints,
          vpEdgesMono, vpEdgeKFMono, vpMapPointEdgeMono,
          vpEdgesStereo, vpEdgeKFStereo, vpMapPointEdgeStereo);
@@ -1208,7 +1205,6 @@ namespace ORB_SLAM2
 
    void Optimizer::OptimizeEssentialGraph(
       Map & theMap,
-      std::mutex & mutexMapUpdate, 
       KeyFrame * pLoopKF, 
       KeyFrame * pCurKF,
       const LoopClosing::KeyFrameAndPose & NonCorrectedSim3,
@@ -1242,7 +1238,7 @@ namespace ORB_SLAM2
       CreateGraphOptimize(
          pCurKF,
          pLoopKF,
-         mutexMapUpdate,
+         theMap.mutexMapUpdate,
          mapChanges, 
          optimizer,
          vpKFs, 
@@ -1263,7 +1259,7 @@ namespace ORB_SLAM2
 
       RecoverGraphOptimize(
          pCurKF,
-         mutexMapUpdate,
+         theMap.mutexMapUpdate,
          mapChanges, 
          optimizer,
          vpKFs, 

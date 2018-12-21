@@ -32,8 +32,8 @@ namespace ORB_SLAM2
       mbMonocular(bMonocular),
       mKeyFrameDB(vocab),
       mInitialized(false),
-      mLocalMapper(mMap, mMutexMapUpdate, mKeyFrameDB, mVocab, bMonocular, FIRST_MAPPOINT_ID_LOCALMAPPER, MAPPOINT_ID_SPAN),
-      mLoopCloser(mMap, mMutexMapUpdate, mKeyFrameDB, mVocab, !bMonocular),
+      mLocalMapper(mMap, mKeyFrameDB, mVocab, bMonocular, FIRST_MAPPOINT_ID_LOCALMAPPER, MAPPOINT_ID_SPAN),
+      mLoopCloser(mMap, mKeyFrameDB, mVocab, !bMonocular),
       mLocalMappingObserver(this),
       mLoopClosingObserver(this)
    {
@@ -93,7 +93,7 @@ namespace ORB_SLAM2
       Print("End Loop Closing Reset");
 
       Print("waiting to lock map");
-      unique_lock<mutex> lock(mMutexMapUpdate);
+      unique_lock<mutex> lock(mMap.mutexMapUpdate);
       Print("map is locked");
 
       ResetTrackerStatus();
@@ -346,7 +346,7 @@ namespace ORB_SLAM2
 
    std::mutex & MapperServer::GetMutexMapUpdate()
    {
-      return mMutexMapUpdate;
+      return mMap.mutexMapUpdate;
    }
 
    void MapperServer::ResetTrackerStatus()

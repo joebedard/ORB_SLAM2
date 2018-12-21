@@ -118,8 +118,6 @@ namespace ORB_SLAM2
 
       std::mutex mMutexTrackerStatus;
 
-      std::mutex mMutexMapUpdate;
-
       ORBVocabulary & mVocab;
 
       bool mbMonocular;

@@ -40,6 +40,8 @@ namespace ORB_SLAM2
    class Map : SyncPrint
    {
    public:
+      
+      mutex mutexMapUpdate;
 
       Map();
 

@@ -34,7 +34,6 @@ namespace ORB_SLAM2
 
    LoopClosing::LoopClosing(
       Map & map,
-      std::mutex & mutexMapUpdate, 
       KeyFrameDatabase & keyFrameDB, 
       ORBVocabulary & vocab,
       const bool bFixScale
@@ -44,7 +43,7 @@ namespace ORB_SLAM2
       mKeyFrameDB(keyFrameDB),
       mVocab(vocab),
       mbFixScale(bFixScale),
-      mMutexMapUpdate(mutexMapUpdate),
+      mMutexMapUpdate(map.mutexMapUpdate),
       mbResetRequested(false),
       mbFinishRequested(false),
       mbFinished(true),
@@ -677,7 +676,7 @@ namespace ORB_SLAM2
       }
 
       // Optimize graph
-      Optimizer::OptimizeEssentialGraph(mMap, mMutexMapUpdate, mpMatchedKF, mpCurrentKF, NonCorrectedSim3, CorrectedSim3, LoopConnections, mbFixScale, mapChanges);
+      Optimizer::OptimizeEssentialGraph(mMap, mpMatchedKF, mpCurrentKF, NonCorrectedSim3, CorrectedSim3, LoopConnections, mbFixScale, mapChanges);
       // TODO OK - detect map changes in Optimizer
 
       mMap.InformNewBigChange();
@@ -779,7 +778,7 @@ namespace ORB_SLAM2
 
       int idx = mnFullBAIdx;
       MapChangeEvent mapChanges;
-      Optimizer::GlobalBundleAdjustment(mMap, mMutexMapUpdate, mapChanges, 10, &mbStopGBA, loopKeyFrameId, false);
+      Optimizer::GlobalBundleAdjustment(mMap, mapChanges, 10, &mbStopGBA, loopKeyFrameId, false);
 
 
       // Update all MapPoints and KeyFrames

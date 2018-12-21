@@ -46,7 +46,6 @@ namespace ORB_SLAM2
    public:
       LocalMapping(
          Map & map,
-         std::mutex & mutexMapUpdate, 
          KeyFrameDatabase & keyFrameDB,
          ORBVocabulary & vocab,
          const float bMonocular,

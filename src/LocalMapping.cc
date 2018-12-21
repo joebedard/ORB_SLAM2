@@ -32,7 +32,6 @@ namespace ORB_SLAM2
 
    LocalMapping::LocalMapping(
       Map & map,
-      std::mutex & mutexMapUpdate, 
       KeyFrameDatabase & keyFrameDB,
       ORBVocabulary & vocab,
       const float bMonocular,
@@ -41,7 +40,7 @@ namespace ORB_SLAM2
    ) :
       SyncPrint("LocalMapping: "),
       mMap(map),
-      mMutexMapUpdate(mutexMapUpdate),
+      mMutexMapUpdate(map.mutexMapUpdate),
       mKeyFrameDB(keyFrameDB),
       mVocab(vocab),
       mbMonocular(bMonocular),
@@ -111,7 +110,7 @@ namespace ORB_SLAM2
                   if (mMap.KeyFramesInMap() > 2)
                   {
                      // deletes points, updates keyframes, updates points
-                     Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame, &mbAbortBA, mMap, mMutexMapUpdate, mapChanges);
+                     Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame, &mbAbortBA, mMap, mapChanges);
 
                      // Check for redundant local Keyframes, and delete them
                      KeyFrameCulling(mapChanges);
