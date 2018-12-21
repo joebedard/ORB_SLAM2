@@ -174,7 +174,7 @@ namespace ORB_SLAM2
    }
 
 
-   bool LocalMapping::InsertKeyFrame(KeyFrame * pKF, vector<MapPoint *> & mapPoints)
+   bool LocalMapping::InsertKeyFrame(KeyFrame * pKF, vector<MapPoint *> & createdMapPoints, vector<MapPoint *> & updatedMapPoints)
    {
       Print("begin InsertKeyFrame");
       bool success = false;
@@ -184,23 +184,39 @@ namespace ORB_SLAM2
          // Otherwise send a signal to interrupt BA
          if ( GetIdle() || (!mbMonocular && KeyframesInQueue() < 3) )
          {
-            // TODO - add keyframe and new points to map
+            // add keyframe to map
             mMap.AddKeyFrame(pKF);
 
-            for (MapPoint * pMP : mapPoints)
-            {
-               mMap.AddMapPoint(pMP);
-            }
-
-            // associate MapPoints to the new keyframe, update normal and compute descriptor
-            std::vector<MapPoint *> matches = pKF->GetMapPointMatches();
             MapPoint * pMP = static_cast<MapPoint *>(NULL);
-            const int n = matches.size();
+
+            // add new points to map and recent points, associate them to the new keyframe, 
+            // update normal/depth and compute descriptor
+            // NOTE: this vector is always empty during monocular mode
+            const int n = createdMapPoints.size();
             for (int i = 0; i < n; i++)
             {
-               pMP = matches[i];
+               pMP = createdMapPoints[i];
                if (pMP && !pMP->isBad())
                {
+                  mMap.AddMapPoint(pMP);
+                  mlpRecentAddedMapPoints.push_back(pMP);
+                  pKF->AddMapPoint(pMP, i);
+                  pMP->AddObservation(pKF, i);
+                  pMP->UpdateNormalAndDepth();
+                  pMP->ComputeDistinctiveDescriptors();
+               }
+            }
+
+            // associate existing points to the new keyframe, update normal/depth and compute descriptor
+            // NOTE: this vector is empty during initialization
+            // see: MapperServer::InitializeStereo, MapperServer::InitializeMono
+            const int m = updatedMapPoints.size();
+            for (int i = 0; i < m; i++)
+            {
+               pMP = updatedMapPoints[i];
+               if (pMP && !pMP->isBad())
+               {
+                  pKF->AddMapPoint(pMP, i);
                   pMP->AddObservation(pKF, i);
                   pMP->UpdateNormalAndDepth();
                   pMP->ComputeDistinctiveDescriptors();
@@ -212,11 +228,6 @@ namespace ORB_SLAM2
 
             unique_lock<mutex> lock(mMutexNewKFs);
             mlNewKeyFrames.push_back(pKF);
-            if (!mapPoints.empty())
-            {
-               // only for stereo mode
-               mlpRecentAddedMapPoints.insert(mlpRecentAddedMapPoints.end(), mapPoints.begin(), mapPoints.end());
-            }
 
             success = true;
          }

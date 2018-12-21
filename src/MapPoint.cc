@@ -119,6 +119,9 @@ namespace ORB_SLAM2
          nObs += 2;
       else
          nObs++;
+
+      if (mpRefKF == NULL)
+         mpRefKF = pKF;
    }
 
    void MapPoint::EraseObservation(KeyFrame* pKF, Map * pMap)
@@ -137,7 +140,12 @@ namespace ORB_SLAM2
             mObservations.erase(pKF);
 
             if (mpRefKF == pKF)
-               mpRefKF = mObservations.begin()->first;
+            {
+               if (mObservations.empty())
+                  mpRefKF = NULL;
+               else
+                  mpRefKF = mObservations.begin()->first;
+            }
 
             // If only 2 observations or less, discard point
             if (nObs <= 2)
@@ -375,6 +383,8 @@ namespace ORB_SLAM2
          if (mbBad)
             return;
          observations = mObservations;
+         if (mpRefKF == NULL)
+            throw exception("MapPoint::UpdateNormalAndDepth mpRefKF is NULL");
          pRefKF = mpRefKF;
          Pos = mWorldPos.clone();
       }
@@ -478,7 +488,12 @@ namespace ORB_SLAM2
    {
       size_t size = sizeof(size_t);
       for (MapPoint * pMP : mpv)
-         size += pMP->GetBufferSize();
+      {
+         if (pMP == NULL)
+            size += sizeof(id_type);
+         else
+            size += pMP->GetBufferSize();
+      }
       return size;
    }
 
@@ -496,18 +511,26 @@ namespace ORB_SLAM2
       for (int i = 0; i < quantityMPs; ++i)
       {
          id_type id = MapPoint::PeekId(pData);
-         MapPoint * pMP = map.GetMapPoint(id);
-         if (pMP == NULL)
+         if (id == (id_type)-1)
          {
-            pMP = (newMapPoints.count(id) == 1) ? newMapPoints.at(id) : NULL;
+            pData = (id_type *)pData + 1;
+            mpv[i] = NULL;
+         }
+         else
+         {
+            MapPoint * pMP = map.GetMapPoint(id);
             if (pMP == NULL)
             {
-               pMP = new MapPoint(id);
-               newMapPoints[id] = pMP;
+               pMP = (newMapPoints.count(id) == 1) ? newMapPoints.at(id) : NULL;
+               if (pMP == NULL)
+               {
+                  pMP = new MapPoint(id);
+                  newMapPoints[id] = pMP;
+               }
             }
+            pData = pMP->ReadBytes(pData, map, newKeyFrames, newMapPoints);
+            mpv[i] = pMP;
          }
-         pData = pMP->ReadBytes(pData, map, newKeyFrames, newMapPoints);
-         mpv[i] = pMP;
       }
       SyncPrint::Print("MapPoint: ", "end ReadVector");
       return pData;
@@ -520,7 +543,13 @@ namespace ORB_SLAM2
       void * pData = Serializer::WriteValue<size_t>(buffer, mpv.size());
       for (MapPoint * pMP : mpv)
       {
-         pData = pMP->WriteBytes(pData);
+         if (pMP == NULL)
+         {
+            *(id_type *)pData = (id_type)-1;
+            pData = (id_type *)pData + 1;
+         }
+         else
+            pData = pMP->WriteBytes(pData);
       }
       return pData;
    }

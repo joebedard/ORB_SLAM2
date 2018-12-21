@@ -75,7 +75,7 @@ namespace ORB_SLAM2
       , mvScaleFactors(frame.mvScaleFactors)
       , mvLevelSigma2(frame.mvLevelSigma2)
       , mvInvLevelSigma2(frame.mvInvLevelSigma2)
-      , mvpMapPoints(frame.mvpMapPoints)
+      , mvpMapPoints(frame.N)
       , mnTrackReferenceForFrame(0)
       , mnFuseTargetForKF(0)
       , mnBALocalForKF(0)

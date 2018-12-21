@@ -50,7 +50,7 @@ namespace ORB_SLAM2
 
       virtual bool GetIdle() = 0;
 
-      virtual bool InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF) = 0;
+      virtual bool InsertKeyFrame(unsigned int trackerId, KeyFrame * pKF, vector<MapPoint *> & createdMapPoints, vector<MapPoint *> & updatedMapPoints) = 0;
 
       virtual void InitializeMono(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF1, KeyFrame * pKF2) = 0;
 

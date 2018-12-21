@@ -1182,7 +1182,9 @@ namespace ORB_SLAM2
          }
          else
          {
-            KeyFrame* pRefKF = pMP->GetReferenceKeyFrame();
+            KeyFrame * pRefKF = pMP->GetReferenceKeyFrame();
+            if (pRefKF == NULL)
+               throw exception("Optimizer::RecoverGraphOptimize detected a MapPoint without a reference KeyFrame");
             nIDr = pRefKF->GetId();
          }
 

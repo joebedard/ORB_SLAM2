@@ -1591,12 +1591,13 @@ namespace ORB_SLAM2
    {
       Print("begin CreateNewKeyFrame");
       KeyFrame * pKF = new KeyFrame(NewKeyFrameId(), currentFrame);
+      vector<MapPoint *> updatedMapPoints(currentFrame.mvpMapPoints);
 
       // Some KeyPoints (features) don't yet have MapPoints, so we create them.
       // We sort points by the measured depth by the stereo/RGBD sensor.
       // We create all those MapPoints whose depth < mThDepth.
       // If there are less than 100 close points we create the 100 closest.
-      vector<MapPoint *> newPoints;
+      vector<MapPoint *> createdMapPoints(currentFrame.N, static_cast<MapPoint *>(NULL));
 
       if (sensorType != MONOCULAR)
       {
@@ -1617,33 +1618,32 @@ namespace ORB_SLAM2
          {
             sort(vDepthIdx.begin(), vDepthIdx.end());
 
-            for (size_t j = 0; j < vDepthIdx.size();j++)
+            for (size_t j = 0; j < vDepthIdx.size(); j++)
             {
                int i = vDepthIdx[j].second;
-               MapPoint* pMP = currentFrame.mvpMapPoints[i];
+               MapPoint * pMP = currentFrame.mvpMapPoints[i];
                if (!pMP || pMP->Observations() < 1)
                {
                   cv::Mat x3D = currentFrame.UnprojectStereo(i);
-                  MapPoint* pNewMP = new MapPoint(NewMapPointId(), x3D, pKF);
-                  pKF->AddMapPoint(pNewMP, i);
-                  newPoints.push_back(pNewMP);
+                  pMP = new MapPoint(NewMapPointId(), x3D, pKF);
+                  createdMapPoints[i] = pMP;
                }
+               
                if (vDepthIdx[j].first > currentFrame.mFC->thDepth && j > 99)
                   break;
             }
          }
       }
 
-      if (mMapper.InsertKeyFrame(mId, newPoints, pKF))
+      if (mMapper.InsertKeyFrame(mId, pKF, createdMapPoints, updatedMapPoints))
       {
          // Add new MapPoints to currentFrame. They will be used later by Tracking::TrackWithMotionModel.
-         for (MapPoint * pMP : newPoints)
+         const size_t n = createdMapPoints.size();
+         for (size_t i = 0; i < n; i++)
          {
-            int idx = pMP->GetIndexInKeyFrame(pKF);
-            if (idx >= 0)
-            {
-               currentFrame.mvpMapPoints[idx] = pMP;
-            }
+            MapPoint * pMP = createdMapPoints[i];
+            if (pMP)
+               currentFrame.mvpMapPoints[i] = pMP;
          }
          Print("end CreateNewKeyFrame 1");
          return pKF;
@@ -1651,11 +1651,15 @@ namespace ORB_SLAM2
       else
       {
          // delete MapPoints and KeyFrame
-         for (MapPoint * pMP : newPoints)
+         const size_t n = createdMapPoints.size();
+         for (size_t i = 0; i < n; i++)
          {
-            pKF->EraseMapPointMatch(pMP);
-            Print(to_string(pMP->GetId()) + "=id MapPoint deleted");
-            delete pMP;
+            MapPoint * pMP = createdMapPoints[i];
+            if (pMP)
+            {
+               Print(to_string(createdMapPoints[i]->GetId()) + "=id MapPoint deleted");
+               delete createdMapPoints[i];
+            }
          }
          Print(to_string(pKF->GetId()) + "=id KeyFrame deleted");
          delete pKF;

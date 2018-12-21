@@ -164,7 +164,7 @@ namespace ORB_SLAM2
       // pKF1->UpdateConnections();
 
       vector<MapPoint *> noPoints;
-      if (mLocalMapper.InsertKeyFrame(pKF2, noPoints))
+      if (mLocalMapper.InsertKeyFrame(pKF2, noPoints, noPoints))
       {
          UpdateTrackerStatus(trackerId, mapPoints);
          UpdateTrackerStatus(trackerId, pKF1);
@@ -197,7 +197,8 @@ namespace ORB_SLAM2
       // Insert KeyFrame in the map
       mMap.mvpKeyFrameOrigins.push_back(pKF);
 
-      if (mLocalMapper.InsertKeyFrame(pKF, mapPoints))
+      vector<MapPoint *> noPoints;
+      if (mLocalMapper.InsertKeyFrame(pKF, mapPoints, noPoints))
       {
          UpdateTrackerStatus(trackerId, mapPoints);
          UpdateTrackerStatus(trackerId, pKF);
@@ -211,15 +212,15 @@ namespace ORB_SLAM2
       Print("end InitializeStereo");
    }
 
-   bool MapperServer::InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF)
+   bool MapperServer::InsertKeyFrame(unsigned int trackerId, KeyFrame * pKF, vector<MapPoint *> & createdMapPoints, vector<MapPoint *> & updatedMapPoints)
    {
       Print("begin InsertKeyFrame");
       ValidateTracker(trackerId);
 
-      if (mLocalMapper.InsertKeyFrame(pKF, mapPoints))
+      if (mLocalMapper.InsertKeyFrame(pKF, createdMapPoints, updatedMapPoints))
       {
          // stereo and RGBD modes will create MapPoints
-         UpdateTrackerStatus(trackerId, mapPoints);
+         UpdateTrackerStatus(trackerId, createdMapPoints);
          UpdateTrackerStatus(trackerId, pKF);
 
          Print("end InsertKeyFrame 1");
@@ -251,12 +252,13 @@ namespace ORB_SLAM2
    {
       unique_lock<mutex> lock(mMutexTrackerStatus);
 
-      for (auto pMP : mapPoints)
+      for (MapPoint * pMP : mapPoints)
       {
-         assert((pMP->GetId() - trackerId) % MAPPOINT_ID_SPAN == 0);
-         if (mTrackerStatus[trackerId].nextMapPointId <= pMP->GetId())
+         if (pMP)
          {
-            mTrackerStatus[trackerId].nextMapPointId = pMP->GetId() + MAPPOINT_ID_SPAN;
+            assert((pMP->GetId() - trackerId) % MAPPOINT_ID_SPAN == 0);
+            if (mTrackerStatus[trackerId].nextMapPointId <= pMP->GetId())
+               mTrackerStatus[trackerId].nextMapPointId = pMP->GetId() + MAPPOINT_ID_SPAN;
          }
       }
    }

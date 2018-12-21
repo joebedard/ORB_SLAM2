@@ -214,20 +214,56 @@ namespace ORB_SLAM2
       Print("end InitializeStereo");
    }
 
-   bool MapperClient::InsertKeyFrame(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF)
+   bool MapperClient::InsertKeyFrame(unsigned int trackerId, KeyFrame * pKF, vector<MapPoint *> & createdMapPoints, vector<MapPoint *> & updatedMapPoints)
    {
       Print("begin InsertKeyFrame");
-      // client: serialize KF and MPs and then send to server
-      if (InsertKeyFrameServer(trackerId, mapPoints, pKF))
+
+      // serialize KF and MPs and then send to server
+      if (InsertKeyFrameServer(trackerId, pKF, createdMapPoints, updatedMapPoints))
       {
+         // add points and keyframes to the map. this supports synchronization with the 
+         // server which will happen after the Tracking client unlocks mMutexMapUpdate
+
          pKF->ComputeBoW(mVocab);
-         // add points and keyframes to allow for map synchronization with the server
-         // which will happen after the Tracking client unlocks mMutexMapUpdate
-         for (MapPoint * pMP : mapPoints)
-         {
-            mMap.AddMapPoint(pMP);
-         }
          mMap.AddKeyFrame(pKF);
+
+         MapPoint * pMP = static_cast<MapPoint *>(NULL);
+
+         // add new points to map, associate them to the new keyframe, 
+         // update normal/depth and compute descriptor
+         // NOTE: this vector is always empty during monocular mode
+         const int n = createdMapPoints.size();
+         for (int i = 0; i < n; i++)
+         {
+            pMP = createdMapPoints[i];
+            if (pMP && !pMP->isBad())
+            {
+               mMap.AddMapPoint(pMP);
+               pKF->AddMapPoint(pMP, i);
+               pMP->AddObservation(pKF, i);
+               pMP->UpdateNormalAndDepth();
+               pMP->ComputeDistinctiveDescriptors();
+            }
+         }
+
+         // associate existing points to the new keyframe, update normal/depth and compute descriptor
+         // NOTE: this vector is empty during initialization
+         // see: MapperServer::InitializeStereo, MapperServer::InitializeMono
+         const int m = updatedMapPoints.size();
+         for (int i = 0; i < m; i++)
+         {
+            pMP = updatedMapPoints[i];
+            if (pMP && !pMP->isBad())
+            {
+               pKF->AddMapPoint(pMP, i);
+               pMP->AddObservation(pKF, i);
+               pMP->UpdateNormalAndDepth();
+               pMP->ComputeDistinctiveDescriptors();
+            }
+         }
+
+         // Update links in the Covisibility Graph
+         pKF->UpdateConnections();
 
          Print("end InsertKeyFrame 1");
          return true;
@@ -695,7 +731,7 @@ namespace ORB_SLAM2
       Print("end InitializeStereoServer");
    }
 
-   bool MapperClient::InsertKeyFrameServer(unsigned int trackerId, vector<MapPoint *> & mapPoints, KeyFrame * pKF)
+   bool MapperClient::InsertKeyFrameServer(unsigned int trackerId, KeyFrame * pKF, vector<MapPoint *> & createdMapPoints, vector<MapPoint *> & updatedMapPoints)
    {
       Print("begin InsertKeyFrameServer");
 
@@ -703,7 +739,8 @@ namespace ORB_SLAM2
 
       size_t sizeMsg = sizeof(GeneralRequest);
       sizeMsg += pKF->GetBufferSize();
-      sizeMsg += MapPoint::GetVectorBufferSize(mapPoints);
+      sizeMsg += MapPoint::GetVectorBufferSize(createdMapPoints);
+      sizeMsg += MapPoint::GetVectorBufferSize(updatedMapPoints);
 
       zmq::message_t request(sizeMsg);
       GeneralRequest * pReqData = request.data<GeneralRequest>();
@@ -711,7 +748,8 @@ namespace ORB_SLAM2
       pReqData->trackerId = trackerId;
       void * pData = pReqData + 1;
       pData = pKF->WriteBytes(pData);
-      pData = MapPoint::WriteVector(pData, mapPoints);
+      pData = MapPoint::WriteVector(pData, createdMapPoints);
+      pData = MapPoint::WriteVector(pData, updatedMapPoints);
 
       Print("sending InsertKeyFrameRequest");
       zmq::message_t reply = RequestReply(request);

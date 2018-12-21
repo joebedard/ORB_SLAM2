@@ -858,7 +858,9 @@ namespace ORB_SLAM2
                else
                {
                   // Update according to the correction of its reference keyframe
-                  KeyFrame* pRefKF = pMP->GetReferenceKeyFrame();
+                  KeyFrame * pRefKF = pMP->GetReferenceKeyFrame();
+                  if (pRefKF == NULL)
+                     throw exception("LoopClosing::RunGlobalBundleAdjustment detected a MapPoint without a reference KeyFrame");
 
                   if (pRefKF->mnBAGlobalForKF != loopKeyFrameId)
                      continue;

@@ -367,16 +367,21 @@ zmq::message_t InsertKeyFrame(zmq::message_t & request)
       throw exception("InsertKeyFrame newKeyFrames.size() != 1");
 
    // read MapPoints
-   std::vector<MapPoint*> mapPoints;
-   pData = MapPoint::ReadVector(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, mapPoints);
-   if (newMapPoints.size() != mapPoints.size())
-      throw exception("InsertKeyFrame newMapPoints.size() != mapPoints.size()");
+   std::vector<MapPoint*> createdMapPoints, updatedMapPoints;
+   pData = MapPoint::ReadVector(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, createdMapPoints);
+   if (newMapPoints.size() != createdMapPoints.size())
+      throw exception("InsertKeyFrame newMapPoints.size() != createdMapPoints.size()");
+   pData = MapPoint::ReadVector(pData, gMapper->GetMap(), newKeyFrames, newMapPoints, updatedMapPoints);
+   if (newMapPoints.size() != createdMapPoints.size())
+      throw exception("InsertKeyFrame newMapPoints.size() != createdMapPoints.size()");
 
-   bool inserted = gMapper->InsertKeyFrame(pReqData->trackerId, mapPoints, pKF);
+   bool inserted = gMapper->InsertKeyFrame(pReqData->trackerId, pKF, createdMapPoints, updatedMapPoints);
    if (!inserted)
    {
       delete pKF;
-      for (MapPoint * pMP : mapPoints)
+      for (MapPoint * pMP : createdMapPoints)
+         delete pMP;
+      for (MapPoint * pMP : updatedMapPoints)
          delete pMP;
    }
 
