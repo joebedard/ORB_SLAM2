@@ -74,15 +74,15 @@ int main(int argc, char * argv[]) try
 
    string serial = fsSettings["Camera.serial"];
    if (0 == serial.length())
-      throw new exception("Camera.serial property is not set or value is not in quotes.");
+      throw exception("Camera.serial property is not set or value is not in quotes.");
 
    int width = fsSettings["Camera.width"];
    if (0 == width)
-      throw new exception("Camera.width is not set.");
+      throw exception("Camera.width is not set.");
 
    int height = fsSettings["Camera.height"];
    if (0 == height)
-      throw new exception("Camera.height is not set.");
+      throw exception("Camera.height is not set.");
 
    // Declare RealSense pipeline, encapsulating the actual device and sensors
    rs2::pipeline pipe;

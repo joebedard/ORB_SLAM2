@@ -119,11 +119,11 @@ namespace ORB_SLAM2
 
       int width = (int)fSettings["Camera.width"];
       if (0 == width)
-         throw new exception("Camera.width is not set.");
+         throw exception("Camera.width is not set.");
 
       int height = (int)fSettings["Camera.height"];
       if (0 == height)
-         throw new exception("Camera.height is not set.");
+         throw exception("Camera.height is not set.");
 
       float bl = fSettings["Camera.bl"];
       float bf = fSettings["Camera.bf"];

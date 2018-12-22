@@ -38,16 +38,16 @@ namespace ORB_SLAM2
    {
       float fps = fSettings["Camera.fps"];
       if (fps < 1.0f)
-         throw new exception("Camera.fps is not set.");
+         throw exception("Camera.fps is not set.");
       mT = 1e3 / fps;
 
       mImageWidth = (int)fSettings["Camera.width"];
       if (0 == mImageWidth)
-         throw new exception("Camera.width is not set.");
+         throw exception("Camera.width is not set.");
 
       mImageHeight = (int)fSettings["Camera.height"];
       if (0 == mImageHeight)
-         throw new exception("Camera.height is not set.");
+         throw exception("Camera.height is not set.");
 
       stringstream s = StateToString(mState);
       int baseline = 0;
