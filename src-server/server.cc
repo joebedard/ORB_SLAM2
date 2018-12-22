@@ -625,7 +625,7 @@ int main(int argc, char * argv[]) try
    }
    SyncPrint::Print(NULL, "Vocabulary loaded!");
 
-   MapperServer mapperServer(vocab, false);
+   MapperServer mapperServer(vocab, false, 2);
    mapperServer.AddObserver(&gServerObserver);
    gMapper = &mapperServer;
    thread serverThread(RunServer, &param);

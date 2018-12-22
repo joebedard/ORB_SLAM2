@@ -1,0 +1,35 @@
+%YAML:1.0
+
+#--------------------------------------------------------------------------------------------
+# Master Configuration - reference to all other configuration files
+#--------------------------------------------------------------------------------------------
+
+# vocabulary file and path
+Vocabulary: ""
+
+# mapper yaml configuration file and path
+Mapper: ""
+
+
+#--------------------------------------------------------------------------------------------
+# Each tracker requires: 
+#   + a yaml settings file and path (which is mostly the camera calibration)
+#   + the path to the image data folder (that has subdirectories depth and rgb)
+#   + an association file and path (which maps depth images to rgb images)
+# Note: the first tracker will initialize the map
+#--------------------------------------------------------------------------------------------
+
+# how many trackers?
+Tracker.Quantity: 3
+
+Tracker.Settings.1: ""
+Tracker.Images.1: ""
+Tracker.Association.1: ""
+
+Tracker.Settings.2: ""
+Tracker.Images.2: ""
+Tracker.Association.2: ""
+
+Tracker.Settings.3: ""
+Tracker.Images.3: ""
+Tracker.Association.3: ""

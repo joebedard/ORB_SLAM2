@@ -1,6 +1,8 @@
 /**
 * This file is part of ORB-SLAM2-TEAM.
 *
+* Copyright (C) 2014-2016 Raúl Mur-Artal <raulmur at unizar dot es> (University of Zaragoza)
+* For more information see <https://github.com/raulmur/ORB_SLAM2>
 * Copyright (C) 2018 Joe Bedard <mr dot joe dot bedard at gmail dot com>
 * For more information see <https://github.com/joebedard/ORB_SLAM2_TEAM>
 *
@@ -20,9 +22,9 @@
 
 
 #include <chrono>
-#include <librealsense2/rs.hpp>
 #include <opencv2/core/core.hpp>
 
+#include <Sleep.h>
 #include <Enums.h>
 #include <Tracking.h>
 #include <ORBVocabulary.h>
@@ -41,41 +43,81 @@ const int TRACKER_QUANTITY = 2;
 struct ThreadParam
 {
    int returnCode;
-   string * serial;
    Tracking * tracker;
    int height;
    int width;
    vector<float> timesTrack;
    thread * threadObj;
 };
-ThreadParam gThreadParams[TRACKER_QUANTITY];
+vector<ThreadParam> gThreadParams;
 bool gShouldRun = true;
 
-// command line parameters
-char * gVocabFilename = NULL;
-char * gMapperFilename = NULL;
-char * gTrackerFilename[TRACKER_QUANTITY];
+// master config settings
+string gVocabFileName;
+string gMapperFileName;
+size_t gTrackerQuantity = 0;
+vector<string> gTrackerFileName;
+vector<string> gTrackerImageDirName;
+vector<string> gTrackerAssocFileName;
+
+void VerifyString(const string & name, const string & value)
+{
+   if (0 == value.length())
+   {
+      string m = name + " is not set or is not in quotes.";
+      throw exception(m.c_str());
+   }
+}
 
 void ParseParams(int paramc, char * paramv[])
 {
-   if (paramc != 5)
+   if (paramc != 2)
    {
-      const char * usage = "Usage: ./realsense2dual vocabulary_file_and_path mapper_settings_file_and_path tracker1_settings_file_and_path tracker2_settings_file_and_path";
+      const char * usage = "Usage: ./rgbd_tum_team master_configuration_file_and_path";
       exception e(usage);
       throw e;
    }
 
-   gVocabFilename = paramv[1];
-
-   gMapperFilename = paramv[2];
-
-   for (int i = 0; i < TRACKER_QUANTITY; i++)
+   cv::FileStorage config(paramv[1], cv::FileStorage::READ);
+   if (!config.isOpened())
    {
-      gTrackerFilename[i] = paramv[i + 3];
+      std::string m("Failed to open settings file at: ");
+      m.append(paramv[1]);
+      throw exception(m.c_str());
+   }
+
+   gVocabFileName = config["Vocabulary"];
+   VerifyString("Vocabulary file name", gVocabFileName);
+
+   gMapperFileName = config["Mapper"];
+   VerifyString("Mapper file name", gMapperFileName);
+
+   gTrackerQuantity = (int)config["Tracker.Quantity"];
+   if (0 == gTrackerQuantity)
+      throw exception("Tracker.Quantity must be 1 or more.");
+
+   gTrackerFileName.resize(gTrackerQuantity);
+   gTrackerImageDirName.resize(gTrackerQuantity);
+   gTrackerAssocFileName.resize(gTrackerQuantity);
+   for (int i = 0; i < gTrackerQuantity; i++) 
+   {
+      string paramNum = to_string(i + 1);
+
+      string paramName = string("Tracker.Settings.") + paramNum;
+      gTrackerFileName[i] = config[paramName];
+      VerifyString(paramName, gTrackerFileName[i]);
+
+      paramName = string("Tracker.Images.") + paramNum;
+      gTrackerImageDirName[i] = config[paramName];
+      VerifyString(paramName, gTrackerImageDirName[i]);
+
+      paramName = string("Tracker.Association.") + paramNum;
+      gTrackerAssocFileName[i] = config[paramName];
+      VerifyString(paramName, gTrackerAssocFileName[i]);
    }
 }
 
-void VerifySettings(cv::FileStorage & settings, const char * settingsFilePath)
+void VerifySettings(cv::FileStorage & settings, const string & settingsFilePath)
 {
    if (!settings.isOpened())
    {
@@ -85,87 +127,135 @@ void VerifySettings(cv::FileStorage & settings, const char * settingsFilePath)
    }
 }
 
-void VerifyTrackerSettings(cv::FileStorage & settings, const char * settingsFilePath, string & serial)
+void LoadImages(const string &strAssociationFilename, vector<string> &vstrImageFilenamesRGB,
+   vector<string> &vstrImageFilenamesD, vector<double> &vTimestamps)
 {
-   VerifySettings(settings, settingsFilePath);
+   ifstream fAssociation;
+   fAssociation.open(strAssociationFilename.c_str());
+   while(!fAssociation.eof())
+   {
+      string s;
+      getline(fAssociation,s);
+      if(!s.empty())
+      {
+         stringstream ss;
+         ss << s;
+         double t;
+         string sRGB, sD;
+         ss >> t;
+         vTimestamps.push_back(t);
+         ss >> sRGB;
+         vstrImageFilenamesRGB.push_back(sRGB);
+         ss >> t;
+         ss >> sD;
+         vstrImageFilenamesD.push_back(sD);
 
-   serial.append(settings["Camera.serial"]);
-   if (0 == serial.length())
-      throw exception("Camera.serial property is not set or value is not in quotes.");
-
+      }
+   }
 }
 
 void RunTracker(int threadId) try
 {
    gOutTrak.Print("begin RunTracker");
+   gThreadParams[threadId].returnCode = EXIT_FAILURE;
    int height = gThreadParams[threadId].height;
    int width = gThreadParams[threadId].width;
+   string imageDirName = gTrackerImageDirName[threadId];
+   Tracking * pTracker = gThreadParams[threadId].tracker;
 
-   // Declare RealSense pipeline, encapsulating the actual device and sensors
-   rs2::pipeline pipe;  //ok to create more than one pipe in different threads?
+   // Retrieve paths to images
+   vector<string> vstrImageFilenamesRGB;
+   vector<string> vstrImageFilenamesD;
+   vector<double> vTimestamps;
+   LoadImages(gTrackerAssocFileName[threadId], vstrImageFilenamesRGB, vstrImageFilenamesD, vTimestamps);
 
-   // create and resolve custom configuration for RealSense
-   rs2::config customConfig;
-   customConfig.enable_device(*gThreadParams[threadId].serial);
-   customConfig.enable_stream(RS2_STREAM_INFRARED, 1, width, height, RS2_FORMAT_Y8, 30);
-   customConfig.enable_stream(RS2_STREAM_INFRARED, 2, width, height, RS2_FORMAT_Y8, 30);
-   if (!customConfig.can_resolve(pipe))
+   // Check consistency in the number of images and depthmaps
+   int nImages = vstrImageFilenamesRGB.size();
+   if(vstrImageFilenamesRGB.empty())
    {
-      stringstream ss;
-      ss << "Can not resolve RealSense config for camera with serial number " << gThreadParams[threadId].serial;
-      throw exception(ss.str().c_str());
+      throw exception("No images found in provided path.");
+   }
+   else if(vstrImageFilenamesD.size()!=vstrImageFilenamesRGB.size())
+   {
+      throw exception("Different number of images for rgb and depth.");
    }
 
-   rs2::pipeline_profile profile = pipe.start(customConfig);
-   rs2::depth_sensor sensor = profile.get_device().first<rs2::depth_sensor>();
+   // Vector for tracking time statistics
+   vector<float> vTimesTrack;
+   vTimesTrack.resize(nImages);
 
-   // disable the projected IR pattern when using stereo IR images
-   sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 0);
-
-   std::chrono::steady_clock::time_point tStart = std::chrono::steady_clock::now();
-
-   gOutTrak.Print("while (gShouldRun)");
-   while (gShouldRun)
+   // Main loop
+   cv::Mat imRGB, imD;
+   for(int ni=0; ni<nImages; ni++)
    {
-      //gOutTrak.Print("rs2::frameset data = pipe.wait_for_frames();");
-      rs2::frameset data = pipe.wait_for_frames(); // Wait for next set of frames from the camera
-      //gOutTrak.Print("rs2::video_frame irFrame1 = data.get_infrared_frame(1);");
-      rs2::video_frame irFrame1 = data.get_infrared_frame(1);
-      //gOutTrak.Print("rs2::video_frame irFrame2 = data.get_infrared_frame(2);");
-      rs2::video_frame irFrame2 = data.get_infrared_frame(2);
+      // Read image and depthmap from file
+      imRGB = cv::imread(imageDirName + "/" + vstrImageFilenamesRGB[ni], CV_LOAD_IMAGE_UNCHANGED);
+      imD = cv::imread(imageDirName + "/" + vstrImageFilenamesD[ni], CV_LOAD_IMAGE_UNCHANGED);
+      double tframe = vTimestamps[ni];
 
-      // Create OpenCV matrix of size (width, height)
-      cv::Mat irMat1(cv::Size(width, height), CV_8UC1, (void*)irFrame1.get_data(), cv::Mat::AUTO_STEP);
-      cv::Mat irMat2(cv::Size(width, height), CV_8UC1, (void*)irFrame2.get_data(), cv::Mat::AUTO_STEP);
+      if(imRGB.empty())
+      {
+         string m = string("Failed to load image at: ") + imageDirName + "/" + vstrImageFilenamesRGB[ni];
+         throw exception(m.c_str());
+      }
 
+#ifdef COMPILEDWITHC11
       std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+#else
+      std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
+#endif
 
-      double tframe = std::chrono::duration_cast<std::chrono::duration<double>>(t1 - tStart).count();
+      // Pass the image to the SLAM system
+      pTracker->GrabImageRGBD(imRGB, imD, tframe);
 
-      gThreadParams[threadId].tracker->GrabImageStereo(irMat1, irMat2, tframe);
-
+#ifdef COMPILEDWITHC11
       std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+#else
+      std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
+#endif
 
-      double ttrack = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
+      double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
 
-      gThreadParams[threadId].timesTrack.push_back(ttrack);
+      vTimesTrack[ni]=ttrack;
+
+      // Wait to load the next frame
+      double T=0;
+      if(ni<nImages-1)
+         T = vTimestamps[ni+1]-tframe;
+      else if(ni>0)
+         T = tframe-vTimestamps[ni-1];
+
+      if(ttrack < T)
+         sleep((T-ttrack)*1e6);
    }
+
+   // Tracking time statistics
+   sort(vTimesTrack.begin(),vTimesTrack.end());
+   float totaltime = 0;
+   for(int ni=0; ni<nImages; ni++)
+   {
+      totaltime+=vTimesTrack[ni];
+   }
+   stringstream ss;
+   ss << "--- Tracking Thread Complete ---" << endl;
+   ss << "  median tracking time: " << vTimesTrack[nImages/2] << endl;
+   ss << "  mean tracking time:   " << totaltime/nImages << endl;
+   gOutTrak.Print(ss);
+
+   // Save camera trajectory
+   //SLAM.SaveTrajectoryTUM("CameraTrajectory.txt");
+   //SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");   
 
    gThreadParams[threadId].returnCode = EXIT_SUCCESS;
    gOutTrak.Print("end RunTracker");
 }
-catch( cv::Exception & e ) {
+catch (cv::Exception & e)
+{
    string msg = string("cv::Exception: ") + e.what();
    cerr << "RunTracker: " << msg << endl;
    gOutMain.Print(msg);
 }
-catch (const rs2::error & e)
-{
-   string msg = string("RealSense error calling ") + e.get_failed_function() + "(" + e.get_failed_args() + "): " + e.what();
-   cerr << "RunTracker: " << msg << endl;
-   gOutMain.Print(msg);
-}
-catch (const exception& e)
+catch (const exception & e)
 {
    string msg = string("exception: ") + e.what();
    cerr << "RunTracker: " << msg << endl;
@@ -259,34 +349,34 @@ int main(int paramc, char * paramv[]) try
    //Load ORB Vocabulary
    SyncPrint::Print(NULL, "Loading ORB Vocabulary. This could take a while...");
    ORBVocabulary vocab;
-   bool bVocLoad = vocab.loadFromFile(gVocabFilename);
+   bool bVocLoad = vocab.loadFromFile(gVocabFileName);
    if (!bVocLoad)
    {
-      SyncPrint::Print("Failed to open vocabulary file at: ", gVocabFilename);
+      SyncPrint::Print("Failed to open vocabulary file at: ", gVocabFileName);
       exit(-1);
    }
    SyncPrint::Print(NULL, "Vocabulary loaded!");
 
-   cv::FileStorage mapperSettings(gMapperFilename, cv::FileStorage::READ);
-   VerifySettings(mapperSettings, gMapperFilename);
+   cv::FileStorage mapperSettings(gMapperFileName, cv::FileStorage::READ);
+   VerifySettings(mapperSettings, gMapperFileName);
 
-   MapperServer mapperServer(vocab, false, 2);
+   MapperServer mapperServer(vocab, false, gTrackerQuantity);
    vMapperClients.push_back(&mapperServer);
    MapDrawer mapDrawer(mapperSettings, mapperServer);
    vMapDrawers.push_back(&mapDrawer);
 
-   for (int i = 0; i < TRACKER_QUANTITY; ++i)
+   gThreadParams.resize(gTrackerQuantity);
+   for (int i = 0; i < gTrackerQuantity; ++i)
    {
-      cv::FileStorage trackerSettings(gTrackerFilename[i], cv::FileStorage::READ);
+      cv::FileStorage trackerSettings(gTrackerFileName[i], cv::FileStorage::READ);
       string * pSerial = new string();
-      VerifyTrackerSettings(trackerSettings, gTrackerFilename[i], *pSerial);
+      VerifySettings(trackerSettings, gTrackerFileName[i]);
       pFrameDrawer = new FrameDrawer(trackerSettings);
       vFrameDrawers.push_back(pFrameDrawer);
 
-      pTracker = new Tracking(trackerSettings, vocab, mapperServer, pFrameDrawer, NULL, SensorType::STEREO);
+      pTracker = new Tracking(trackerSettings, vocab, mapperServer, pFrameDrawer, NULL, SensorType::RGBD);
       vTrackers.push_back(pTracker);
 
-      gThreadParams[i].serial = pSerial;
       gThreadParams[i].tracker = pTracker;
       gThreadParams[i].height = pFrameDrawer->GetImageHeight();
       gThreadParams[i].width = pFrameDrawer->GetImageWidth();
@@ -310,7 +400,6 @@ int main(int paramc, char * paramv[]) try
    {
       delete gThreadParams[i].threadObj;
       delete gThreadParams[i].tracker;
-      delete gThreadParams[i].serial;
       delete vFrameDrawers[i];
    }
 
@@ -318,13 +407,6 @@ int main(int paramc, char * paramv[]) try
 }
 catch( cv::Exception & e ) {
    string msg = string("cv::Exception: ") + e.what();
-   cerr << "main: " << msg << endl;
-   gOutMain.Print(msg);
-   return EXIT_FAILURE;
-}
-catch (const rs2::error & e)
-{
-   string msg = string("RealSense error calling ") + e.get_failed_function() + "(" + e.get_failed_args() + "): " + e.what();
    cerr << "main: " << msg << endl;
    gOutMain.Print(msg);
    return EXIT_FAILURE;

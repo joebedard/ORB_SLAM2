@@ -82,7 +82,7 @@ namespace ORB_SLAM2
       Print("Vocabulary loaded!");
 
       //Initialize the Mapper
-      mpMapper = new MapperServer(*mpVocabulary, mSensor == MONOCULAR);
+      mpMapper = new MapperServer(*mpVocabulary, mSensor == MONOCULAR, 1);
 
       //Create Drawers. These are used by the Viewer
       mpFrameDrawer = new FrameDrawer(settings);

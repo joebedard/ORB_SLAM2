@@ -166,6 +166,10 @@ add_executable(rgbd_tum
 Examples/RGB-D/rgbd_tum.cc)
 target_link_libraries(rgbd_tum ${PROJECT_NAME})
 
+add_executable(rgbd_tum_team
+Examples/RGB-D/rgbd_tum_team.cc)
+target_link_libraries(rgbd_tum_team ${PROJECT_NAME})
+
 add_executable(stereo_kitti
 Examples/Stereo/stereo_kitti.cc)
 target_link_libraries(stereo_kitti ${PROJECT_NAME})

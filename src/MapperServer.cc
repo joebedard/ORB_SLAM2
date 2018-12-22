@@ -26,16 +26,26 @@
 namespace ORB_SLAM2
 {
 
-   MapperServer::MapperServer(ORBVocabulary & vocab, const bool bMonocular) :
-      SyncPrint("MapperServer: "),
-      mVocab(vocab),
-      mbMonocular(bMonocular),
-      mKeyFrameDB(vocab),
-      mInitialized(false),
-      mLocalMapper(mMap, mKeyFrameDB, mVocab, bMonocular, FIRST_MAPPOINT_ID_LOCALMAPPER, MAPPOINT_ID_SPAN),
-      mLoopCloser(mMap, mKeyFrameDB, mVocab, !bMonocular),
-      mLocalMappingObserver(this),
-      mLoopClosingObserver(this)
+   MapperServer::MapperServer(ORBVocabulary & vocab, const bool bMonocular, const unsigned int maxTrackers) :
+      SyncPrint("MapperServer: ")
+      , mVocab(vocab)
+      , mbMonocular(bMonocular)
+      , mKeyFrameDB(vocab)
+      , mMaxTrackers(maxTrackers)
+      , mKeyFrameIdSpan(maxTrackers)
+
+      // The Local Mapper does not create KeyFrames, but it does create MapPoints. Thus, the MAPPOINT_ID_SPAN
+      // is one more than the KEYFRAME_ID_SPAN. This set of MapPoint Ids is reserved for the Local Mapper.
+      , mMapPointIdSpan(maxTrackers + 1)
+      , mFirstMapPointIdMapper(maxTrackers)
+      , mTrackerStatus(maxTrackers)
+      , mPivotCalib(maxTrackers)
+      , mPoseTcw(maxTrackers)
+      , mInitialized(false)
+      , mLocalMapper(mMap, mKeyFrameDB, mVocab, bMonocular, mFirstMapPointIdMapper, mMapPointIdSpan)
+      , mLoopCloser(mMap, mKeyFrameDB, mVocab, !bMonocular)
+      , mLocalMappingObserver(this)
+      , mLoopClosingObserver(this)
    {
       ResetTrackerStatus();
 
@@ -240,10 +250,10 @@ namespace ORB_SLAM2
       // update TrackerStatus array with next KeyFrameId and MapPointId
       if (pKF)
       {
-         assert((pKF->GetId() - trackerId) % KEYFRAME_ID_SPAN == 0);
+         assert((pKF->GetId() - trackerId) % mKeyFrameIdSpan == 0);
          if (mTrackerStatus[trackerId].nextKeyFrameId <= pKF->GetId())
          {
-            mTrackerStatus[trackerId].nextKeyFrameId = pKF->GetId() + KEYFRAME_ID_SPAN;
+            mTrackerStatus[trackerId].nextKeyFrameId = pKF->GetId() + mKeyFrameIdSpan;
          }
       }
    }
@@ -256,9 +266,9 @@ namespace ORB_SLAM2
       {
          if (pMP)
          {
-            assert((pMP->GetId() - trackerId) % MAPPOINT_ID_SPAN == 0);
+            assert((pMP->GetId() - trackerId) % mMapPointIdSpan == 0);
             if (mTrackerStatus[trackerId].nextMapPointId <= pMP->GetId())
-               mTrackerStatus[trackerId].nextMapPointId = pMP->GetId() + MAPPOINT_ID_SPAN;
+               mTrackerStatus[trackerId].nextMapPointId = pMP->GetId() + mMapPointIdSpan;
          }
       }
    }
@@ -275,7 +285,7 @@ namespace ORB_SLAM2
       unique_lock<mutex> lock(mMutexTrackerStatus);
 
       unsigned int id;
-      for (id = 0; id < MAX_TRACKERS; ++id)
+      for (id = 0; id < mMaxTrackers; ++id)
       {
          if (!mTrackerStatus[id].connected)
          {
@@ -285,14 +295,14 @@ namespace ORB_SLAM2
          }
       }
 
-      if (id >= MAX_TRACKERS)
+      if (id >= mMaxTrackers)
          throw std::exception("Maximum number of trackers reached. Additional trackers are not supported.");
 
       trackerId = id;
       firstKeyFrameId = mTrackerStatus[id].nextKeyFrameId;
-      keyFrameIdSpan = KEYFRAME_ID_SPAN;
+      keyFrameIdSpan = mKeyFrameIdSpan;
       firstMapPointId = mTrackerStatus[id].nextMapPointId;
-      mapPointIdSpan = MAPPOINT_ID_SPAN;
+      mapPointIdSpan = mMapPointIdSpan;
       Print("end LoginTracker");
    }
 
@@ -320,7 +330,7 @@ namespace ORB_SLAM2
       unique_lock<mutex> lock(mMutexTrackerStatus);
 
       vector<cv::Mat> poses;
-      for (int i = 0; i < MAX_TRACKERS; i++)
+      for (unsigned int i = 0; i < mMaxTrackers; i++)
       {
          poses.push_back(mPoseTcw[i].clone());
       }
@@ -334,7 +344,7 @@ namespace ORB_SLAM2
       unique_lock<mutex> lock(mMutexTrackerStatus);
 
       vector<cv::Mat> poses;
-      for (int i = 0; i < MAX_TRACKERS; i++)
+      for (unsigned int i = 0; i < mMaxTrackers; i++)
       {
          poses.push_back(mPivotCalib[i].clone());
       }
@@ -356,7 +366,7 @@ namespace ORB_SLAM2
       Print("begin ResetTrackerStatus");
       unique_lock<mutex> lock(mMutexTrackerStatus);
 
-      for (int i = 0; i < MAX_TRACKERS; ++i)
+      for (unsigned int i = 0; i < mMaxTrackers; ++i)
       {
          mTrackerStatus[i].connected = false;
          mTrackerStatus[i].nextKeyFrameId = i;
