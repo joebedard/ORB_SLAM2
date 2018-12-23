@@ -17,6 +17,8 @@ Mapper: ""
 #   + the path to the image data folder (that has subdirectories depth and rgb)
 #   + an association file and path (which maps depth images to rgb images)
 # Note: the first tracker will initialize the map
+# Note: this example works well with TUM test datasets fr1/room, fr1/desk, and fr1/desk2
+#       https://vision.in.tum.de/data/datasets/rgbd-dataset/download
 #--------------------------------------------------------------------------------------------
 
 # how many trackers?

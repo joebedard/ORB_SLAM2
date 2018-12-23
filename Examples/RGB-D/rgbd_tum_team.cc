@@ -24,6 +24,7 @@
 #include <chrono>
 #include <opencv2/core/core.hpp>
 
+#include <Duration.h>
 #include <Sleep.h>
 #include <Enums.h>
 #include <Tracking.h>
@@ -39,7 +40,6 @@ using namespace ORB_SLAM2;
 SyncPrint gOutMain("main: ");
 SyncPrint gOutTrak("RunTracker: ");
 
-const int TRACKER_QUANTITY = 2;
 struct ThreadParam
 {
    int returnCode;
@@ -199,48 +199,21 @@ void RunTracker(int threadId) try
          throw exception(m.c_str());
       }
 
-#ifdef COMPILEDWITHC11
-      std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-#else
-      std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
-#endif
-
-      // Pass the image to the SLAM system
+      time_type t1 = GetNow();
       pTracker->GrabImageRGBD(imRGB, imD, tframe);
-
-#ifdef COMPILEDWITHC11
-      std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-#else
-      std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
-#endif
-
-      double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
-
-      vTimesTrack[ni]=ttrack;
+      double ttrack = Duration(GetNow(), t1);
+      vTimesTrack[ni] = ttrack;
 
       // Wait to load the next frame
       double T=0;
-      if(ni<nImages-1)
-         T = vTimestamps[ni+1]-tframe;
+      if (ni < nImages-1)
+         T = vTimestamps[ni+1] - tframe;
       else if(ni>0)
-         T = tframe-vTimestamps[ni-1];
+         T = tframe - vTimestamps[ni-1];
 
-      if(ttrack < T)
-         sleep((T-ttrack)*1e6);
+      if (ttrack < T)
+         sleep((T-ttrack) * 1e6);
    }
-
-   // Tracking time statistics
-   sort(vTimesTrack.begin(),vTimesTrack.end());
-   float totaltime = 0;
-   for(int ni=0; ni<nImages; ni++)
-   {
-      totaltime+=vTimesTrack[ni];
-   }
-   stringstream ss;
-   ss << "--- Tracking Thread Complete ---" << endl;
-   ss << "  median tracking time: " << vTimesTrack[nImages/2] << endl;
-   ss << "  mean tracking time:   " << totaltime/nImages << endl;
-   gOutTrak.Print(ss);
 
    // Save camera trajectory
    //SLAM.SaveTrajectoryTUM("CameraTrajectory.txt");
@@ -268,9 +241,9 @@ catch (...)
    gOutMain.Print(msg);
 }
 
-void printStatistics()
+void PrintStatistics()
 {
-   for (int i = 0; i < TRACKER_QUANTITY; ++i)
+   for (int i = 0; i < gTrackerQuantity; ++i)
    {
       vector<float> & vTimesTrack = gThreadParams[i].timesTrack;
 
@@ -285,9 +258,9 @@ void printStatistics()
          }
 
          stringstream ss;
-         ss << "tracking time statistics for thread " << i << ":\n";
-         ss << "   median tracking time: " << vTimesTrack[vTimesTrack.size() / 2] << "\n";
-         ss << "   mean tracking time: " << totaltime / vTimesTrack.size() << "\n";
+         ss << "tracking time statistics for thread " << i << " : " << gTrackerImageDirName[i] << endl;
+         ss << "   median tracking time: " << vTimesTrack[vTimesTrack.size() / 2] << endl;
+         ss << "   mean tracking time: " << totaltime / vTimesTrack.size() << endl;
          SyncPrint::Print(NULL, ss);
       }
    }
@@ -386,17 +359,17 @@ int main(int paramc, char * paramv[]) try
    int returnCode = RunViewer(vFrameDrawers, vMapDrawers, vTrackers, mapperServer, true);
 
    // join threads and check return codes
-   for (int i = 0; i < TRACKER_QUANTITY; ++i)
+   for (int i = 0; i < gTrackerQuantity; ++i)
    {
       gThreadParams[i].threadObj->join();
       if (gThreadParams[i].returnCode == EXIT_FAILURE)
          returnCode = EXIT_FAILURE;
    }
 
-   printStatistics();
+   PrintStatistics();
 
    // destroy objects
-   for (int i = 0; i < TRACKER_QUANTITY; ++i)
+   for (int i = 0; i < gTrackerQuantity; ++i)
    {
       delete gThreadParams[i].threadObj;
       delete gThreadParams[i].tracker;
