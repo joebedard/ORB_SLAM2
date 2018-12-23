@@ -74,7 +74,10 @@ namespace ORB_SLAM2
 
       void IncreaseVisible(int n = 1);
       void IncreaseFound(int n = 1);
+
+      // total frames where this point was an inlier / total frames where this MapPoint was visible (inlier or outlier)
       float GetFoundRatio();
+
       inline int GetFound() {
          return mnFound;
       }

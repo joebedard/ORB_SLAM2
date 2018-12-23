@@ -42,7 +42,7 @@ namespace ORB_SLAM2
       , mPivotCalib(maxTrackers)
       , mPoseTcw(maxTrackers)
       , mInitialized(false)
-      , mLocalMapper(mMap, mKeyFrameDB, mVocab, bMonocular, mFirstMapPointIdMapper, mMapPointIdSpan)
+      , mLocalMapper(mMap, mKeyFrameDB, mVocab, bMonocular, maxTrackers, mKeyFrameIdSpan, mFirstMapPointIdMapper, mMapPointIdSpan)
       , mLoopCloser(mMap, mKeyFrameDB, mVocab, !bMonocular)
       , mLocalMappingObserver(this)
       , mLoopClosingObserver(this)
@@ -174,7 +174,7 @@ namespace ORB_SLAM2
       // pKF1->UpdateConnections();
 
       vector<MapPoint *> noPoints;
-      if (mLocalMapper.InsertKeyFrame(pKF2, noPoints, noPoints))
+      if (mLocalMapper.InsertKeyFrame(trackerId, pKF2, noPoints, noPoints))
       {
          UpdateTrackerStatus(trackerId, mapPoints);
          UpdateTrackerStatus(trackerId, pKF1);
@@ -208,7 +208,7 @@ namespace ORB_SLAM2
       mMap.mvpKeyFrameOrigins.push_back(pKF);
 
       vector<MapPoint *> noPoints;
-      if (mLocalMapper.InsertKeyFrame(pKF, mapPoints, noPoints))
+      if (mLocalMapper.InsertKeyFrame(trackerId, pKF, mapPoints, noPoints))
       {
          UpdateTrackerStatus(trackerId, mapPoints);
          UpdateTrackerStatus(trackerId, pKF);
@@ -227,7 +227,7 @@ namespace ORB_SLAM2
       Print("begin InsertKeyFrame");
       ValidateTracker(trackerId);
 
-      if (mLocalMapper.InsertKeyFrame(pKF, createdMapPoints, updatedMapPoints))
+      if (mLocalMapper.InsertKeyFrame(trackerId, pKF, createdMapPoints, updatedMapPoints))
       {
          // stereo and RGBD modes will create MapPoints
          UpdateTrackerStatus(trackerId, createdMapPoints);

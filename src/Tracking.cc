@@ -514,12 +514,14 @@ namespace ORB_SLAM2
             if (mVelocity.empty() || mCurrentFrame.mnId < mnLastRelocFrameId + 2)
             {
                bOK = TrackReferenceKeyFrame();
+               //if (!bOK) Print("Tracking Lost 1");
             }
             else
             {
                bOK = TrackWithMotionModel();
                if (!bOK)
                   bOK = TrackReferenceKeyFrame();
+               //if (!bOK) Print("Tracking Lost 2");
             }
          }
          else
@@ -531,7 +533,10 @@ namespace ORB_SLAM2
 
          // If we have an initial estimation of the camera pose and matching. Track the local map.
          if (bOK)
+         {
             bOK = TrackLocalMap(); // sets mCurrentFrame.mpReferenceKF
+            //if (!bOK) Print("Tracking Lost 3");
+         }
 
          if (bOK)
             mState = TRACKING_OK;
@@ -1094,7 +1099,7 @@ namespace ORB_SLAM2
       const int nKFs = mMapper.KeyFramesInMap();
 
       // Do not insert keyframes if not enough frames have passed from last relocalisation
-      if (mCurrentFrame.mnId<mnLastRelocFrameId + mMaxFrames && nKFs>mMaxFrames)
+      if (mCurrentFrame.mnId < mnLastRelocFrameId + mMaxFrames && nKFs > mMaxFrames)
       {
          Print("end NeedNewKeyFrame 3");
          return false;

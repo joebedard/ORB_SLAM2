@@ -236,6 +236,8 @@ namespace ORB_SLAM2
 
       bool Relocalization();
 
+      // creates a vector of MapPoints from nearby KeyFrames
+      // post: potential map points are in mvpLocalMapPoints
       void UpdateLocalMap();
 
       // Reset mvpLocalMapPoints to all map points from mvpLocalKeyFrames
@@ -247,6 +249,8 @@ namespace ORB_SLAM2
 
       bool TrackLocalMap();
 
+      // searches mvpLocalMapPoints for matches to keypoints in mCurrentFrame
+      // post: matching map points are in mCurrentFrame.mvpMapPoints
       void SearchLocalPoints();
 
       void HandleMapReset();

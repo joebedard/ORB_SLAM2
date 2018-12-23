@@ -35,6 +35,8 @@ namespace ORB_SLAM2
       KeyFrameDatabase & keyFrameDB,
       ORBVocabulary & vocab,
       const float bMonocular,
+      size_t quantityTrackers,
+      unsigned int keyFrameIdSpan,
       unsigned long firstMapPointId,
       unsigned int mapPointIdSpan
    ) :
@@ -44,6 +46,8 @@ namespace ORB_SLAM2
       mKeyFrameDB(keyFrameDB),
       mVocab(vocab),
       mbMonocular(bMonocular),
+      mRecentAddedMapPoints(quantityTrackers),
+      mKeyFrameIdSpan(keyFrameIdSpan),
       mNextMapPointId(firstMapPointId),
       mMapPointIdSpan(mapPointIdSpan),
       mbResetRequested(false),
@@ -174,7 +178,7 @@ namespace ORB_SLAM2
    }
 
 
-   bool LocalMapping::InsertKeyFrame(KeyFrame * pKF, vector<MapPoint *> & createdMapPoints, vector<MapPoint *> & updatedMapPoints)
+   bool LocalMapping::InsertKeyFrame(unsigned int trackerId, KeyFrame * pKF, vector<MapPoint *> & createdMapPoints, vector<MapPoint *> & updatedMapPoints)
    {
       Print("begin InsertKeyFrame");
       bool success = false;
@@ -199,7 +203,7 @@ namespace ORB_SLAM2
                if (pMP && !pMP->isBad())
                {
                   mMap.AddMapPoint(pMP);
-                  mlpRecentAddedMapPoints.push_back(pMP);
+                  mRecentAddedMapPoints[trackerId].push_back(pMP);
                   pKF->AddMapPoint(pMP, i);
                   pMP->AddObservation(pKF, i);
                   pMP->UpdateNormalAndDepth();
@@ -227,7 +231,8 @@ namespace ORB_SLAM2
             pKF->UpdateConnections();
 
             unique_lock<mutex> lock(mMutexNewKFs);
-            mlNewKeyFrames.push_back(pKF);
+            pair<KeyFrame *, unsigned int> p = make_pair(pKF, trackerId);
+            mNewKeyFrames.push_back(p);
 
             success = true;
          }
@@ -244,7 +249,7 @@ namespace ORB_SLAM2
    bool LocalMapping::CheckNewKeyFrames()
    {
       unique_lock<mutex> lock(mMutexNewKFs);
-      return !mlNewKeyFrames.empty();
+      return !mNewKeyFrames.empty();
    }
 
 
@@ -254,8 +259,9 @@ namespace ORB_SLAM2
 
       {
          unique_lock<mutex> lock(mMutexNewKFs);
-         mpCurrentKeyFrame = mlNewKeyFrames.front();
-         mlNewKeyFrames.pop_front();
+         mpCurrentKeyFrame = mNewKeyFrames.front().first;
+         mCurrentTrackerId = mNewKeyFrames.front().second;
+         mNewKeyFrames.pop_front();
       }
 
       mpCurrentKeyFrame->ComputeBoW(mVocab);
@@ -272,8 +278,10 @@ namespace ORB_SLAM2
    {
       Print("begin MapPointCulling");
       // Check Recent Added MapPoints
-      list<MapPoint *>::iterator lit = mlpRecentAddedMapPoints.begin();
+      list<MapPoint *> & recentAddedMapPoints = mRecentAddedMapPoints[mCurrentTrackerId];
+      list<MapPoint *>::iterator lit = recentAddedMapPoints.begin();
       const id_type nCurrentKFid = mpCurrentKeyFrame->GetId();
+      unsigned int quantBad = 0, quantLowFoundRatio = 0, quantLowObs = 0, quantVeryOld = 0;
 
       int nThObs;
       if (mbMonocular)
@@ -282,7 +290,7 @@ namespace ORB_SLAM2
          nThObs = 3;
       const int cnThObs = nThObs;
 
-      while (lit != mlpRecentAddedMapPoints.end())
+      while (lit != recentAddedMapPoints.end())
       {
          MapPoint * pMP = *lit;
          if (pMP == NULL)
@@ -294,7 +302,8 @@ namespace ORB_SLAM2
             // TODO OK - add to deleted points
             mapChanges.deletedMapPoints.insert(pMP->GetId());
             mapChanges.updatedMapPoints.erase(pMP);
-            lit = mlpRecentAddedMapPoints.erase(lit);
+            lit = recentAddedMapPoints.erase(lit);
+            quantBad++;
             //Print(to_string(pMP->GetId()) + "=MapPointId erased 1");
          }
          else if (pMP->GetFoundRatio() < 0.25f)
@@ -303,22 +312,25 @@ namespace ORB_SLAM2
             // TODO OK - add to deleted points
             mapChanges.deletedMapPoints.insert(pMP->GetId());
             mapChanges.updatedMapPoints.erase(pMP);
-            lit = mlpRecentAddedMapPoints.erase(lit);
+            lit = recentAddedMapPoints.erase(lit);
+            quantLowFoundRatio++;
             //Print(to_string(pMP->GetId()) + "=MapPointId erased 2");
          }
-         else if ((nCurrentKFid - pMP->mnFirstKFid) >= 2 && pMP->Observations() <= cnThObs)
+         else if ((nCurrentKFid - pMP->mnFirstKFid) >= (2 * mKeyFrameIdSpan) && pMP->Observations() <= cnThObs)
          {
             pMP->SetBadFlag(&mMap);
             // TODO OK - add to deleted points
             mapChanges.deletedMapPoints.insert(pMP->GetId());
             mapChanges.updatedMapPoints.erase(pMP);
-            lit = mlpRecentAddedMapPoints.erase(lit);
+            lit = recentAddedMapPoints.erase(lit);
+            quantLowObs++;
             //Print(to_string(pMP->GetId()) + "=MapPointId erased 3");
          }
-         else if ((nCurrentKFid - pMP->mnFirstKFid) >= 3)
+         else if ((nCurrentKFid - pMP->mnFirstKFid) >= (3 * mKeyFrameIdSpan))
          {
             // this MapPoint was not recently added, so don't consider it for culling
-            lit = mlpRecentAddedMapPoints.erase(lit);
+            lit = recentAddedMapPoints.erase(lit);
+            quantVeryOld++;
             //Print(to_string(pMP->GetId()) + "=MapPointId removed 4");
          }
          else
@@ -326,6 +338,9 @@ namespace ORB_SLAM2
             lit++;
          }
       }
+      stringstream ss;
+      ss << "quantBad = " << quantBad << ", quantLowFoundRatio = " << quantLowFoundRatio << ", quantLowObs = " << quantLowObs << ", quantVeryOld = " << quantVeryOld;
+      Print(ss);
       Print("end MapPointCulling");
    }
 
@@ -581,7 +596,7 @@ namespace ORB_SLAM2
             pMP->UpdateNormalAndDepth();
 
             mMap.AddMapPoint(pMP);
-            mlpRecentAddedMapPoints.push_back(pMP);
+            mRecentAddedMapPoints[mCurrentTrackerId].push_back(pMP);
 
             // TODO OK - add to created points
             mapChanges.updatedMapPoints.insert(pMP);
@@ -751,12 +766,12 @@ namespace ORB_SLAM2
       else
       {
          unique_lock<mutex> lock3(mMutexNewKFs);
-         for (list<KeyFrame *>::iterator lit = mlNewKeyFrames.begin(), lend = mlNewKeyFrames.end(); lit != lend; lit++)
+         for (pair<KeyFrame *, unsigned int> p : mNewKeyFrames)
          {
-            mMap.EraseKeyFrame(*lit);
-            //delete *lit; // do not delete keyframes, they might be in Tracking::mLastFrame.mpReferenceKF
+            mMap.EraseKeyFrame(p.first);
+            //delete p.first; // do not delete keyframes, they might be in Tracking::mLastFrame.mpReferenceKF
          }
-         mlNewKeyFrames.clear();
+         mNewKeyFrames.clear();
 
          mbPaused = false;
          mbPauseRequested = false;
@@ -912,9 +927,10 @@ namespace ORB_SLAM2
       if (mbResetRequested)
       {
          Print("RESET MAP");
-         mlpRecentAddedMapPoints.clear();
+         for (list<MapPoint *> recentAddedMapPoints : mRecentAddedMapPoints)
+            recentAddedMapPoints.clear();
          unique_lock<mutex> lock2(mMutexNewKFs);
-         mlNewKeyFrames.clear();
+         mNewKeyFrames.clear();
          mbResetRequested = false;
       }
    }

@@ -49,6 +49,8 @@ namespace ORB_SLAM2
          KeyFrameDatabase & keyFrameDB,
          ORBVocabulary & vocab,
          const float bMonocular,
+         size_t quantityTrackers,
+         unsigned int keyFrameIdSpan,
          unsigned long firstMapPointId,
          unsigned int mapPointIdSpan
       );
@@ -58,7 +60,7 @@ namespace ORB_SLAM2
       // Main function
       void Run();
 
-      bool InsertKeyFrame(KeyFrame * pKF, vector<MapPoint *> & createdMapPoints, vector<MapPoint *> & updatedMapPoints);
+      bool InsertKeyFrame(unsigned int trackerId, KeyFrame * pKF, vector<MapPoint *> & createdMapPoints, vector<MapPoint *> & updatedMapPoints);
 
       // Thread Synch
       void RequestPause();
@@ -79,7 +81,7 @@ namespace ORB_SLAM2
       int KeyframesInQueue()
       {
          unique_lock<mutex> lock(mMutexNewKFs);
-         return mlNewKeyFrames.size();
+         return mNewKeyFrames.size();
       }
 
    protected:
@@ -121,11 +123,9 @@ namespace ORB_SLAM2
 
       LoopClosing * mpLoopCloser;
 
-      list<KeyFrame *> mlNewKeyFrames;
-
       KeyFrame * mpCurrentKeyFrame;
 
-      list<MapPoint *> mlpRecentAddedMapPoints;
+      unsigned int mCurrentTrackerId;
 
       mutex mMutexNewKFs;
 
@@ -133,11 +133,19 @@ namespace ORB_SLAM2
 
    private:
 
+      // each KeyFrame is paired with the trackerId
+      list<pair<KeyFrame *, unsigned int>> mNewKeyFrames;
+
+      // one list for each tracker, use trackerId for the vector index
+      vector<list<MapPoint *>> mRecentAddedMapPoints;
+
       mutex & mMutexMapUpdate;
 
       unsigned long mNextMapPointId;
 
       unsigned int mMapPointIdSpan;
+
+      unsigned int mKeyFrameIdSpan;
 
       bool mbPaused;
 
