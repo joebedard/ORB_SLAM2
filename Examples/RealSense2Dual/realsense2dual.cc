@@ -178,7 +178,7 @@ catch (...)
    gOutMain.Print(msg);
 }
 
-void printStatistics()
+void PrintStatistics()
 {
    for (int i = 0; i < TRACKER_QUANTITY; ++i)
    {
@@ -303,7 +303,7 @@ int main(int paramc, char * paramv[]) try
          returnCode = EXIT_FAILURE;
    }
 
-   printStatistics();
+   PrintStatistics();
 
    // destroy objects
    for (int i = 0; i < TRACKER_QUANTITY; ++i)
