@@ -205,13 +205,13 @@ void PrintStatistics()
 
 int RunViewer(
    vector<FrameDrawer *> & vFrameDrawers, 
-   vector<MapDrawer *> & vMapDrawers, 
+   MapDrawer * pMapDrawer, 
    vector<Tracking *> & vTrackers, 
    Mapper & mapper, 
    bool embeddedFrameDrawers) try
 {
    //Initialize and start the Viewer thread
-   Viewer viewer(vFrameDrawers, vMapDrawers, vTrackers, mapper, embeddedFrameDrawers);
+   Viewer viewer(vFrameDrawers, pMapDrawer, vTrackers, mapper, embeddedFrameDrawers);
    for (Tracking * tracker : vTrackers)
    {
       tracker->SetViewer(&viewer);
@@ -250,7 +250,6 @@ int main(int paramc, char * paramv[]) try
    Tracking * pTracker = NULL;
 
    vector<FrameDrawer *> vFrameDrawers;
-   vector<MapDrawer *> vMapDrawers;
    vector<Mapper *> vMapperClients;
    vector<Tracking *> vTrackers;
 
@@ -273,7 +272,6 @@ int main(int paramc, char * paramv[]) try
    MapperServer mapperServer(vocab, false, 2);
    vMapperClients.push_back(&mapperServer);
    MapDrawer mapDrawer(mapperSettings, mapperServer);
-   vMapDrawers.push_back(&mapDrawer);
 
    for (int i = 0; i < TRACKER_QUANTITY; ++i)
    {
@@ -293,7 +291,7 @@ int main(int paramc, char * paramv[]) try
       gThreadParams[i].threadObj = new thread(RunTracker, i);
    }
 
-   int returnCode = RunViewer(vFrameDrawers, vMapDrawers, vTrackers, mapperServer, true);
+   int returnCode = RunViewer(vFrameDrawers, &mapDrawer, vTrackers, mapperServer, true);
 
    // join threads and check return codes
    for (int i = 0; i < TRACKER_QUANTITY; ++i)

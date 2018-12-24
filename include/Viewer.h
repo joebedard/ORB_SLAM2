@@ -42,9 +42,9 @@ namespace ORB_SLAM2
    class Viewer : SyncPrint
    {
    public:
-      Viewer(FrameDrawer * pFrameDrawer, MapDrawer * pMapDrawer, Tracking * pTracking, Mapper & mapper, bool embeddedFrameDrawer = false);
+      Viewer(FrameDrawer * pFrameDrawer, MapDrawer * pMapDrawer, Tracking * pTracking, Mapper & mapper, bool embeddedFrameDrawer = false, bool embeddedVertical = true);
 
-      Viewer(vector<FrameDrawer *> vFrameDrawers, vector<MapDrawer *> vMapDrawers, vector<Tracking *> vTrackers, Mapper & mapper, bool embeddedFrameDrawers = true);
+      Viewer(vector<FrameDrawer *> vFrameDrawers, MapDrawer * pMapDrawer, vector<Tracking *> vTrackers, Mapper & mapper, bool embeddedFrameDrawers = true, bool embeddedVertical = true);
 
       // Main thread function. Draw points, keyframes, the current camera pose and the last processed
       // frame. Drawing is refreshed according to the camera fps. We use Pangolin.
@@ -67,12 +67,12 @@ namespace ORB_SLAM2
       string mWindowTitle;
 
       bool mEmbeddedFrameDrawers;
-
-      bool Stop();
+      bool mEmbeddedVertical;
 
       vector<FrameDrawer*> mvFrameDrawers;
-      vector<MapDrawer *> mvMapDrawers;
+      MapDrawer * mpMapDrawer;
       vector<Tracking*> mvTrackers;
+      vector<char *> mvRenderBuffers;
 
       Mapper & mMapper;
 
@@ -81,11 +81,18 @@ namespace ORB_SLAM2
       bool mbFinished;
       std::mutex mMutexFinish;
 
+      bool Stop();
       bool mbStopped;
       bool mbStopRequested;
       std::mutex mMutexStop;
 
       bool mbResetting;
+
+      void InitWindowTitle();
+
+      static size_t GetMatrixDataSize(cv::Mat & mat);
+
+      static void CopyMatrixDataToBuffer(cv::Mat & mat, char * pData);
    };
 
 }

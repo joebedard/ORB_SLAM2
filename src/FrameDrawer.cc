@@ -54,7 +54,7 @@ namespace ORB_SLAM2
       cv::Size textSize = cv::getTextSize(s.str(), cv::FONT_HERSHEY_PLAIN, 1, 1, &baseline);
       mTextInfoHeight = textSize.height + 10;
 
-      mIm = cv::Mat(GetFrameHeight(), GetFrameWidth(), CV_8UC3, cv::Scalar(0, 0, 0));
+      mIm = cv::Mat(GetImageHeight(), GetImageWidth(), CV_8UC3, cv::Scalar(0, 0, 0));
    }
 
    void FrameDrawer::Reset()
@@ -210,7 +210,7 @@ namespace ORB_SLAM2
    void FrameDrawer::DrawTextInfo(cv::Mat &im, TrackingState state, cv::Mat &imText)
    {
       stringstream s = StateToString(state);
-      imText = cv::Mat(im.rows + mTextInfoHeight, im.cols, im.type());
+      imText = cv::Mat(GetFrameHeight(), GetFrameWidth(), im.type());
       im.copyTo(imText.rowRange(0, im.rows).colRange(0, im.cols));
       imText.rowRange(im.rows, imText.rows) = cv::Mat::zeros(mTextInfoHeight, im.cols, im.type());
       cv::putText(imText, s.str(), cv::Point(5, imText.rows - 5), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255, 255, 255), 1, 8);
