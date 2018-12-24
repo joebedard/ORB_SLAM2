@@ -340,6 +340,7 @@ namespace ORB_SLAM2
       Twc = cv::Mat::eye(4, 4, Tcw.type());
       Rwc.copyTo(Twc.rowRange(0, 3).colRange(0, 3));
       Ow.copyTo(Twc.rowRange(0, 3).col(3));
+      SetModified(true);
    }
 
    cv::Mat KeyFrame::GetPose()
@@ -469,25 +470,37 @@ namespace ORB_SLAM2
          Print(ss);
       }
       mvpMapPoints.at(idx) = pMP;
+      SetModified(true);
    }
 
    void KeyFrame::EraseMapPointMatch(const size_t &idx)
    {
       unique_lock<mutex> lock(mMutexFeatures);
-      mvpMapPoints.at(idx) = static_cast<MapPoint *>(NULL);
+      if (mvpMapPoints.at(idx) != NULL) 
+      {
+         mvpMapPoints.at(idx) = static_cast<MapPoint *>(NULL);
+         SetModified(true);
+      }
    }
 
    void KeyFrame::EraseMapPointMatch(MapPoint * pMP)
    {
       int idx = pMP->GetIndexInKeyFrame(this);
-      if (idx >= 0)
+      if (idx >= 0) 
+      {
          mvpMapPoints.at(idx) = static_cast<MapPoint *>(NULL);
+         SetModified(true);
+      }
    }
 
 
    void KeyFrame::ReplaceMapPointMatch(const size_t &idx, MapPoint * pMP)
    {
-      mvpMapPoints.at(idx) = pMP;
+      if (mvpMapPoints.at(idx) != pMP)
+      {
+         mvpMapPoints.at(idx) = pMP;
+         SetModified(true);
+      }
    }
 
    set<MapPoint *> KeyFrame::GetMapPoints()
@@ -640,6 +653,7 @@ namespace ORB_SLAM2
             mpParent = mvpOrderedConnectedKeyFrames.front();
             mpParent->AddChild(this);
             mbFirstConnection = false;
+            SetModified(true); // not sure if this is necessary, this function is usually only called after MapPoint changes
          }
 
       }
@@ -663,6 +677,7 @@ namespace ORB_SLAM2
       unique_lock<mutex> lockCon(mMutexConnections);
       mpParent = pKF;
       pKF->AddChild(this);
+      SetModified(true);
    }
 
    set<KeyFrame *> KeyFrame::GetChilds()
@@ -688,6 +703,7 @@ namespace ORB_SLAM2
       unique_lock<mutex> lockCon(mMutexConnections);
       mbNotErase = true;
       mspLoopEdges.insert(pKF);
+      SetModified(true);
    }
 
    set<KeyFrame *> KeyFrame::GetLoopEdges()
@@ -818,6 +834,7 @@ namespace ORB_SLAM2
          mpParent->EraseChild(this);
          mTcp = Tcw * mpParent->GetPoseInverse();
          mbBad = true;
+         SetModified(true);
       }
 
 
@@ -943,6 +960,18 @@ namespace ORB_SLAM2
       sort(vDepths.begin(), vDepths.end());
 
       return vDepths[(vDepths.size() - 1) / q];
+   }
+
+   bool KeyFrame::GetModified()
+   {
+      unique_lock<mutex> lock(mMutexModified);
+      return mModified;
+   }
+
+   void KeyFrame::SetModified(bool b)
+   {
+      unique_lock<mutex> lock(mMutexModified);
+      mModified = b;
    }
 
    id_type KeyFrame::PeekId(const void * data)

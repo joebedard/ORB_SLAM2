@@ -43,7 +43,6 @@ namespace ORB_SLAM2
 
       static void GlobalBundleAdjustment(
          Map & theMap,
-         MapChangeEvent & mapChanges,
          int nIterations = 5,
          bool * pbStopFlag = NULL,
          const id_type loopKeyFrameId = 0,
@@ -52,8 +51,7 @@ namespace ORB_SLAM2
       static void LocalBundleAdjustment(
          KeyFrame * pKF,
          bool * pbStopFlag,
-         Map & theMap,
-         MapChangeEvent & mapChanges);
+         Map & theMap);
 
       static int PoseOptimization(Frame* pFrame);
 
@@ -65,8 +63,7 @@ namespace ORB_SLAM2
          const LoopClosing::KeyFrameAndPose & NonCorrectedSim3,
          const LoopClosing::KeyFrameAndPose & CorrectedSim3,
          const std::map<KeyFrame *, set<KeyFrame *> > & LoopConnections,
-         const bool & bFixScale,
-         MapChangeEvent & mapChanges);
+         const bool & bFixScale);
 
       // if bFixScale is true, optimize SE3 (stereo,rgbd), Sim3 otherwise (mono)
       static int OptimizeSim3(
@@ -104,7 +101,6 @@ namespace ORB_SLAM2
 
       static void RecoverGraphLocalBundleAdjustment(
          Map & theMap,
-         MapChangeEvent & mapChanges,
          g2o::SparseOptimizer & optimizer,
          id_type & maxKFid,
          list<KeyFrame*> & lLocalKeyFrames,
@@ -120,7 +116,6 @@ namespace ORB_SLAM2
          KeyFrame * pCurKF,
          KeyFrame * pLoopKF, 
          mutex & mutexMapUpdate,
-         MapChangeEvent & mapChanges, 
          g2o::SparseOptimizer & optimizer,
          const vector<KeyFrame *> & vpKFs, 
          const vector<MapPoint *> & vpMPs,
@@ -135,7 +130,6 @@ namespace ORB_SLAM2
       static void Optimizer::RecoverGraphOptimize(
          KeyFrame * pCurKF,
          mutex & mutexMapUpdate,
-         MapChangeEvent & mapChanges, 
          g2o::SparseOptimizer & optimizer,
          const vector<KeyFrame *> & vpKFs, 
          const vector<MapPoint *> & vpMPs,
@@ -153,7 +147,6 @@ namespace ORB_SLAM2
 
       static void RecoverGraphGlobalBundleAdjustment(
          Map & theMap,
-         MapChangeEvent & mapChanges,
          g2o::SparseOptimizer & optimizer,
          const id_type loopKeyFrameId,
          vector<KeyFrame*> & vpKFs,

@@ -88,6 +88,7 @@ namespace ORB_SLAM2
       if (Pos.empty())
          throw exception("MapPoint::SetWorldPos([])!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
       Pos.copyTo(mWorldPos);
+      SetModified(true);
    }
 
    cv::Mat MapPoint::GetWorldPos()
@@ -138,6 +139,7 @@ namespace ORB_SLAM2
                nObs--;
 
             mObservations.erase(pKF);
+            SetModified(true);
 
             if (mpRefKF == pKF)
             {
@@ -178,6 +180,7 @@ namespace ORB_SLAM2
          mbBad = true;
          obs = mObservations;
          mObservations.clear();
+         SetModified(true);
       }
       for (map<KeyFrame*, size_t>::iterator mit = obs.begin(), mend = obs.end(); mit != mend; mit++)
       {
@@ -230,6 +233,7 @@ namespace ORB_SLAM2
          nvisible = mnVisible;
          nfound = mnFound;
          mpReplaced = pMP;
+         SetModified(true);
       }
 
       for (map<KeyFrame*, size_t>::iterator mit = obs.begin(), mend = obs.end(); mit != mend; mit++)
@@ -263,12 +267,14 @@ namespace ORB_SLAM2
    {
       unique_lock<mutex> lock(mMutexFeatures);
       mnVisible += n;
+      SetModified(true);
    }
 
    void MapPoint::IncreaseFound(int n)
    {
       unique_lock<mutex> lock(mMutexFeatures);
       mnFound += n;
+      SetModified(true);
    }
 
    float MapPoint::GetFoundRatio()
@@ -348,6 +354,7 @@ namespace ORB_SLAM2
       {
          unique_lock<mutex> lock(mMutexFeatures);
          mDescriptor = vDescriptors[BestIdx].clone();
+         SetModified(true);
       }
    }
 
@@ -414,6 +421,7 @@ namespace ORB_SLAM2
          mfMaxDistance = dist * levelScaleFactor;
          mfMinDistance = mfMaxDistance / pRefKF->scaleFactors[nLevels - 1];
          mNormalVector = normal / n;
+         SetModified(true);
       }
    }
 
@@ -466,6 +474,18 @@ namespace ORB_SLAM2
    id_type MapPoint::GetId()
    {
       return mnId;
+   }
+
+   bool MapPoint::GetModified()
+   {
+      unique_lock<mutex> lock(mMutexModified);
+      return mModified;
+   }
+
+   void MapPoint::SetModified(bool b)
+   {
+      unique_lock<mutex> lock(mMutexModified);
+      mModified = b;
    }
 
    MapPoint * MapPoint::Find(const id_type id, const Map & map, std::unordered_map<id_type, MapPoint *> & newMapPoints)

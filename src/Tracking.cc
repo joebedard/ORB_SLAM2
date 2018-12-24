@@ -810,8 +810,7 @@ namespace ORB_SLAM2
       pKFcur->UpdateConnections();
 
       // Bundle Adjustment
-      MapChangeEvent mapChanges;
-      Optimizer::GlobalBundleAdjustment(map, mapChanges, 20);
+      Optimizer::GlobalBundleAdjustment(map, 20);
 
       // Set median depth to 1
       float medianDepth = pKFini->ComputeSceneMedianDepth(2);

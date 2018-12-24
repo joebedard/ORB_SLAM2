@@ -157,15 +157,13 @@ namespace ORB_SLAM2
    bool LoopClosing::DetectLoop()
    {
       Print("begin DetectLoop");
-      MapChangeEvent mapChanges;
 
       // If the map contains less than 10 KF or less than 10 KF have passed since last loop detection
       if (mpCurrentKF->GetId() < mLastLoopKFid + 10)
       {
          mKeyFrameDB.add(mpCurrentKF);
-         if (mpCurrentKF->SetErase(&mMap, &mKeyFrameDB))
-            mapChanges.deletedKeyFrames.insert(mpCurrentKF->GetId());
-         NotifyMapChanged(mapChanges);
+         mpCurrentKF->SetErase(&mMap, &mKeyFrameDB);
+         NotifyMapChanged(mMap);
          Print("end DetectLoop 1");
          return false;
       }
@@ -197,9 +195,8 @@ namespace ORB_SLAM2
       {
          mKeyFrameDB.add(mpCurrentKF);
          mvConsistentGroups.clear();
-         if (mpCurrentKF->SetErase(&mMap, &mKeyFrameDB))
-            mapChanges.deletedKeyFrames.insert(mpCurrentKF->GetId());
-         NotifyMapChanged(mapChanges);
+         mpCurrentKF->SetErase(&mMap, &mKeyFrameDB);
+         NotifyMapChanged(mMap);
          Print("end DetectLoop 2");
          return false;
       }
@@ -271,9 +268,8 @@ namespace ORB_SLAM2
 
       if (mvpEnoughConsistentCandidates.empty())
       {
-         if (mpCurrentKF->SetErase(&mMap, &mKeyFrameDB))
-            mapChanges.deletedKeyFrames.insert(mpCurrentKF->GetId());
-         NotifyMapChanged(mapChanges);
+         mpCurrentKF->SetErase(&mMap, &mKeyFrameDB);
+         NotifyMapChanged(mMap);
          Print("end DetectLoop 3");
          return false;
       }
@@ -284,9 +280,8 @@ namespace ORB_SLAM2
       }
 
       // never reached?
-      if (mpCurrentKF->SetErase(&mMap, &mKeyFrameDB))
-         mapChanges.deletedKeyFrames.insert(mpCurrentKF->GetId());
-      NotifyMapChanged(mapChanges);
+      mpCurrentKF->SetErase(&mMap, &mKeyFrameDB);
+      NotifyMapChanged(mMap);
       Print("end DetectLoop 5");
       return false;
    }
@@ -294,7 +289,6 @@ namespace ORB_SLAM2
    bool LoopClosing::ComputeSim3()
    {
       Print("begin ComputeSim3");
-      MapChangeEvent mapChanges;
 
       // For each consistent loop candidate we try to compute a Sim3
 
@@ -411,12 +405,10 @@ namespace ORB_SLAM2
       {
          for (int i = 0; i < nInitialCandidates; i++)
          {
-            if (mvpEnoughConsistentCandidates[i]->SetErase(&mMap, &mKeyFrameDB))
-               mapChanges.deletedKeyFrames.insert(mvpEnoughConsistentCandidates[i]->GetId());
+            mvpEnoughConsistentCandidates[i]->SetErase(&mMap, &mKeyFrameDB);
          }
-         if (mpCurrentKF->SetErase(&mMap, &mKeyFrameDB))
-            mapChanges.deletedKeyFrames.insert(mpCurrentKF->GetId());
-         NotifyMapChanged(mapChanges);
+         mpCurrentKF->SetErase(&mMap, &mKeyFrameDB);
+         NotifyMapChanged(mMap);
          Print("end ComputeSim3 1");
          return false;
       }
@@ -459,10 +451,9 @@ namespace ORB_SLAM2
          for (int i = 0; i < nInitialCandidates; i++)
          {
             if (mvpEnoughConsistentCandidates[i] != mpMatchedKF)
-               if (mvpEnoughConsistentCandidates[i]->SetErase(&mMap, &mKeyFrameDB))
-                  mapChanges.deletedKeyFrames.insert(mvpEnoughConsistentCandidates[i]->GetId());
+               mvpEnoughConsistentCandidates[i]->SetErase(&mMap, &mKeyFrameDB);
          }
-         NotifyMapChanged(mapChanges);
+         NotifyMapChanged(mMap);
          Print("end ComputeSim3 2");
          return true;
       }
@@ -470,12 +461,10 @@ namespace ORB_SLAM2
       {
          for (int i = 0; i < nInitialCandidates; i++)
          {
-            if (mvpEnoughConsistentCandidates[i]->SetErase(&mMap, &mKeyFrameDB))
-               mapChanges.deletedKeyFrames.insert(mvpEnoughConsistentCandidates[i]->GetId());
+            mvpEnoughConsistentCandidates[i]->SetErase(&mMap, &mKeyFrameDB);
          }
-         if (mpCurrentKF->SetErase(&mMap, &mKeyFrameDB))
-            mapChanges.deletedKeyFrames.insert(mpCurrentKF->GetId());
-         NotifyMapChanged(mapChanges);
+         mpCurrentKF->SetErase(&mMap, &mKeyFrameDB);
+         NotifyMapChanged(mMap);
          Print("end ComputeSim3 3");
          return false;
       }
@@ -486,7 +475,6 @@ namespace ORB_SLAM2
    {
       Print("begin CorrectLoop");
       Print("Loop detected!");
-      MapChangeEvent mapChanges;
 
       // Send a stop signal to Local Mapping
       // Avoid new keyframes are inserted while correcting the loop
@@ -520,8 +508,6 @@ namespace ORB_SLAM2
 
       // Ensure current keyframe is updated
       mpCurrentKF->UpdateConnections();
-      // TODO OK - add to updated keyframes
-      mapChanges.updatedKeyFrames.insert(mpCurrentKF);
 
       // Retrive keyframes connected to the current keyframe and compute corrected Sim3 pose by propagation
       mvpCurrentConnectedKFs = mpCurrentKF->GetVectorCovisibleKeyFrames();
@@ -592,8 +578,6 @@ namespace ORB_SLAM2
                pMPi->mnCorrectedByKF = mpCurrentKF->GetId();
                pMPi->mnCorrectedReference = pKFi->GetId();
                pMPi->UpdateNormalAndDepth();
-               // TODO OK - add to updated points
-               mapChanges.updatedMapPoints.insert(pMPi);
             }
 
             // Update keyframe pose with corrected Sim3. First transform Sim3 to SE3 (scale translation)
@@ -609,9 +593,6 @@ namespace ORB_SLAM2
 
             // Make sure connections are updated
             pKFi->UpdateConnections();
-
-            // TODO OK - add to updated keyframes
-            mapChanges.updatedKeyFrames.insert(pKFi);
          }
 
          // Start Loop Fusion
@@ -626,18 +607,12 @@ namespace ORB_SLAM2
                if (pCurMP)
                {
                   pCurMP->Replace(pLoopMP, &mMap);
-                  // TODO OK - add pCurMP to deleted points
-                  mapChanges.deletedMapPoints.insert(pCurMP->GetId());
-                  // TODO OK - add pLoopMP to updated points
-                  mapChanges.updatedMapPoints.insert(pLoopMP);
                }
                else
                {
                   mpCurrentKF->AddMapPoint(pLoopMP, i);
                   pLoopMP->AddObservation(mpCurrentKF, i);
                   pLoopMP->ComputeDistinctiveDescriptors();
-                  // TODO OK - add to updated points
-                  mapChanges.updatedMapPoints.insert(pLoopMP);
                }
             }
          }
@@ -647,7 +622,7 @@ namespace ORB_SLAM2
       // Project MapPoints observed in the neighborhood of the loop keyframe
       // into the current keyframe and neighbors using corrected poses.
       // Fuse duplications.
-      SearchAndFuse(CorrectedSim3, mapChanges);
+      SearchAndFuse(CorrectedSim3);
 
 
       // After the MapPoint fusion, new links in the covisibility graph will appear attaching both sides of the loop
@@ -661,8 +636,6 @@ namespace ORB_SLAM2
 
          // Update connections. Detect new links.
          pKFi->UpdateConnections();
-         // TODO OK - add to updated keyframes
-         mapChanges.updatedKeyFrames.insert(pKFi);
 
          LoopConnections[pKFi] = pKFi->GetConnectedKeyFrames();
          for (vector<KeyFrame*>::iterator vit_prev = vpPreviousNeighbors.begin(), vend_prev = vpPreviousNeighbors.end(); vit_prev != vend_prev; vit_prev++)
@@ -676,21 +649,17 @@ namespace ORB_SLAM2
       }
 
       // Optimize graph
-      Optimizer::OptimizeEssentialGraph(mMap, mpMatchedKF, mpCurrentKF, NonCorrectedSim3, CorrectedSim3, LoopConnections, mbFixScale, mapChanges);
+      Optimizer::OptimizeEssentialGraph(mMap, mpMatchedKF, mpCurrentKF, NonCorrectedSim3, CorrectedSim3, LoopConnections, mbFixScale);
       // TODO OK - detect map changes in Optimizer
 
       mMap.InformNewBigChange();
 
       // Add loop edge
       mpMatchedKF->AddLoopEdge(mpCurrentKF);
-      // TODO OK - add to updated keyframes
-      mapChanges.updatedKeyFrames.insert(mpMatchedKF);
-
       mpCurrentKF->AddLoopEdge(mpMatchedKF);
 
       // notify observers about map changes before starting bundle adjustment, which may have further map changes
-      Print("NotifyMapChanged");
-      NotifyMapChanged(mapChanges);
+      NotifyMapChanged(mMap);
 
       // Launch a new thread to perform Global Bundle Adjustment
       mbRunningGBA = true;
@@ -705,7 +674,7 @@ namespace ORB_SLAM2
       Print("end CorrectLoop");
    }
 
-   void LoopClosing::SearchAndFuse(const KeyFrameAndPose &CorrectedPosesMap, MapChangeEvent & mapChanges)
+   void LoopClosing::SearchAndFuse(const KeyFrameAndPose &CorrectedPosesMap)
    {
       Print("begin SearchAndFuse");
       ORBmatcher matcher(0.8);
@@ -718,7 +687,7 @@ namespace ORB_SLAM2
          cv::Mat cvScw = Converter::toCvMat(g2oScw);
 
          vector<MapPoint*> vpReplacePoints(mvpLoopMapPoints.size(), static_cast<MapPoint*>(NULL));
-         matcher.Fuse(mapChanges, pKF, cvScw, mvpLoopMapPoints, 4, vpReplacePoints);
+         matcher.Fuse(pKF, cvScw, mvpLoopMapPoints, 4, vpReplacePoints);
 
          // Get Map Mutex
          Print("unique_lock<mutex> lock(mMutexMapUpdate);");
@@ -730,10 +699,6 @@ namespace ORB_SLAM2
             if (pRep)
             {
                pRep->Replace(mvpLoopMapPoints[i], &mMap);
-               // TODO OK - add pRep to deleted points
-               mapChanges.deletedMapPoints.insert(pRep->GetId());
-               // TODO OK - add mvpLoopMapPoints[i] to updated points
-               mapChanges.updatedMapPoints.insert(mvpLoopMapPoints[i]);
             }
          }
       }
@@ -777,8 +742,7 @@ namespace ORB_SLAM2
       Print("Starting Global Bundle Adjustment");
 
       int idx = mnFullBAIdx;
-      MapChangeEvent mapChanges;
-      Optimizer::GlobalBundleAdjustment(mMap, mapChanges, 10, &mbStopGBA, loopKeyFrameId, false);
+      Optimizer::GlobalBundleAdjustment(mMap, 10, &mbStopGBA, loopKeyFrameId, false);
 
 
       // Update all MapPoints and KeyFrames
@@ -789,8 +753,7 @@ namespace ORB_SLAM2
          unique_lock<mutex> lock(mMutexGBA);
          if (idx != mnFullBAIdx)
          {
-            Print("NotifyMapChanged(mapChanges);");
-            NotifyMapChanged(mapChanges);
+            NotifyMapChanged(mMap);
             return;
          }
 
@@ -833,8 +796,6 @@ namespace ORB_SLAM2
 
                pKF->mTcwBefGBA = pKF->GetPose();
                pKF->SetPose(pKF->mTcwGBA);
-               // TODO OK - add to map changes
-               mapChanges.updatedKeyFrames.insert(pKF);
                lpKFtoCheck.pop_front();
             }
 
@@ -852,8 +813,6 @@ namespace ORB_SLAM2
                {
                   // If optimized by Global BA, just update
                   pMP->SetWorldPos(pMP->mPosGBA);
-                  // TODO OK - add to map changes
-                  mapChanges.updatedMapPoints.insert(pMP);
                }
                else
                {
@@ -876,13 +835,11 @@ namespace ORB_SLAM2
                   cv::Mat twc = Twc.rowRange(0, 3).col(3);
 
                   pMP->SetWorldPos(Rwc*Xc + twc);
-                  // TODO OK - add to map changes
-                  mapChanges.updatedMapPoints.insert(pMP);
                }
             }
 
             Print("NotifyMapChanged(mapChanges);");
-            NotifyMapChanged(mapChanges);
+            NotifyMapChanged(mMap);
             mMap.InformNewBigChange();
 
             mpLocalMapper->Resume();

@@ -88,16 +88,16 @@ namespace ORB_SLAM2
 
       bool CheckNewKeyFrames();
 
-      void ProcessNewKeyFrame(MapChangeEvent & mapChanges);
+      void ProcessNewKeyFrame();
 
-      void CreateNewMapPoints(MapChangeEvent & mapChanges);
+      void CreateNewMapPoints();
 
       // iterate through the new MapPoints (that were added by the new KeyFrame) and remove low-quality MapPoints
-      void MapPointCulling(MapChangeEvent & mapChanges);
+      void MapPointCulling();
 
-      void SearchInNeighbors(MapChangeEvent & mapChanges);
+      void SearchInNeighbors();
 
-      void KeyFrameCulling(MapChangeEvent & mapChanges);
+      void KeyFrameCulling();
 
       cv::Mat ComputeF12(KeyFrame * &pKF1, KeyFrame * &pKF2);
 

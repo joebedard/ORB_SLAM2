@@ -101,7 +101,7 @@ namespace ORB_SLAM2
 
       bool ComputeSim3();
 
-      void SearchAndFuse(const KeyFrameAndPose &CorrectedPosesMap, MapChangeEvent & mapChanges);
+      void SearchAndFuse(const KeyFrameAndPose &CorrectedPosesMap);
 
       void CorrectLoop();
 

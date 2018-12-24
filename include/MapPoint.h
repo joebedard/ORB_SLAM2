@@ -93,6 +93,9 @@ namespace ORB_SLAM2
       int PredictScale(const float &currentDist, KeyFrame*pKF);
       int PredictScale(const float &currentDist, Frame* pF);
 
+      bool GetModified();
+      void SetModified(bool b);
+
       static MapPoint * Find(const id_type id, const Map & map, std::unordered_map<id_type, MapPoint *> & newMapPoints);
 
       static size_t GetVectorBufferSize(const std::vector<MapPoint *> & mpv);
@@ -192,6 +195,9 @@ namespace ORB_SLAM2
 
    private:
       id_type mnId;
+
+      mutex mMutexModified;
+      bool mModified;
 
       struct Header
       {

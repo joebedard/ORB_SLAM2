@@ -121,6 +121,9 @@ namespace ORB_SLAM2
       // Compute Scene Depth (q=2 median). Used in monocular.
       float ComputeSceneMedianDepth(const int q);
 
+      bool GetModified();
+      void SetModified(bool b);
+
       static KeyFrame * Find(id_type id, const Map & map, std::unordered_map<id_type, KeyFrame *> & newKeyFrames);
 
       static void * Read(
@@ -320,6 +323,9 @@ namespace ORB_SLAM2
       // Grid (to speed up feature matching)
       const int mnGridCols;
       const int mnGridRows;
+
+      std::mutex mMutexModified;
+      bool mModified;
 
       static id_type PeekId(const void * data);
 
