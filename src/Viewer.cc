@@ -188,7 +188,7 @@ namespace ORB_SLAM2
       for (int i = 0; i < mvFrameDrawers.size(); ++i)
       {
          FrameDrawer * fd = mvFrameDrawers[i];
-         string name("Tracker View "); name.append(to_string(i));
+         string name("Tracker View "); name.append(to_string(i+1));
          if (mEmbeddedFrameDrawers)
          {
             cv::Mat im = fd->DrawFrame();
