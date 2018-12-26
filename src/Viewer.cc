@@ -148,7 +148,10 @@ namespace ORB_SLAM2
          .SetBounds(0.5, 1.0, pangolin::Attach::Pix(-MENU_WIDTH), 1.0)
          .SetLayout(pangolin::LayoutVertical);
 
-      pangolin::Var<bool> menuFollowCamera("menu.Follow Camera", true, true);
+      pangolin::Var<bool> * pMenuFollowCamera = NULL;
+      if (mvTrackers.size() == 1)
+         pMenuFollowCamera = new pangolin::Var<bool>("menu.Follow Camera", true, true);
+
       pangolin::Var<bool> menuShowPoints("menu.Show Points", true, true);
       pangolin::Var<bool> menuShowKeyFrames("menu.Show KeyFrames", true, true);
       pangolin::Var<bool> menuShowGraph("menu.Show Graph", true, true);
@@ -247,7 +250,7 @@ namespace ORB_SLAM2
 
          // draw the map
          {
-            if (menuFollowCamera)
+            if (pMenuFollowCamera && *pMenuFollowCamera)
             {
                mpMapDrawer->Follow(*vMapState);
             }
@@ -336,7 +339,8 @@ namespace ORB_SLAM2
                   *vMenuLocalizationModes[i] = false;
                }
             }
-            menuFollowCamera = true;
+            if (pMenuFollowCamera)
+               *pMenuFollowCamera = true;
             mMapper.Reset();
             mbResetting = false;
             menuReset = false;
