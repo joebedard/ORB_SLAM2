@@ -170,18 +170,22 @@ void RunTracker(int threadId) try
    LoadImages(gTrackerAssocFileName[threadId], vstrImageFilenamesRGB, vstrImageFilenamesD, vTimestamps);
 
    // Check consistency in the number of images and depthmaps
-   int nImages = vstrImageFilenamesRGB.size();
    if(vstrImageFilenamesRGB.empty())
    {
-      throw exception("No images found in provided path.");
+      throw exception("No RGB images found in provided path.");
    }
-   else if(vstrImageFilenamesD.size()!=vstrImageFilenamesRGB.size())
+   if(vstrImageFilenamesD.empty())
+   {
+      throw exception("No depth images found in provided path.");
+   }
+   if(vstrImageFilenamesD.size()!=vstrImageFilenamesRGB.size())
    {
       throw exception("Different number of images for rgb and depth.");
    }
+   const int nImages = vstrImageFilenamesRGB.size();
 
    // Vector for tracking time statistics
-   vector<float> vTimesTrack;
+   vector<float> & vTimesTrack = gThreadParams[threadId].timesTrack;
    vTimesTrack.resize(nImages);
 
    // Main loop
