@@ -67,12 +67,12 @@ namespace ORB_SLAM2
             continue;
          g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
          vSE3->setEstimate(Converter::toSE3Quat(pKF->GetPose()));
-         vSE3->setId(pKF->GetId());
-         vSE3->setFixed(pKF->GetId() == 0);
+         vSE3->setId(pKF->id);
+         vSE3->setFixed(pKF->id == 0);
          if (!optimizer.addVertex(vSE3))
             Print("optimizer.addVertex(vSE3) failed");
-         if (pKF->GetId() > maxKFid)
-            maxKFid = pKF->GetId();
+         if (pKF->id > maxKFid)
+            maxKFid = pKF->id;
       }
 
       const float thHuber2D = sqrt(5.99);
@@ -86,7 +86,7 @@ namespace ORB_SLAM2
             continue;
          g2o::VertexSBAPointXYZ* vPoint = new g2o::VertexSBAPointXYZ();
          vPoint->setEstimate(Converter::toVector3d(pMP->GetWorldPos()));
-         const id_type id = pMP->GetId() + maxKFid + 1;
+         const id_type id = pMP->id + maxKFid + 1;
          if (id <= maxKFid)
             throw exception("Optimizer::GlobalBundleAdjustment: maximum id exceeded");
          vPoint->setId(id);
@@ -102,7 +102,7 @@ namespace ORB_SLAM2
          {
 
             KeyFrame* pKF = mit->first;
-            if (pKF->isBad() || pKF->GetId() > maxKFid)
+            if (pKF->isBad() || pKF->id > maxKFid)
                continue;
 
             nEdges++;
@@ -117,7 +117,7 @@ namespace ORB_SLAM2
                g2o::EdgeSE3ProjectXYZ* e = new g2o::EdgeSE3ProjectXYZ();
 
                e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(id)));
-               e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKF->GetId())));
+               e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKF->id)));
                e->setMeasurement(obs);
                Eigen::Matrix2d info = Eigen::Matrix2d::Identity() * pKF->invLevelSigma2[kpUn.octave];
                e->setInformation(info);
@@ -146,7 +146,7 @@ namespace ORB_SLAM2
                g2o::EdgeStereoSE3ProjectXYZ* e = new g2o::EdgeStereoSE3ProjectXYZ();
 
                e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(id)));
-               e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKF->GetId())));
+               e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKF->id)));
                e->setMeasurement(obs);
                Eigen::Matrix3d info = Eigen::Matrix3d::Identity() * pKF->invLevelSigma2[kpUn.octave];
                e->setInformation(info);
@@ -203,7 +203,7 @@ namespace ORB_SLAM2
          KeyFrame* pKF = vpKFs[i];
          if (pKF->isBad())
             continue;
-         g2o::VertexSE3Expmap* vSE3 = static_cast<g2o::VertexSE3Expmap*>(optimizer.vertex(pKF->GetId()));
+         g2o::VertexSE3Expmap* vSE3 = static_cast<g2o::VertexSE3Expmap*>(optimizer.vertex(pKF->id));
          g2o::SE3Quat SE3quat = vSE3->estimate();
          if (loopKeyFrameId == 0)
          {
@@ -228,7 +228,7 @@ namespace ORB_SLAM2
 
          if (pMP->isBad())
             continue;
-         g2o::VertexSBAPointXYZ* vPoint = static_cast<g2o::VertexSBAPointXYZ*>(optimizer.vertex(pMP->GetId() + maxKFid + 1));
+         g2o::VertexSBAPointXYZ* vPoint = static_cast<g2o::VertexSBAPointXYZ*>(optimizer.vertex(pMP->id + maxKFid + 1));
 
          if (loopKeyFrameId == 0)
          {
@@ -538,14 +538,14 @@ namespace ORB_SLAM2
       Print("map is locked");
 
       lLocalKeyFrames.push_back(pKF);
-      pKF->mnBALocalForKF = pKF->GetId();
+      pKF->mnBALocalForKF = pKF->id;
 
       // Local KeyFrames: First Breath Search from Current Keyframe
       const vector<KeyFrame*> vNeighKFs = pKF->GetVectorCovisibleKeyFrames();
       for (int i = 0, iend = vNeighKFs.size(); i < iend; i++)
       {
          KeyFrame* pKFi = vNeighKFs[i];
-         pKFi->mnBALocalForKF = pKF->GetId();
+         pKFi->mnBALocalForKF = pKF->id;
          if (!pKFi->isBad())
             lLocalKeyFrames.push_back(pKFi);
       }
@@ -559,10 +559,10 @@ namespace ORB_SLAM2
             MapPoint* pMP = *vit;
             if (pMP)
                if (!pMP->isBad())
-                  if (pMP->mnBALocalForKF != pKF->GetId())
+                  if (pMP->mnBALocalForKF != pKF->id)
                   {
                      lLocalMapPoints.push_back(pMP);
-                     pMP->mnBALocalForKF = pKF->GetId();
+                     pMP->mnBALocalForKF = pKF->id;
                   }
          }
       }
@@ -576,9 +576,9 @@ namespace ORB_SLAM2
          {
             KeyFrame* pKFi = mit->first;
 
-            if (pKFi->mnBALocalForKF != pKF->GetId() && pKFi->mnBAFixedForKF != pKF->GetId())
+            if (pKFi->mnBALocalForKF != pKF->id && pKFi->mnBAFixedForKF != pKF->id)
             {
-               pKFi->mnBAFixedForKF = pKF->GetId();
+               pKFi->mnBAFixedForKF = pKF->id;
                if (!pKFi->isBad())
                   lFixedCameras.push_back(pKFi);
             }
@@ -591,12 +591,12 @@ namespace ORB_SLAM2
          KeyFrame* pKFi = *lit;
          g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
          vSE3->setEstimate(Converter::toSE3Quat(pKFi->GetPose()));
-         vSE3->setId(pKFi->GetId());
-         vSE3->setFixed(pKFi->GetId() == 0);
+         vSE3->setId(pKFi->id);
+         vSE3->setFixed(pKFi->id == 0);
          if (!optimizer.addVertex(vSE3))
             Print("optimizer.addVertex(vSE3)) failed");
-         if (pKFi->GetId() > maxKFid)
-            maxKFid = pKFi->GetId();
+         if (pKFi->id > maxKFid)
+            maxKFid = pKFi->id;
       }
 
       // Set Fixed KeyFrame vertices
@@ -605,12 +605,12 @@ namespace ORB_SLAM2
          KeyFrame* pKFi = *lit;
          g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
          vSE3->setEstimate(Converter::toSE3Quat(pKFi->GetPose()));
-         vSE3->setId(pKFi->GetId());
+         vSE3->setId(pKFi->id);
          vSE3->setFixed(true);
          if (!optimizer.addVertex(vSE3))
             Print("optimizer.addVertex(vSE3) failed");
-         if (pKFi->GetId() > maxKFid)
-            maxKFid = pKFi->GetId();
+         if (pKFi->id > maxKFid)
+            maxKFid = pKFi->id;
       }
 
       // Set MapPoint vertices
@@ -631,7 +631,7 @@ namespace ORB_SLAM2
          MapPoint* pMP = *lit;
          g2o::VertexSBAPointXYZ* vPoint = new g2o::VertexSBAPointXYZ();
          vPoint->setEstimate(Converter::toVector3d(pMP->GetWorldPos()));
-         id_type id = pMP->GetId() + maxKFid + 1;
+         id_type id = pMP->id + maxKFid + 1;
          if (id < maxKFid)
             throw exception("Optimizer::LocalBundleAdjustment: maximum id exceeded");
          vPoint->setId(id);
@@ -659,7 +659,7 @@ namespace ORB_SLAM2
                   g2o::EdgeSE3ProjectXYZ* e = new g2o::EdgeSE3ProjectXYZ();
 
                   e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(id)));
-                  e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKFi->GetId())));
+                  e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKFi->id)));
                   e->setMeasurement(obs);
                   const float &invSigma2 = pKFi->invLevelSigma2[kpUn.octave];
                   e->setInformation(Eigen::Matrix2d::Identity()*invSigma2);
@@ -687,7 +687,7 @@ namespace ORB_SLAM2
                   g2o::EdgeStereoSE3ProjectXYZ* e = new g2o::EdgeStereoSE3ProjectXYZ();
 
                   e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(id)));
-                  e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKFi->GetId())));
+                  e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKFi->id)));
                   e->setMeasurement(obs);
                   const float &invSigma2 = pKFi->invLevelSigma2[kpUn.octave];
                   Eigen::Matrix3d Info = Eigen::Matrix3d::Identity()*invSigma2;
@@ -827,7 +827,7 @@ namespace ORB_SLAM2
       for (list<KeyFrame*>::iterator lit = lLocalKeyFrames.begin(), lend = lLocalKeyFrames.end(); lit != lend; lit++)
       {
          KeyFrame* pKF = *lit;
-         g2o::VertexSE3Expmap* vSE3 = static_cast<g2o::VertexSE3Expmap*>(optimizer.vertex(pKF->GetId()));
+         g2o::VertexSE3Expmap* vSE3 = static_cast<g2o::VertexSE3Expmap*>(optimizer.vertex(pKF->id));
          g2o::SE3Quat SE3quat = vSE3->estimate();
          pKF->SetPose(Converter::toCvMat(SE3quat));
       }
@@ -836,7 +836,7 @@ namespace ORB_SLAM2
       for (list<MapPoint*>::iterator lit = lLocalMapPoints.begin(), lend = lLocalMapPoints.end(); lit != lend; lit++)
       {
          MapPoint* pMP = *lit;
-         g2o::VertexSBAPointXYZ* vPoint = static_cast<g2o::VertexSBAPointXYZ*>(optimizer.vertex(pMP->GetId() + maxKFid + 1));
+         g2o::VertexSBAPointXYZ* vPoint = static_cast<g2o::VertexSBAPointXYZ*>(optimizer.vertex(pMP->id + maxKFid + 1));
          pMP->SetWorldPos(Converter::toCvMat(vPoint->estimate()));
          pMP->UpdateNormalAndDepth();
       }
@@ -943,7 +943,7 @@ namespace ORB_SLAM2
             continue;
          g2o::VertexSim3Expmap* VSim3 = new g2o::VertexSim3Expmap();
 
-         const id_type nIDi = pKF->GetId();
+         const id_type nIDi = pKF->id;
 
          LoopClosing::KeyFrameAndPose::const_iterator it = CorrectedSim3.find(pKF);
 
@@ -983,15 +983,15 @@ namespace ORB_SLAM2
       for (std::map<KeyFrame *, set<KeyFrame *> >::const_iterator mit = LoopConnections.begin(), mend = LoopConnections.end(); mit != mend; mit++)
       {
          KeyFrame* pKF = mit->first;
-         const long unsigned int nIDi = pKF->GetId();
+         const long unsigned int nIDi = pKF->id;
          const set<KeyFrame*> &spConnections = mit->second;
          const g2o::Sim3 Siw = vScw[nIDi];
          const g2o::Sim3 Swi = Siw.inverse();
 
          for (set<KeyFrame*>::const_iterator sit = spConnections.begin(), send = spConnections.end(); sit != send; sit++)
          {
-            const long unsigned int nIDj = (*sit)->GetId();
-            if ((nIDi != pCurKF->GetId() || nIDj != pLoopKF->GetId()) && pKF->GetWeight(*sit) < minFeat)
+            const long unsigned int nIDj = (*sit)->id;
+            if ((nIDi != pCurKF->id || nIDj != pLoopKF->id) && pKF->GetWeight(*sit) < minFeat)
                continue;
 
             const g2o::Sim3 Sjw = vScw[nIDj];
@@ -1013,7 +1013,7 @@ namespace ORB_SLAM2
       // Set normal edges
       for (KeyFrame * pKF : vpKFs)
       {
-         const int nIDi = pKF->GetId();
+         const int nIDi = pKF->id;
 
          g2o::Sim3 Swi;
 
@@ -1029,7 +1029,7 @@ namespace ORB_SLAM2
          // Spanning tree edge
          if (pParentKF)
          {
-            int nIDj = pParentKF->GetId();
+            int nIDj = pParentKF->id;
 
             g2o::Sim3 Sjw;
 
@@ -1056,7 +1056,7 @@ namespace ORB_SLAM2
          for (set<KeyFrame*>::const_iterator sit = sLoopEdges.begin(), send = sLoopEdges.end(); sit != send; sit++)
          {
             KeyFrame* pLKF = *sit;
-            if (pLKF->GetId() < pKF->GetId())
+            if (pLKF->id < pKF->id)
             {
                g2o::Sim3 Slw;
 
@@ -1065,11 +1065,11 @@ namespace ORB_SLAM2
                if (itl != NonCorrectedSim3.end())
                   Slw = itl->second;
                else
-                  Slw = vScw[pLKF->GetId()];
+                  Slw = vScw[pLKF->id];
 
                g2o::Sim3 Sli = Slw * Swi;
                g2o::EdgeSim3* el = new g2o::EdgeSim3();
-               el->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pLKF->GetId())));
+               el->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pLKF->id)));
                el->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(nIDi)));
                el->setMeasurement(Sli);
                el->information() = matLambda;
@@ -1084,9 +1084,9 @@ namespace ORB_SLAM2
             KeyFrame* pKFn = *vit;
             if (pKFn && pKFn != pParentKF && !pKF->hasChild(pKFn) && !sLoopEdges.count(pKFn))
             {
-               if (!pKFn->isBad() && pKFn->GetId() < pKF->GetId())
+               if (!pKFn->isBad() && pKFn->id < pKF->id)
                {
-                  if (sInsertedEdges.count(make_pair(min(pKF->GetId(), pKFn->GetId()), max(pKF->GetId(), pKFn->GetId()))))
+                  if (sInsertedEdges.count(make_pair(min(pKF->id, pKFn->id), max(pKF->id, pKFn->id))))
                      continue;
 
                   g2o::Sim3 Snw;
@@ -1096,12 +1096,12 @@ namespace ORB_SLAM2
                   if (itn != NonCorrectedSim3.end())
                      Snw = itn->second;
                   else
-                     Snw = vScw[pKFn->GetId()];
+                     Snw = vScw[pKFn->id];
 
                   g2o::Sim3 Sni = Snw * Swi;
 
                   g2o::EdgeSim3* en = new g2o::EdgeSim3();
-                  en->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKFn->GetId())));
+                  en->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKFn->id)));
                   en->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(nIDi)));
                   en->setMeasurement(Sni);
                   en->information() = matLambda;
@@ -1130,7 +1130,7 @@ namespace ORB_SLAM2
       {
          KeyFrame* pKFi = vpKFs[i];
 
-         const int nIDi = pKFi->GetId();
+         const int nIDi = pKFi->id;
 
          g2o::VertexSim3Expmap* VSim3 = static_cast<g2o::VertexSim3Expmap*>(optimizer.vertex(nIDi));
          g2o::Sim3 CorrectedSiw = VSim3->estimate();
@@ -1155,7 +1155,7 @@ namespace ORB_SLAM2
             continue;
 
          int nIDr;
-         if (pMP->mnCorrectedByKF == pCurKF->GetId())
+         if (pMP->mnCorrectedByKF == pCurKF->id)
          {
             nIDr = pMP->mnCorrectedReference;
          }
@@ -1164,7 +1164,7 @@ namespace ORB_SLAM2
             KeyFrame * pRefKF = pMP->GetReferenceKeyFrame();
             if (pRefKF == NULL)
                throw exception("Optimizer::RecoverGraphOptimize detected a MapPoint without a reference KeyFrame");
-            nIDr = pRefKF->GetId();
+            nIDr = pRefKF->id;
          }
 
 

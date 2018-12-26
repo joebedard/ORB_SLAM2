@@ -52,8 +52,6 @@ namespace ORB_SLAM2
 
       KeyFrame(id_type id, Frame &F);
 
-      id_type GetId();
-
       // Pose functions
       void SetPose(const cv::Mat &Tcw);
       cv::Mat GetPose();
@@ -177,7 +175,8 @@ namespace ORB_SLAM2
    // The following variables are accesed from only 1 thread or never change (no mutex needed).
    public:
 
-      // read-only access to private variable
+      const id_type & id;
+
       const double & timestamp;
 
       // Variables used by the tracking

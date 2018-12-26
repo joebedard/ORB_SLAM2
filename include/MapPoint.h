@@ -48,8 +48,6 @@ namespace ORB_SLAM2
       // tracking or mapping constructor
       MapPoint(id_type id, const cv::Mat &Pos, KeyFrame* pRefKF);
 
-      id_type MapPoint::GetId();
-
       void SetWorldPos(const cv::Mat &Pos);
       cv::Mat GetWorldPos();
 
@@ -135,7 +133,10 @@ namespace ORB_SLAM2
       void * WriteBytes(void * const buffer);
 
    public:
-      id_type mnFirstKFid;
+      
+      const id_type & id;
+
+      const id_type & firstKFid;
 
       // Variables used by the tracking
       float mTrackProjX;
@@ -161,6 +162,9 @@ namespace ORB_SLAM2
       static std::mutex mGlobalMutex;
 
    private:
+
+      id_type mnFirstKFid;
+
       int nObs;
 
       // Position in absolute coordinates

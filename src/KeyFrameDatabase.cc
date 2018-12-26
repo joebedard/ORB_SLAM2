@@ -101,12 +101,12 @@ namespace ORB_SLAM2
             for (list<KeyFrame*>::iterator lit = lKFs.begin(), lend = lKFs.end(); lit != lend; lit++)
             {
                KeyFrame* pKFi = *lit;
-               if (pKFi->mnLoopQuery != pKF->GetId())
+               if (pKFi->mnLoopQuery != pKF->id)
                {
                   pKFi->mnLoopWords = 0;
                   if (!spConnectedKeyFrames.count(pKFi))
                   {
-                     pKFi->mnLoopQuery = pKF->GetId();
+                     pKFi->mnLoopQuery = pKF->id;
                      lKFsSharingWords.push_back(pKFi);
                   }
                }
@@ -173,7 +173,7 @@ namespace ORB_SLAM2
          for (vector<KeyFrame*>::iterator vit = vpNeighs.begin(), vend = vpNeighs.end(); vit != vend; vit++)
          {
             KeyFrame* pKF2 = *vit;
-            if (pKF2->mnLoopQuery == pKF->GetId() && pKF2->mnLoopWords > minCommonWords)
+            if (pKF2->mnLoopQuery == pKF->id && pKF2->mnLoopWords > minCommonWords)
             {
                accScore += pKF2->mLoopScore;
                if (pKF2->mLoopScore > bestScore)

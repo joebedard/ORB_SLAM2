@@ -37,6 +37,7 @@ namespace ORB_SLAM2
       , mnGridRows(FRAME_GRID_ROWS)
 
       // public read-only access to private variables
+      , id(mnId)
       , timestamp(mTimestamp)
       , N(mN)
       , keysUn(mvKeysUn)
@@ -95,6 +96,9 @@ namespace ORB_SLAM2
       // public constants
       , mnGridCols(FRAME_GRID_COLS)
       , mnGridRows(FRAME_GRID_ROWS)
+
+      // public read-only access to private variables
+      , id(mnId)
       , timestamp(mTimestamp)
       , N(mN)
       , keysUn(mvKeysUn)
@@ -117,11 +121,6 @@ namespace ORB_SLAM2
          throw exception("KeyFrame::KeyFrame(id_type id, Frame & frame) : frame.mTcw is empty");
 
       SetPose(frame.mTcw);
-   }
-
-   id_type KeyFrame::GetId()
-   {
-      return mnId;
    }
 
    KeyFrame * KeyFrame::Find(id_type id, const Map & map, std::unordered_map<id_type, KeyFrame *> & newKeyFrames)
@@ -170,7 +169,7 @@ namespace ORB_SLAM2
       {
          //SyncPrint::Print("KeyFrame: ", pMP ? "pMP != NULL" : "pMP == NULL");
          if (pMP)
-            *pData = pMP->GetId();
+            *pData = pMP->id;
          else
             *pData = (id_type)-1;
          ++pData;
@@ -209,7 +208,7 @@ namespace ORB_SLAM2
       KeyFrameWeight * pData = (KeyFrameWeight *)(pQuantity + 1);
       for (std::pair<KeyFrame *, size_t> p : kfWeights)
       {
-         pData->keyFrameId = p.first->GetId();
+         pData->keyFrameId = p.first->id;
          pData->weight = p.second;
          ++pData;
       }
@@ -246,7 +245,7 @@ namespace ORB_SLAM2
       id_type * pData = (id_type *)(pQuantity + 1);
       for (KeyFrame * pKF : kfv)
       {
-         *pData = pKF->GetId();
+         *pData = pKF->id;
          ++pData;
       }
       return pData;
@@ -282,7 +281,7 @@ namespace ORB_SLAM2
       id_type * pData = (id_type *)(pQuantity + 1);
       for (KeyFrame * pKF : kfs)
       {
-         *pData = pKF->GetId();
+         *pData = pKF->id;
          ++pData;
       }
       return pData;
@@ -1177,7 +1176,7 @@ namespace ORB_SLAM2
       pHeader->mfLogScaleFactor = mfLogScaleFactor;
       pHeader->mbFirstConnection = mbFirstConnection;
       if (mpParent)
-         pHeader->parentKeyFrameId = mpParent->GetId();
+         pHeader->parentKeyFrameId = mpParent->id;
       else
          pHeader->parentKeyFrameId = (id_type)-1;
       pHeader->mbBad = mbBad;

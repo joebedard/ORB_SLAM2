@@ -132,7 +132,7 @@ namespace ORB_SLAM2
    {
       Print("begin InsertKeyFrame");
       unique_lock<mutex> lock(mMutexLoopQueue);
-      if (pKF->GetId() != 0)
+      if (pKF->id != 0)
          mlpLoopKeyFrameQueue.push_back(pKF);
       Print("end InsertKeyFrame");
    }
@@ -159,7 +159,7 @@ namespace ORB_SLAM2
       Print("begin DetectLoop");
 
       // If the map contains less than 10 KF or less than 10 KF have passed since last loop detection
-      if (mpCurrentKF->GetId() < mLastLoopKFid + 10)
+      if (mpCurrentKF->id < mLastLoopKFid + 10)
       {
          mKeyFrameDB.add(mpCurrentKF);
          mpCurrentKF->SetErase(&mMap, &mKeyFrameDB);
@@ -426,10 +426,10 @@ namespace ORB_SLAM2
             MapPoint* pMP = vpMapPoints[i];
             if (pMP)
             {
-               if (!pMP->isBad() && pMP->mnLoopPointForKF != mpCurrentKF->GetId())
+               if (!pMP->isBad() && pMP->mnLoopPointForKF != mpCurrentKF->id)
                {
                   mvpLoopMapPoints.push_back(pMP);
-                  pMP->mnLoopPointForKF = mpCurrentKF->GetId();
+                  pMP->mnLoopPointForKF = mpCurrentKF->id;
                }
             }
          }
@@ -565,7 +565,7 @@ namespace ORB_SLAM2
                   continue;
                if (pMPi->isBad())
                   continue;
-               if (pMPi->mnCorrectedByKF == mpCurrentKF->GetId())
+               if (pMPi->mnCorrectedByKF == mpCurrentKF->id)
                   continue;
 
                // Project with non-corrected pose and project back with corrected pose
@@ -575,8 +575,8 @@ namespace ORB_SLAM2
 
                cv::Mat cvCorrectedP3Dw = Converter::toCvMat(eigCorrectedP3Dw);
                pMPi->SetWorldPos(cvCorrectedP3Dw);
-               pMPi->mnCorrectedByKF = mpCurrentKF->GetId();
-               pMPi->mnCorrectedReference = pKFi->GetId();
+               pMPi->mnCorrectedByKF = mpCurrentKF->id;
+               pMPi->mnCorrectedReference = pKFi->id;
                pMPi->UpdateNormalAndDepth();
             }
 
@@ -665,12 +665,12 @@ namespace ORB_SLAM2
       mbRunningGBA = true;
       mbFinishedGBA = false;
       mbStopGBA = false;
-      mpThreadGBA = new thread(&LoopClosing::RunGlobalBundleAdjustment, this, mpCurrentKF->GetId());
+      mpThreadGBA = new thread(&LoopClosing::RunGlobalBundleAdjustment, this, mpCurrentKF->id);
 
       // Loop closed. Release Local Mapping.
       mpLocalMapper->Resume();
 
-      mLastLoopKFid = mpCurrentKF->GetId();
+      mLastLoopKFid = mpCurrentKF->id;
       Print("end CorrectLoop");
    }
 

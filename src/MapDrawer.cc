@@ -92,9 +92,9 @@ namespace ORB_SLAM2
          if (pos.empty())
          {
             stringstream ss;
-            ss << pMP->GetId() << "=MapPointId GetWorldPos() is empty! replaced=";
+            ss << pMP->id << "=MapPointId GetWorldPos() is empty! replaced=";
             ss << pMP->GetReplaced() ? "true" : "false";
-            //ss << mMap.GetReplacedMapPoint(pMP->GetId()) ? "true" : "false";
+            //ss << mMap.GetReplacedMapPoint(pMP->id) ? "true" : "false";
             Print(ss);
             //throw exception("GetWorldPos() is empty!!!!!!!!!!!!!!!!!!!!!!");
          }
@@ -116,7 +116,7 @@ namespace ORB_SLAM2
          cv::Mat pos = pMP->GetWorldPos();
          if (pos.empty())
          {
-            //Print(to_string(pMP->GetId()) + "=MapPointId GetWorldPos() is empty! replaced=" + (pMP->GetReplaced() ? "true" : "false"));
+            //Print(to_string(pMP->id) + "=MapPointId GetWorldPos() is empty! replaced=" + (pMP->GetReplaced() ? "true" : "false"));
             throw exception("GetWorldPos() is empty!!!!!!!!!!!!!!!!!!!!!!");
          }
          else
@@ -196,7 +196,7 @@ namespace ORB_SLAM2
             {
                for (vector<KeyFrame*>::const_iterator vit = vCovKFs.begin(), vend = vCovKFs.end(); vit != vend; vit++)
                {
-                  if ((*vit)->GetId() < vpKFs[i]->GetId())
+                  if ((*vit)->id < vpKFs[i]->id)
                      continue;
                   cv::Mat Ow2 = (*vit)->GetCameraCenter();
                   glVertex3f(Ow.at<float>(0), Ow.at<float>(1), Ow.at<float>(2));
@@ -217,7 +217,7 @@ namespace ORB_SLAM2
             set<KeyFrame*> sLoopKFs = vpKFs[i]->GetLoopEdges();
             for (set<KeyFrame*>::iterator sit = sLoopKFs.begin(), send = sLoopKFs.end(); sit != send; sit++)
             {
-               if ((*sit)->GetId() < vpKFs[i]->GetId())
+               if ((*sit)->id < vpKFs[i]->id)
                   continue;
                cv::Mat Owl = (*sit)->GetCameraCenter();
                glVertex3f(Ow.at<float>(0), Ow.at<float>(1), Ow.at<float>(2));

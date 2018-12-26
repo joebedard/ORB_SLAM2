@@ -40,9 +40,9 @@ namespace ORB_SLAM2
          throw exception("Map::AddKeyFrame: can not add a NULL KeyFrame *");
 
       unique_lock<mutex> lock(mMutexMap);
-      mKeyFrames[pKF->GetId()] = pKF;
-      if (pKF->GetId() > mnMaxKFid)
-         mnMaxKFid = pKF->GetId();
+      mKeyFrames[pKF->id] = pKF;
+      if (pKF->id > mnMaxKFid)
+         mnMaxKFid = pKF->id;
       Print("end AddKeyFrame");
    }
 
@@ -52,13 +52,13 @@ namespace ORB_SLAM2
          throw exception("Map::AddMapPoint: can not add a NULL MapPoint *");
 
       unique_lock<mutex> lock(mMutexMap);
-      mMapPoints[pMP->GetId()] = pMP;
+      mMapPoints[pMP->id] = pMP;
    }
 
    void Map::EraseMapPoint(MapPoint *pMP)
    {
       unique_lock<mutex> lock(mMutexMap);
-      mMapPoints.erase(pMP->GetId());
+      mMapPoints.erase(pMP->id);
 
       // TODO: This only erase the pointer.
       // Delete the MapPoint
@@ -76,7 +76,7 @@ namespace ORB_SLAM2
    void Map::EraseKeyFrame(KeyFrame *pKF)
    {
       unique_lock<mutex> lock(mMutexMap);
-      mKeyFrames.erase(pKF->GetId());
+      mKeyFrames.erase(pKF->id);
 
       // TODO: This only erase the pointer.
       // Delete the KeyFrame

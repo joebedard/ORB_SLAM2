@@ -89,7 +89,7 @@ namespace ORB_SLAM2
             if (pKF->GetModified())
             {
                if (pKF->isBad())
-                  mapChanges.deletedKeyFrames.insert(pKF->GetId());
+                  mapChanges.deletedKeyFrames.insert(pKF->id);
                else
                   mapChanges.updatedKeyFrames.insert(pKF);
             }
@@ -101,7 +101,7 @@ namespace ORB_SLAM2
             if (pMP->GetModified())
             {
                if (pMP->isBad())
-                  mapChanges.deletedMapPoints.insert(pMP->GetId());
+                  mapChanges.deletedMapPoints.insert(pMP->id);
                else
                   mapChanges.updatedMapPoints.insert(pMP);
             }

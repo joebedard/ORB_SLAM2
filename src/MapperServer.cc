@@ -250,10 +250,10 @@ namespace ORB_SLAM2
       // update TrackerStatus array with next KeyFrameId and MapPointId
       if (pKF)
       {
-         assert((pKF->GetId() - trackerId) % mKeyFrameIdSpan == 0);
-         if (mTrackerStatus[trackerId].nextKeyFrameId <= pKF->GetId())
+         assert((pKF->id - trackerId) % mKeyFrameIdSpan == 0);
+         if (mTrackerStatus[trackerId].nextKeyFrameId <= pKF->id)
          {
-            mTrackerStatus[trackerId].nextKeyFrameId = pKF->GetId() + mKeyFrameIdSpan;
+            mTrackerStatus[trackerId].nextKeyFrameId = pKF->id + mKeyFrameIdSpan;
          }
       }
    }
@@ -266,9 +266,9 @@ namespace ORB_SLAM2
       {
          if (pMP)
          {
-            assert((pMP->GetId() - trackerId) % mMapPointIdSpan == 0);
-            if (mTrackerStatus[trackerId].nextMapPointId <= pMP->GetId())
-               mTrackerStatus[trackerId].nextMapPointId = pMP->GetId() + mMapPointIdSpan;
+            assert((pMP->id - trackerId) % mMapPointIdSpan == 0);
+            if (mTrackerStatus[trackerId].nextMapPointId <= pMP->id)
+               mTrackerStatus[trackerId].nextMapPointId = pMP->id + mMapPointIdSpan;
          }
       }
    }

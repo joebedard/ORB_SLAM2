@@ -273,7 +273,7 @@ namespace ORB_SLAM2
       // Check Recent Added MapPoints
       list<MapPoint *> & recentAddedMapPoints = mRecentAddedMapPoints[mCurrentTrackerId];
       list<MapPoint *>::iterator lit = recentAddedMapPoints.begin();
-      const id_type nCurrentKFid = mpCurrentKeyFrame->GetId();
+      const id_type nCurrentKFid = mpCurrentKeyFrame->id;
       unsigned int quantBad = 0, quantLowFoundRatio = 0, quantLowObs = 0, quantVeryOld = 0;
 
       int nThObs;
@@ -294,28 +294,28 @@ namespace ORB_SLAM2
             // this shouldn't happen but if it does, remove it
             lit = recentAddedMapPoints.erase(lit);
             quantBad++;
-            //Print(to_string(pMP->GetId()) + "=MapPointId erased 1");
+            //Print(to_string(pMP->id) + "=MapPointId erased 1");
          }
          else if (pMP->GetFoundRatio() < 0.25f)
          {
             pMP->SetBadFlag(&mMap);
             lit = recentAddedMapPoints.erase(lit);
             quantLowFoundRatio++;
-            //Print(to_string(pMP->GetId()) + "=MapPointId erased 2");
+            //Print(to_string(pMP->id) + "=MapPointId erased 2");
          }
-         else if ((nCurrentKFid - pMP->mnFirstKFid) >= (2 * mKeyFrameIdSpan) && pMP->Observations() <= cnThObs)
+         else if ((nCurrentKFid - pMP->firstKFid) >= (2 * mKeyFrameIdSpan) && pMP->Observations() <= cnThObs)
          {
             pMP->SetBadFlag(&mMap);
             lit = recentAddedMapPoints.erase(lit);
             quantLowObs++;
-            //Print(to_string(pMP->GetId()) + "=MapPointId erased 3");
+            //Print(to_string(pMP->id) + "=MapPointId erased 3");
          }
-         else if ((nCurrentKFid - pMP->mnFirstKFid) >= (3 * mKeyFrameIdSpan))
+         else if ((nCurrentKFid - pMP->firstKFid) >= (3 * mKeyFrameIdSpan))
          {
             // this MapPoint was not recently added, so don't consider it for culling
             lit = recentAddedMapPoints.erase(lit);
             quantVeryOld++;
-            //Print(to_string(pMP->GetId()) + "=MapPointId removed 4");
+            //Print(to_string(pMP->id) + "=MapPointId removed 4");
          }
          else
          {
@@ -562,7 +562,7 @@ namespace ORB_SLAM2
             // Triangulation is succesfull
             MapPoint * pMP = new MapPoint(NewMapPointId(), x3D, mpCurrentKeyFrame);
             //stringstream ss;
-            //ss << "New MapPoint id=" << pMP->GetId() << " for KeyFrame id=" << mpCurrentKeyFrame->GetId();
+            //ss << "New MapPoint id=" << pMP->id << " for KeyFrame id=" << mpCurrentKeyFrame->id;
             //Print(ss);
 
             pMP->AddObservation(mpCurrentKeyFrame, idx1);
@@ -599,10 +599,10 @@ namespace ORB_SLAM2
       for (vector<KeyFrame *>::const_iterator vit = vpNeighKFs.begin(), vend = vpNeighKFs.end(); vit != vend; vit++)
       {
          KeyFrame * pKFi = *vit;
-         if (pKFi->isBad() || pKFi->mnFuseTargetForKF == mpCurrentKeyFrame->GetId())
+         if (pKFi->isBad() || pKFi->mnFuseTargetForKF == mpCurrentKeyFrame->id)
             continue;
          vpTargetKFs.push_back(pKFi);
-         pKFi->mnFuseTargetForKF = mpCurrentKeyFrame->GetId();
+         pKFi->mnFuseTargetForKF = mpCurrentKeyFrame->id;
 
          // Extend to some second neighbors
          const vector<KeyFrame *> vpSecondNeighKFs = pKFi->GetBestCovisibilityKeyFrames(5);
@@ -610,8 +610,8 @@ namespace ORB_SLAM2
          {
             KeyFrame * pKFi2 = *vit2;
             if (pKFi2->isBad()
-               || pKFi2->mnFuseTargetForKF == mpCurrentKeyFrame->GetId()
-               || pKFi2->GetId() == mpCurrentKeyFrame->GetId())
+               || pKFi2->mnFuseTargetForKF == mpCurrentKeyFrame->id
+               || pKFi2->id == mpCurrentKeyFrame->id)
                continue;
             vpTargetKFs.push_back(pKFi2);
          }
@@ -639,9 +639,9 @@ namespace ORB_SLAM2
             MapPoint * pMP = *vitMP;
             if (!pMP)
                continue;
-            if (pMP->isBad() || pMP->mnFuseCandidateForKF == mpCurrentKeyFrame->GetId())
+            if (pMP->isBad() || pMP->mnFuseCandidateForKF == mpCurrentKeyFrame->id)
                continue;
-            pMP->mnFuseCandidateForKF = mpCurrentKeyFrame->GetId();
+            pMP->mnFuseCandidateForKF = mpCurrentKeyFrame->id;
             vpFuseCandidates.push_back(pMP);
          }
       }
@@ -809,7 +809,7 @@ namespace ORB_SLAM2
       for (vector<KeyFrame *>::iterator vit = vpLocalKeyFrames.begin(), vend = vpLocalKeyFrames.end(); vit != vend; vit++)
       {
          KeyFrame * pKF = *vit;
-         if (pKF->GetId() == 0)
+         if (pKF->id == 0)
             continue;
          const vector<MapPoint *> vpMapPoints = pKF->GetMapPointMatches();
 

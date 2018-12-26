@@ -1661,11 +1661,11 @@ namespace ORB_SLAM2
             MapPoint * pMP = createdMapPoints[i];
             if (pMP)
             {
-               Print(to_string(createdMapPoints[i]->GetId()) + "=id MapPoint deleted");
+               Print(to_string(createdMapPoints[i]->id) + "=id MapPoint deleted");
                delete createdMapPoints[i];
             }
          }
-         Print(to_string(pKF->GetId()) + "=id KeyFrame deleted");
+         Print(to_string(pKF->id) + "=id KeyFrame deleted");
          delete pKF;
          Print("end CreateNewKeyFrame 2");
          return NULL;

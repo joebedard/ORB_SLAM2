@@ -51,13 +51,17 @@ namespace ORB_SLAM2
       , mpReplaced(static_cast<MapPoint*>(NULL))
       , mfMinDistance(0)
       , mfMaxDistance(0)
+
+      // public read-only access to private variables
+      , id(mnId)
+      , firstKFid(mnFirstKFid)
    {
    }
 
    MapPoint::MapPoint(id_type id, const cv::Mat & worldPos, KeyFrame *pRefKF) 
       : SyncPrint("MapPoint: ")
       , mnId(id)
-      , mnFirstKFid(pRefKF->GetId())
+      , mnFirstKFid(pRefKF->id)
       , nObs(0)
       , mnTrackReferenceForFrame(0)
       , mnLastFrameSeen(0)
@@ -76,6 +80,10 @@ namespace ORB_SLAM2
       , mfMaxDistance(0)
       , mNormalVector(cv::Mat::zeros(3, 1, CV_32F))
       , mWorldPos(worldPos)
+   
+      // public read-only access to private variables
+      , id(mnId)
+      , firstKFid(mnFirstKFid)
    {
       if (worldPos.empty())
          throw exception("MapPoint::SetWorldPos([])!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
@@ -471,11 +479,6 @@ namespace ORB_SLAM2
       return nScale;
    }
 
-   id_type MapPoint::GetId()
-   {
-      return mnId;
-   }
-
    bool MapPoint::GetModified()
    {
       unique_lock<mutex> lock(mMutexModified);
@@ -686,14 +689,14 @@ namespace ORB_SLAM2
    {
       MapPoint::Header * pHeader = (MapPoint::Header *)buffer;
       pHeader->mnId = mnId;
-      pHeader->mnFirstKFId = mnFirstKFid;
+      pHeader->mnFirstKFId = firstKFid;
       pHeader->nObs = nObs;
-      pHeader->mpRefKFId = mpRefKF->GetId();
+      pHeader->mpRefKFId = mpRefKF->id;
       pHeader->mnVisible = mnVisible;
       pHeader->mnFound = mnFound;
       pHeader->mbBad = mbBad;
       if (mpReplaced)
-         pHeader->mpReplacedId = mpReplaced->GetId();
+         pHeader->mpReplacedId = mpReplaced->id;
       else
          pHeader->mpReplacedId = (id_type)-1;
       pHeader->mfMinDistance = mfMinDistance;
@@ -742,7 +745,7 @@ namespace ORB_SLAM2
       Observation * pData = (Observation *)(pQuantity + 1);
       for (std::pair<KeyFrame *, size_t> p : observations)
       {
-         pData->keyFrameId = p.first->GetId();
+         pData->keyFrameId = p.first->id;
          pData->index = p.second;
          ++pData;
       }

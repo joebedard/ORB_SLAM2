@@ -401,7 +401,7 @@ namespace ORB_SLAM2
       Print(ss1);
       for (MapPoint * mp : mce.updatedMapPoints)
       {
-         MapPoint * pMP = mMap.GetMapPoint(mp->GetId());
+         MapPoint * pMP = mMap.GetMapPoint(mp->id);
          if (pMP == NULL)
          {
             mMap.AddMapPoint(mp);
@@ -416,8 +416,8 @@ namespace ORB_SLAM2
       Print(ss2);
       for (KeyFrame * kf : mce.updatedKeyFrames)
       {
-         //stringstream ss; ss << "kf->GetId() == " << kf->GetId(); Print(ss);
-         KeyFrame * pKF = mMap.GetKeyFrame(kf->GetId());
+         //stringstream ss; ss << "kf->id == " << kf->id; Print(ss);
+         KeyFrame * pKF = mMap.GetKeyFrame(kf->id);
          if (pKF == NULL)
          {
             Print("pKF == NULL");
