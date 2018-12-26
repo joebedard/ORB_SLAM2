@@ -1,0 +1,46 @@
+%YAML:1.0
+
+#--------------------------------------------------------------------------------------------
+# Master Configuration - reference to all other configuration files
+#--------------------------------------------------------------------------------------------
+
+# vocabulary file and path
+Vocabulary: ""
+
+# mapper yaml configuration file and path
+Mapper: ""
+
+
+#------------------------------------------------------------------------------------------------
+# Each tracker requires: 
+#   + a yaml settings file and path (which is mostly the camera calibration)
+#   + the path to a folder that contains the left camera images
+#   + the path to a folder that contains the right camera images
+#   + a timestamps file and path (some are already provided in /Examples/Stereo/EuRoC_TimeStamps)
+# Note: the first tracker will initialize the map
+# Note: this example will run with EuRoC test datasets MH 01 through MH 05
+#       https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets
+#------------------------------------------------------------------------------------------------
+
+# how many trackers?
+Tracker.Quantity: 3
+
+Tracker.Settings.1: ""
+Tracker.LeftImages.1: ""
+Tracker.RightImages.1: ""
+Tracker.Timestamps.1: ""
+
+Tracker.Settings.2: ""
+Tracker.LeftImages.2: ""
+Tracker.RightImages.2: ""
+Tracker.Timestamps.2: ""
+
+Tracker.Settings.3: ""
+Tracker.LeftImages.3: ""
+Tracker.RightImages.3: ""
+Tracker.Timestamps.3: ""
+
+Tracker.Settings.4: ""
+Tracker.LeftImages.4: ""
+Tracker.RightImages.4: ""
+Tracker.Timestamps.4: ""

@@ -178,6 +178,10 @@ add_executable(stereo_euroc
 Examples/Stereo/stereo_euroc.cc)
 target_link_libraries(stereo_euroc ${PROJECT_NAME})
 
+add_executable(stereo_euroc_team
+Examples/Stereo/stereo_euroc_team.cc)
+target_link_libraries(stereo_euroc_team ${PROJECT_NAME})
+
 add_executable(mono_tum
 Examples/Monocular/mono_tum.cc)
 target_link_libraries(mono_tum ${PROJECT_NAME})

@@ -104,7 +104,7 @@ namespace ORB_SLAM2
    {
       Print("begin Run");
       const int MENU_WIDTH = 160;
-      const int MENU_HEIGHT = 100;
+      const int MENU_HEIGHT = 330;
       const int MAPVIEW_WIDTH = 1280;
       const int MAPVIEW_HEIGHT = 960;
       const int WINDOW_WIDTH = 1540;
@@ -145,7 +145,7 @@ namespace ORB_SLAM2
          .SetHandler(new pangolin::Handler3D(*vMapState));
 
       pangolin::View & menu = pangolin::CreatePanel("menu")
-         .SetBounds(0.0, 1.0, pangolin::Attach::Pix(-MENU_WIDTH), 1.0)
+         .SetBounds(0.5, 1.0, pangolin::Attach::Pix(-MENU_WIDTH), 1.0)
          .SetLayout(pangolin::LayoutVertical);
 
       pangolin::Var<bool> menuFollowCamera("menu.Follow Camera", true, true);
@@ -172,7 +172,7 @@ namespace ORB_SLAM2
          {
             d_multiviewTrackers = &pangolin::Display("multiviewTrackers")
                .SetLayout(pangolin::LayoutEqual)
-               .SetBounds(0.0, 1.0, 0.0, 0.33);
+               .SetBounds(0.0, 1.0, 0.0, 0.3);
          }
          else
          {
