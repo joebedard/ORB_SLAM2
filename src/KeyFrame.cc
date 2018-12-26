@@ -493,7 +493,6 @@ namespace ORB_SLAM2
       }
    }
 
-
    void KeyFrame::ReplaceMapPointMatch(const size_t &idx, MapPoint * pMP)
    {
       if (mvpMapPoints.at(idx) != pMP)
@@ -760,15 +759,19 @@ namespace ORB_SLAM2
       for (map<KeyFrame *, int>::iterator mit = mConnectedKeyFrameWeights.begin(), mend = mConnectedKeyFrameWeights.end(); mit != mend; mit++)
          mit->first->EraseConnection(this);
 
-      for (MapPoint * pMP : mvpMapPoints)
       {
-         if (pMP)
-            pMP->EraseObservation(this, pMap);
-      }
-
-      {
-         unique_lock<mutex> lock(mMutexConnections);
          unique_lock<mutex> lock1(mMutexFeatures);
+         for (int i = 0; i < N; i++)
+         {
+            MapPoint * pMP = mvpMapPoints[i];
+            if (pMP)
+            {
+               pMP->EraseObservation(this, pMap);
+               mvpMapPoints[i] = NULL;
+            }
+         }
+
+         unique_lock<mutex> lock2(mMutexConnections);
 
          mConnectedKeyFrameWeights.clear();
          mvpOrderedConnectedKeyFrames.clear();
