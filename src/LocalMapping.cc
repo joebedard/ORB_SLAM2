@@ -897,16 +897,21 @@ namespace ORB_SLAM2
 
    void LocalMapping::ResetIfRequested()
    {
+      //Print("begin ResetIfRequested");
       unique_lock<mutex> lock1(mMutexReset);
       if (mbResetRequested)
       {
          Print("RESET MAP");
-         for (list<MapPoint *> recentAddedMapPoints : mRecentAddedMapPoints)
+         for (size_t i = 0; i < mRecentAddedMapPoints.size(); i++)
+         {
+            list<MapPoint *> & recentAddedMapPoints = mRecentAddedMapPoints[i];
             recentAddedMapPoints.clear();
+         }
          unique_lock<mutex> lock2(mMutexNewKFs);
          mNewKeyFrames.clear();
          mbResetRequested = false;
       }
+      //Print("end ResetIfRequested");
    }
 
 
