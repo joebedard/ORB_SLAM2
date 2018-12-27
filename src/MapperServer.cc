@@ -159,22 +159,7 @@ namespace ORB_SLAM2
 
       ValidateTracker(trackerId);
 
-      mMap.mvpKeyFrameOrigins.push_back(pKF1);
-
-      mMap.AddKeyFrame(pKF1);
-
-      for (MapPoint * pMP : mapPoints)
-      {
-         mMap.AddMapPoint(pMP);
-      }
-
-      pKF1->ComputeBoW(mVocab);
-
-      // already called by tracking initialize
-      // pKF1->UpdateConnections();
-
-      vector<MapPoint *> noPoints;
-      if (mLocalMapper.InsertKeyFrame(trackerId, pKF2, noPoints, noPoints))
+      if (mLocalMapper.InitializeMono(trackerId, pKF1, pKF2, mapPoints))
       {
          UpdateTrackerStatus(trackerId, mapPoints);
          UpdateTrackerStatus(trackerId, pKF1);
@@ -184,7 +169,7 @@ namespace ORB_SLAM2
       else
       {
          mMap.Clear();
-         throw exception("Unable to InsertKeyFrame during InitializeMono.");
+         throw exception("Mapper failed to initialize monocular map.");
       }
       Print("end InitializeMono");
    }
@@ -204,11 +189,7 @@ namespace ORB_SLAM2
 
       ValidateTracker(trackerId);
 
-      // Insert KeyFrame in the map
-      mMap.mvpKeyFrameOrigins.push_back(pKF);
-
-      vector<MapPoint *> noPoints;
-      if (mLocalMapper.InsertKeyFrame(trackerId, pKF, mapPoints, noPoints))
+      if (mLocalMapper.InitializeStereo(trackerId, pKF, mapPoints))
       {
          UpdateTrackerStatus(trackerId, mapPoints);
          UpdateTrackerStatus(trackerId, pKF);
@@ -217,7 +198,7 @@ namespace ORB_SLAM2
       else
       {
          mMap.Clear();
-         throw exception("Unable to InsertKeyFrame during InitializeStereo.");
+         throw exception("Mapper failed to initialize stereo map.");
       }
       Print("end InitializeStereo");
    }

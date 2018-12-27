@@ -60,6 +60,10 @@ namespace ORB_SLAM2
       // Main function
       void Run();
 
+      bool InitializeMono(unsigned int trackerId, KeyFrame * pKF1, KeyFrame * pKF2, vector<MapPoint *> & newMapPoints);
+
+      bool InitializeStereo(unsigned int trackerId, KeyFrame * pKF, vector<MapPoint *> & newMapPoints);
+
       bool InsertKeyFrame(unsigned int trackerId, KeyFrame * pKF, vector<MapPoint *> & createdMapPoints, vector<MapPoint *> & updatedMapPoints);
 
       // Thread Synch

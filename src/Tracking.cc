@@ -649,8 +649,8 @@ namespace ORB_SLAM2
          KeyFrame * pKFini = new KeyFrame(NewKeyFrameId(), mCurrentFrame);
 
          // Create MapPoints and associate to KeyFrame
-         vector<MapPoint *> points;
-         for (int i = 0; i < mCurrentFrame.N;i++)
+         mvpLocalMapPoints.clear();
+         for (int i = 0; i < mCurrentFrame.N; i++)
          {
             float z = mCurrentFrame.mvDepth[i];
             if (z > 0)
@@ -658,23 +658,26 @@ namespace ORB_SLAM2
                cv::Mat x3D = mCurrentFrame.UnprojectStereo(i);
                MapPoint* pNewMP = new MapPoint(NewMapPointId(), x3D, pKFini);
                pKFini->AddMapPoint(pNewMP, i);
-               points.push_back(pNewMP);
+               pNewMP->AddObservation(pKFini, i);
+               pNewMP->UpdateNormalAndDepth();
+               pNewMP->ComputeDistinctiveDescriptors();
                mCurrentFrame.mvpMapPoints[i] = pNewMP;
+               mvpLocalMapPoints.push_back(pNewMP);
             }
          }
 
+         pKFini->UpdateConnections();
+
          stringstream ss;
-         ss << "New map created with " << points.size() << " points";
+         ss << "New map created with " << mvpLocalMapPoints.size() << " points";
          Print(ss.str().c_str());
 
          mCurrentFrame.mpReferenceKF = pKFini;
          mLastFrame = Frame(mCurrentFrame);
          mnLastFrameIdMadeIntoKeyFrame = mCurrentFrame.mnId;
-
          mvpLocalKeyFrames.push_back(pKFini);
-         mvpLocalMapPoints = points;
 
-         mMapper.InitializeStereo(mId, points, pKFini);
+         mMapper.InitializeStereo(mId, mvpLocalMapPoints, pKFini);
          mState = TRACKING_OK;
 
          if (mpMapDrawer)
@@ -777,8 +780,8 @@ namespace ORB_SLAM2
       map.AddKeyFrame(pKFcur);
 
       // Create MapPoints and associate to keyframes
-      vector<MapPoint *> points;
-      for (size_t i = 0; i < mvIniMatches.size();i++)
+      mvpLocalMapPoints.clear();
+      for (size_t i = 0; i < mvIniMatches.size(); i++)
       {
          if (mvIniMatches[i] < 0)
             continue;
@@ -788,9 +791,9 @@ namespace ORB_SLAM2
          MapPoint* pMP = new MapPoint(NewMapPointId(), worldPos, pKFcur);
 
          pKFini->AddMapPoint(pMP, i);
-         pKFcur->AddMapPoint(pMP, mvIniMatches[i]);
-
          pMP->AddObservation(pKFini, i);
+
+         pKFcur->AddMapPoint(pMP, mvIniMatches[i]);
          pMP->AddObservation(pKFcur, mvIniMatches[i]);
 
          pMP->ComputeDistinctiveDescriptors();
@@ -802,7 +805,7 @@ namespace ORB_SLAM2
 
          //Add to Map
          map.AddMapPoint(pMP);
-         points.push_back(pMP);
+         mvpLocalMapPoints.push_back(pMP);
       }
 
       // Update Connections
@@ -827,12 +830,20 @@ namespace ORB_SLAM2
             delete mpInitializer;
             mpInitializer = static_cast<Initializer*>(NULL);
          }
-         // TODO - delete MapPoints and KeyFrames
+
+         // delete MapPoints and KeyFrames
+         for (MapPoint * pMP : mvpLocalMapPoints)
+         {
+            delete pMP;
+         }
+         mvpLocalMapPoints.clear();
+         delete pKFini;
+         delete pKFcur;
          return;
       }
 
       stringstream ss;
-      ss << "New Map created with " << points.size() << " points";
+      ss << "New Map created with " << mvpLocalMapPoints.size() << " points";
       Print(ss.str().c_str());
 
       // Scale initial baseline
@@ -851,8 +862,7 @@ namespace ORB_SLAM2
          }
       }
 
-      mvpLocalMapPoints = points;
-      mMapper.InitializeMono(mId, points, pKFini, pKFcur);
+      mMapper.InitializeMono(mId, mvpLocalMapPoints, pKFini, pKFcur);
 
       mCurrentFrame.SetPose(pKFcur->GetPose());
       mnLastFrameIdMadeIntoKeyFrame = mCurrentFrame.mnId;

@@ -174,6 +174,75 @@ namespace ORB_SLAM2
       Print(msg);
    }
 
+   bool LocalMapping::InitializeMono(unsigned int trackerId, KeyFrame * pKF1, KeyFrame * pKF2, vector<MapPoint *> & newMapPoints)
+   {
+      Print("begin InitializeMono");
+      bool success = false;
+      if (SetNotPause(true))
+      {
+         // add keyframe to map
+         mMap.mvpKeyFrameOrigins.push_back(pKF1);
+         mMap.AddKeyFrame(pKF1);
+         mMap.AddKeyFrame(pKF2);
+
+         // add new points to map and recent points
+         const int n = newMapPoints.size();
+         MapPoint * pMP = static_cast<MapPoint *>(NULL);
+         for (int i = 0; i < n; i++)
+         {
+            pMP = newMapPoints[i];
+            if (pMP && !pMP->isBad())
+            {
+               mMap.AddMapPoint(pMP);
+               mRecentAddedMapPoints[trackerId].push_back(pMP);
+            }
+         }
+
+         pKF1->ComputeBoW(mVocab);
+         pKF2->ComputeBoW(mVocab);
+
+         unique_lock<mutex> lock(mMutexNewKFs);
+         pair<KeyFrame *, unsigned int> p = make_pair(pKF2, trackerId);
+         mNewKeyFrames.push_back(p);
+
+         success = true;
+         SetNotPause(false);
+      }
+      Print("end InitializeMono");
+      return success;
+   }
+
+   bool LocalMapping::InitializeStereo(unsigned int trackerId, KeyFrame * pKF, vector<MapPoint *> & newMapPoints)
+   {
+      Print("begin InitializeStereo");
+      bool success = false;
+      if (SetNotPause(true))
+      {
+         // add keyframe to map
+         mMap.mvpKeyFrameOrigins.push_back(pKF);
+         mMap.AddKeyFrame(pKF);
+
+         // add new points to map and recent points
+         const int n = newMapPoints.size();
+         MapPoint * pMP = static_cast<MapPoint *>(NULL);
+         for (int i = 0; i < n; i++)
+         {
+            pMP = newMapPoints[i];
+            if (pMP && !pMP->isBad())
+            {
+               mMap.AddMapPoint(pMP);
+               mRecentAddedMapPoints[trackerId].push_back(pMP);
+            }
+         }
+
+         pKF->ComputeBoW(mVocab);
+
+         success = true;
+         SetNotPause(false);
+      }
+      Print("end InitializeStereo");
+      return success;
+   }
 
    bool LocalMapping::InsertKeyFrame(unsigned int trackerId, KeyFrame * pKF, vector<MapPoint *> & createdMapPoints, vector<MapPoint *> & updatedMapPoints)
    {
@@ -188,12 +257,11 @@ namespace ORB_SLAM2
             // add keyframe to map
             mMap.AddKeyFrame(pKF);
 
-            MapPoint * pMP = static_cast<MapPoint *>(NULL);
-
             // add new points to map and recent points, associate them to the new keyframe, 
             // update normal/depth and compute descriptor
             // NOTE: this vector is always empty during monocular mode
             const int n = createdMapPoints.size();
+            MapPoint * pMP = static_cast<MapPoint *>(NULL);
             for (int i = 0; i < n; i++)
             {
                pMP = createdMapPoints[i];
