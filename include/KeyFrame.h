@@ -33,6 +33,7 @@
 #include "FrameCalibration.h"
 
 #include <mutex>
+#include <atomic>
 #include <unordered_map>
 
 
@@ -44,8 +45,12 @@ namespace ORB_SLAM2
    class Frame;
    class KeyFrameDatabase;
 
+
    class KeyFrame : protected SyncPrint
    {
+
+      friend Map;
+
    public:
 
       KeyFrame(id_type id);
@@ -87,10 +92,6 @@ namespace ORB_SLAM2
       std::set<KeyFrame *> GetLoopEdges();
 
       // MapPoint observation functions
-      void AddMapPoint(MapPoint* pMP, const size_t idx);
-      void EraseMapPointMatch(const size_t &idx);
-      void EraseMapPointMatch(MapPoint* pMP);
-      void ReplaceMapPointMatch(const size_t &idx, MapPoint* pMP);
       std::set<MapPoint*> GetMapPoints();
       std::vector<MapPoint*> GetMapPointMatches();
       int TrackedMapPoints(const int &minObs);
@@ -111,6 +112,7 @@ namespace ORB_SLAM2
       bool SetErase(Map* pMap, KeyFrameDatabase* pKeyFrameDB);
 
       // Set/check bad flag
+      // if this object is deleted, MapPoints are unlinked
       // returns true if this object is deleted, false otherwise
       bool SetBadFlag(Map* pMap, KeyFrameDatabase* pKeyFrameDB);
 
@@ -323,8 +325,7 @@ namespace ORB_SLAM2
       const int mnGridCols;
       const int mnGridRows;
 
-      std::mutex mMutexModified;
-      bool mModified;
+      atomic_bool mModified;
 
       static id_type PeekId(const void * data);
 
@@ -365,6 +366,7 @@ namespace ORB_SLAM2
       void AssignFeaturesToGrid();
 
       void PrintPrefix(ostream & out);
+
 };
 
 } //namespace ORB_SLAM

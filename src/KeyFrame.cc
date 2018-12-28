@@ -339,7 +339,7 @@ namespace ORB_SLAM2
       Twc = cv::Mat::eye(4, 4, Tcw.type());
       Rwc.copyTo(Twc.rowRange(0, 3).colRange(0, 3));
       Ow.copyTo(Twc.rowRange(0, 3).col(3));
-      SetModified(true);
+      mModified = true;
    }
 
    cv::Mat KeyFrame::GetPose()
@@ -459,48 +459,6 @@ namespace ORB_SLAM2
          return 0;
    }
 
-   void KeyFrame::AddMapPoint(MapPoint *pMP, const size_t idx)
-   {
-      unique_lock<mutex> lock(mMutexFeatures);
-      if (idx >= mvpMapPoints.size())
-      {
-         stringstream ss;
-         ss << "KeyFrame::AddMapPoint: idx==" << idx << " mvpMapPoints.size()==" << mvpMapPoints.size();
-         Print(ss);
-      }
-      mvpMapPoints.at(idx) = pMP;
-      SetModified(true);
-   }
-
-   void KeyFrame::EraseMapPointMatch(const size_t &idx)
-   {
-      unique_lock<mutex> lock(mMutexFeatures);
-      if (mvpMapPoints.at(idx) != NULL) 
-      {
-         mvpMapPoints.at(idx) = static_cast<MapPoint *>(NULL);
-         SetModified(true);
-      }
-   }
-
-   void KeyFrame::EraseMapPointMatch(MapPoint * pMP)
-   {
-      int idx = pMP->GetIndexInKeyFrame(this);
-      if (idx >= 0) 
-      {
-         mvpMapPoints.at(idx) = static_cast<MapPoint *>(NULL);
-         SetModified(true);
-      }
-   }
-
-   void KeyFrame::ReplaceMapPointMatch(const size_t &idx, MapPoint * pMP)
-   {
-      if (mvpMapPoints.at(idx) != pMP)
-      {
-         mvpMapPoints.at(idx) = pMP;
-         SetModified(true);
-      }
-   }
-
    set<MapPoint *> KeyFrame::GetMapPoints()
    {
       unique_lock<mutex> lock(mMutexFeatures);
@@ -515,25 +473,27 @@ namespace ORB_SLAM2
 
    int KeyFrame::TrackedMapPoints(const int &minObs)
    {
-      unique_lock<mutex> lock(mMutexFeatures);
+      vector<MapPoint *> vpMapPoints;
+      {
+         Print(to_string(id) +  "==id lock");
+         unique_lock<mutex> lock(mMutexFeatures);
+         vpMapPoints = mvpMapPoints;
+      }
 
       int nPoints = 0;
       const bool bCheckObs = minObs > 0;
       for (int i = 0; i < N; i++)
       {
-         MapPoint * pMP = mvpMapPoints.at(i);
-         if (pMP)
+         MapPoint * pMP = vpMapPoints.at(i);
+         if (pMP && !pMP->isBad())
          {
-            if (!pMP->isBad())
+            if (bCheckObs)
             {
-               if (bCheckObs)
-               {
-                  if (mvpMapPoints.at(i)->Observations() >= minObs)
-                     nPoints++;
-               }
-               else
+               if (pMP->Observations() >= minObs)
                   nPoints++;
             }
+            else
+               nPoints++;
          }
       }
 
@@ -651,7 +611,7 @@ namespace ORB_SLAM2
             mpParent = mvpOrderedConnectedKeyFrames.front();
             mpParent->AddChild(this);
             mbFirstConnection = false;
-            SetModified(true); // not sure if this is necessary, this function is usually only called after MapPoint changes
+            mModified = true; // not sure if this is necessary, this function is usually only called after MapPoint changes
          }
 
       }
@@ -675,7 +635,7 @@ namespace ORB_SLAM2
       unique_lock<mutex> lockCon(mMutexConnections);
       mpParent = pKF;
       pKF->AddChild(this);
-      SetModified(true);
+      mModified = true;
    }
 
    set<KeyFrame *> KeyFrame::GetChilds()
@@ -701,7 +661,7 @@ namespace ORB_SLAM2
       unique_lock<mutex> lockCon(mMutexConnections);
       mbNotErase = true;
       mspLoopEdges.insert(pKF);
-      SetModified(true);
+      mModified = true;
    }
 
    set<KeyFrame *> KeyFrame::GetLoopEdges()
@@ -740,37 +700,39 @@ namespace ORB_SLAM2
    bool KeyFrame::SetBadFlag(Map* pMap, KeyFrameDatabase* pKeyFrameDB)
    {
       Print("begin SetBadFlag");
+
+      if (mnId == 0)
+      {
+         Print("end SetBadFlag 1");
+         return false;
+      }
+
       {
          unique_lock<mutex> lock(mMutexConnections);
-         if (mnId == 0)
-         {
-            Print("end SetBadFlag 1");
-            return false;
-         }
-         else if (mbNotErase)
+         if (mbNotErase)
          {
             mbToBeErased = true;
             Print("end SetBadFlag 2");
             return false;
          }
+
+         for (map<KeyFrame *, int>::iterator mit = mConnectedKeyFrameWeights.begin(), mend = mConnectedKeyFrameWeights.end(); mit != mend; mit++)
+            mit->first->EraseConnection(this);
       }
 
-      for (map<KeyFrame *, int>::iterator mit = mConnectedKeyFrameWeights.begin(), mend = mConnectedKeyFrameWeights.end(); mit != mend; mit++)
-         mit->first->EraseConnection(this);
+      for (int i = 0; i < N; i++)
+      {
+         MapPoint * pMP = mvpMapPoints[i];
+         if (pMP)
+         {
+            pMap->Unlink(*pMP, *this);
+            if (pMP->Observations() <= 2)
+               pMP->SetBadFlag(pMap);
+         }
+      }
 
       {
-         unique_lock<mutex> lock1(mMutexFeatures);
-         for (int i = 0; i < N; i++)
-         {
-            MapPoint * pMP = mvpMapPoints[i];
-            if (pMP)
-            {
-               pMP->EraseObservation(this, pMap);
-               mvpMapPoints[i] = NULL;
-            }
-         }
-
-         unique_lock<mutex> lock2(mMutexConnections);
+         unique_lock<mutex> lock(mMutexConnections);
 
          mConnectedKeyFrameWeights.clear();
          mvpOrderedConnectedKeyFrames.clear();
@@ -834,9 +796,10 @@ namespace ORB_SLAM2
             }
 
          mpParent->EraseChild(this);
+         unique_lock<mutex> lock3(mMutexPose);
          mTcp = Tcw * mpParent->GetPoseInverse();
          mbBad = true;
-         SetModified(true);
+         mModified = true;
       }
 
 
@@ -966,13 +929,11 @@ namespace ORB_SLAM2
 
    bool KeyFrame::GetModified()
    {
-      unique_lock<mutex> lock(mMutexModified);
       return mModified;
    }
 
    void KeyFrame::SetModified(bool b)
    {
-      unique_lock<mutex> lock(mMutexModified);
       mModified = b;
    }
 
@@ -1082,6 +1043,10 @@ namespace ORB_SLAM2
    size_t KeyFrame::GetBufferSize()
    {
       Print("begin GetBufferSize");
+      unique_lock<mutex> lock1(mMutexPose);
+      unique_lock<mutex> lock2(mMutexFeatures);
+      unique_lock<mutex> lock3(mMutexConnections);
+
       unsigned int size = sizeof(KeyFrame::Header);
       size += Serializer::GetKeyPointVectorBufferSize(mvKeys);
       size += Serializer::GetKeyPointVectorBufferSize(mvKeysUn);
@@ -1113,6 +1078,10 @@ namespace ORB_SLAM2
       std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
       std::unordered_map<id_type, MapPoint *> & newMapPoints)
    {
+      unique_lock<mutex> lock1(mMutexPose);
+      unique_lock<mutex> lock2(mMutexFeatures);
+      unique_lock<mutex> lock3(mMutexConnections);
+
       KeyFrame::Header * pHeader = (KeyFrame::Header *)data;
       if (mnId != pHeader->mnId)
          throw exception("KeyFrame::ReadBytes mnId != pHeader->mnId");
@@ -1167,6 +1136,10 @@ namespace ORB_SLAM2
 
    void * KeyFrame::WriteBytes(const void * data)
    {
+      unique_lock<mutex> lock1(mMutexPose);
+      unique_lock<mutex> lock2(mMutexFeatures);
+      unique_lock<mutex> lock3(mMutexConnections);
+
       KeyFrame::Header * pHeader = (KeyFrame::Header *)data;
       pHeader->mnId = mnId;
       pHeader->mTimestamp = mTimestamp;

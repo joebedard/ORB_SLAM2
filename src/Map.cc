@@ -205,6 +205,84 @@ namespace ORB_SLAM2
       mvpKeyFrameOrigins.clear();
    }
 
+   void Map::Link(MapPoint & rMP, size_t idx, KeyFrame & rKF) 
+   {
+      Print("begin Link");
+      unique_lock<mutex> lock1(mMutexMap);
+      unique_lock<mutex> lock2(rMP.mMutexFeatures);
+      unique_lock<mutex> lock3(rKF.mMutexFeatures);
+
+      MapPoint * prevMP = rKF.mvpMapPoints.at(idx);
+      if (prevMP != NULL) {
+         if (prevMP == &rMP) {
+            // the MP and KF are already linked
+            return;
+         }
+         else {
+            // rKF is already linked to a different MP, so unlink them
+            rKF.mvpMapPoints.at(idx) = NULL;
+            unique_lock<mutex> lock(prevMP->mMutexFeatures);
+            prevMP->mObservations.erase(&rKF);
+            prevMP->CompleteUnlink(idx, rKF);
+         }
+      }
+
+      if (rMP.mObservations.count(&rKF) > 0) {
+         size_t prevIdx = rMP.mObservations[&rKF];
+         if (prevIdx != idx) {
+            // rMP is already linked to rKF with a different index, so unlink them
+            rKF.mvpMapPoints.at(prevIdx) = NULL;
+            rMP.mObservations.erase(&rKF);
+            rMP.CompleteUnlink(prevIdx, rKF);
+         }
+      }
+
+      // link rMP to rKF at the desired index
+      rKF.mvpMapPoints.at(idx) = &rMP;
+      rMP.mObservations[&rKF] = idx;
+      rMP.CompleteLink(idx, rKF);
+      rKF.SetModified(true);
+      Print("end Link");
+   }
+
+   void Map::Unlink(MapPoint & rMP, KeyFrame & rKF) 
+   {
+      Print("begin Unlink");
+      unique_lock<mutex> lock1(mMutexMap);
+      unique_lock<mutex> lock2(rMP.mMutexFeatures);
+      unique_lock<mutex> lock3(rKF.mMutexFeatures);
+
+      if (rMP.mObservations.count(&rKF) > 0) {
+         size_t prevIdx = rMP.mObservations[&rKF];
+         rKF.mvpMapPoints.at(prevIdx) = NULL;
+         rMP.mObservations.erase(&rKF);
+
+         rKF.SetModified(true);
+         rMP.CompleteUnlink(prevIdx, rKF);
+      }
+      Print("end Unlink");
+   }
+
+   void Map::Replace(MapPoint & oldMP, MapPoint & newMP) {
+      Print("begin Replace");
+      if (oldMP.id == newMP.id)
+      {
+         Print("end Replace 1");
+         return;
+      }
+      map<KeyFrame *, size_t> obs;
+      {
+         unique_lock<mutex> lock1(mMutexMap);
+         unique_lock<mutex> lock2(oldMP.mMutexFeatures);
+         obs = oldMP.mObservations;
+      }
+      for (pair<KeyFrame *, size_t> p : obs) {
+         KeyFrame & rKF = *p.first;
+         Link(newMP, p.second, rKF);
+      }
+      Print("end Replace 2");
+   }
+
    Map & Map::operator=(const Map & map)
    {
       unique_lock<mutex> lock(mMutexMap);

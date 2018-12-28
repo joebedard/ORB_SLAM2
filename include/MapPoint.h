@@ -25,6 +25,7 @@
 
 #include <opencv2/core/core.hpp>
 #include <mutex>
+#include <atomic>
 #include <unordered_map>
 
 #include "Typedefs.h"
@@ -40,6 +41,8 @@ namespace ORB_SLAM2
 
    class MapPoint : protected SyncPrint
    {
+      friend Map;
+
    public:
 
       // de-serialization constructor
@@ -55,10 +58,7 @@ namespace ORB_SLAM2
       KeyFrame* GetReferenceKeyFrame();
 
       std::map<KeyFrame*, size_t> GetObservations();
-      int Observations();
-
-      void AddObservation(KeyFrame* pKF, size_t idx);
-      void EraseObservation(KeyFrame* pKF, Map * pMap);
+      size_t Observations();
 
       int GetIndexInKeyFrame(KeyFrame* pKF);
       bool IsObserving(KeyFrame* pKF);
@@ -66,7 +66,6 @@ namespace ORB_SLAM2
       void SetBadFlag(Map * pMap);
       bool isBad();
 
-      void Replace(MapPoint* pMP, Map * pMap);
       MapPoint * GetReplaced();
       static MapPoint * FindFinalReplacement(MapPoint * pMP);
 
@@ -161,17 +160,31 @@ namespace ORB_SLAM2
 
       static std::mutex mGlobalMutex;
 
+   protected:
+
+      const atomic_size_t & nObs;
+
+      std::mutex mMutexFeatures;
+
+      // Keyframes observing the point and associated index in keyframe
+      std::map<KeyFrame*, size_t> mObservations;
+
+      // called from Map::Link when all linking is complete
+      // pre: the thread has locked this->mMutexFeatures and rKF.mMutexFeatures
+      void MapPoint::CompleteLink(size_t idx, KeyFrame & rKF);
+
+      // called from Map::Unlink (and Map::Link) when all unlinking is complete
+      // pre: the thread has locked this->mMutexFeatures and rKF.mMutexFeatures
+      void MapPoint::CompleteUnlink(size_t idx, KeyFrame & rKF);
+
    private:
 
       id_type mnFirstKFid;
 
-      int nObs;
+      atomic_size_t mnObs;
 
       // Position in absolute coordinates
       cv::Mat mWorldPos;
-
-      // Keyframes observing the point and associated index in keyframe
-      std::map<KeyFrame*, size_t> mObservations;
 
       // Mean viewing direction
       cv::Mat mNormalVector;
@@ -180,34 +193,32 @@ namespace ORB_SLAM2
       cv::Mat mDescriptor;
 
       // Reference KeyFrame
-      KeyFrame* mpRefKF;
+      KeyFrame * mpRefKF;
 
       // Tracking counters
       int mnVisible;
       int mnFound;
 
       // Bad flag (we do not currently erase MapPoint from memory)
-      bool mbBad;
-      MapPoint* mpReplaced;
+      atomic_bool mbBad;
+      MapPoint * mpReplaced;
 
       // Scale invariance distances
       float mfMinDistance;
       float mfMaxDistance;
 
-      std::mutex mMutexPos;
-      std::mutex mMutexFeatures;
+      mutex mMutexPos;
 
    private:
       id_type mnId;
 
-      mutex mMutexModified;
-      bool mModified;
+      atomic_bool mModified;
 
       struct Header
       {
          id_type mnId;
          id_type mnFirstKFId;
-         int nObs;
+         int mnObs;
          id_type mpRefKFId;
          int mnVisible;
          int mnFound;

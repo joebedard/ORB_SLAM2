@@ -812,12 +812,13 @@ namespace ORB_SLAM2
 
       if (!vToErase.empty())
       {
-         for (size_t i = 0;i < vToErase.size();i++)
+         for (size_t i = 0; i < vToErase.size(); i++)
          {
             KeyFrame* pKFi = vToErase[i].first;
             MapPoint* pMPi = vToErase[i].second;
-            pKFi->EraseMapPointMatch(pMPi);
-            pMPi->EraseObservation(pKFi, &theMap);
+            theMap.Unlink(*pMPi, *pKFi);
+            if (pMPi->Observations() <= 2)
+               pMPi->SetBadFlag(&theMap);
          }
       }
 

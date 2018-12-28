@@ -35,7 +35,7 @@ namespace ORB_SLAM2
       : SyncPrint("MapPoint: ")
       , mnId(id)
       , mnFirstKFid(-1)
-      , nObs(0)
+      , mnObs(0)
       , mnTrackReferenceForFrame(0)
       , mnLastFrameSeen(0)
       , mnBALocalForKF(0)
@@ -55,6 +55,9 @@ namespace ORB_SLAM2
       // public read-only access to private variables
       , id(mnId)
       , firstKFid(mnFirstKFid)
+
+      // protected read-only access to private variables
+      , nObs(mnObs)
    {
    }
 
@@ -62,7 +65,7 @@ namespace ORB_SLAM2
       : SyncPrint("MapPoint: ")
       , mnId(id)
       , mnFirstKFid(pRefKF->id)
-      , nObs(0)
+      , mnObs(0)
       , mnTrackReferenceForFrame(0)
       , mnLastFrameSeen(0)
       , mnBALocalForKF(0)
@@ -84,6 +87,9 @@ namespace ORB_SLAM2
       // public read-only access to private variables
       , id(mnId)
       , firstKFid(mnFirstKFid)
+
+      // protected read-only access to private variables
+      , nObs(mnObs)
    {
       if (worldPos.empty())
          throw exception("MapPoint::SetWorldPos([])!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
@@ -96,7 +102,7 @@ namespace ORB_SLAM2
       if (Pos.empty())
          throw exception("MapPoint::SetWorldPos([])!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
       Pos.copyTo(mWorldPos);
-      SetModified(true);
+      mModified = true;
    }
 
    cv::Mat MapPoint::GetWorldPos()
@@ -117,83 +123,31 @@ namespace ORB_SLAM2
       return mpRefKF;
    }
 
-   void MapPoint::AddObservation(KeyFrame* pKF, size_t idx)
-   {
-      unique_lock<mutex> lock(mMutexFeatures);
-      if (mObservations.count(pKF))
-         return;
-      mObservations[pKF] = idx;
-
-      if (pKF->right[idx] >= 0)
-         nObs += 2;
-      else
-         nObs++;
-
-      if (mpRefKF == NULL)
-         mpRefKF = pKF;
-   }
-
-   void MapPoint::EraseObservation(KeyFrame* pKF, Map * pMap)
-   {
-      bool bBad = false;
-      {
-         unique_lock<mutex> lock(mMutexFeatures);
-         if (mObservations.count(pKF))
-         {
-            int idx = mObservations[pKF];
-            if (pKF->right[idx] >= 0)
-               nObs -= 2;
-            else
-               nObs--;
-
-            mObservations.erase(pKF);
-            SetModified(true);
-
-            if (mpRefKF == pKF)
-            {
-               if (mObservations.empty())
-                  mpRefKF = NULL;
-               else
-                  mpRefKF = mObservations.begin()->first;
-            }
-
-            // If only 2 observations or less, discard point
-            if (nObs <= 2)
-               bBad = true;
-         }
-      }
-
-      if (bBad)
-         SetBadFlag(pMap);
-   }
-
    map<KeyFrame*, size_t> MapPoint::GetObservations()
    {
       unique_lock<mutex> lock(mMutexFeatures);
       return mObservations;
    }
 
-   int MapPoint::Observations()
+   size_t MapPoint::Observations()
    {
-      unique_lock<mutex> lock(mMutexFeatures);
-      return nObs;
+      return mnObs;
    }
 
    void MapPoint::SetBadFlag(Map * pMap)
    {
       map<KeyFrame*, size_t> obs;
       {
-         unique_lock<mutex> lock1(mMutexFeatures);
-         unique_lock<mutex> lock2(mMutexPos);
          mbBad = true;
+         mModified = true;
+         unique_lock<mutex> lock(mMutexFeatures);
          obs = mObservations;
          mObservations.clear();
-         SetModified(true);
       }
       for (map<KeyFrame*, size_t>::iterator mit = obs.begin(), mend = obs.end(); mit != mend; mit++)
       {
          KeyFrame* pKF = mit->first;
-         pKF->EraseMapPointMatch(mit->second);
+         pMap->Unlink(*this, *pKF);
       }
 
       if (pMap)
@@ -203,7 +157,6 @@ namespace ORB_SLAM2
    MapPoint * MapPoint::GetReplaced()
    {
       unique_lock<mutex> lock1(mMutexFeatures);
-      unique_lock<mutex> lock2(mMutexPos);
       return mpReplaced;
    }
 
@@ -222,52 +175,8 @@ namespace ORB_SLAM2
       return pMP;
    }
 
-   void MapPoint::Replace(MapPoint* pMP, Map * pMap)
-   {
-      if (pMP->mnId == this->mnId)
-         return;
-
-      if (pMap)
-         pMap->EraseMapPoint(this);
-
-      int nvisible, nfound;
-      map<KeyFrame*, size_t> obs;
-      {
-         unique_lock<mutex> lock1(mMutexFeatures);
-         unique_lock<mutex> lock2(mMutexPos);
-         obs = mObservations;
-         mObservations.clear();
-         mbBad = true;
-         nvisible = mnVisible;
-         nfound = mnFound;
-         mpReplaced = pMP;
-         SetModified(true);
-      }
-
-      for (map<KeyFrame*, size_t>::iterator mit = obs.begin(), mend = obs.end(); mit != mend; mit++)
-      {
-         // Replace measurement in keyframe
-         KeyFrame* pKF = mit->first;
-
-         if (!pMP->IsObserving(pKF))
-         {
-            pKF->ReplaceMapPointMatch(mit->second, pMP);
-            pMP->AddObservation(pKF, mit->second);
-         }
-         else
-         {
-            pKF->EraseMapPointMatch(mit->second);
-         }
-      }
-      pMP->IncreaseFound(nfound);
-      pMP->IncreaseVisible(nvisible);
-      pMP->ComputeDistinctiveDescriptors();
-   }
-
    bool MapPoint::isBad()
    {
-      unique_lock<mutex> lock(mMutexFeatures);
-      unique_lock<mutex> lock2(mMutexPos);
       return mbBad;
    }
 
@@ -275,14 +184,14 @@ namespace ORB_SLAM2
    {
       unique_lock<mutex> lock(mMutexFeatures);
       mnVisible += n;
-      SetModified(true);
+      mModified = true;
    }
 
    void MapPoint::IncreaseFound(int n)
    {
       unique_lock<mutex> lock(mMutexFeatures);
       mnFound += n;
-      SetModified(true);
+      mModified = true;
    }
 
    float MapPoint::GetFoundRatio()
@@ -299,9 +208,8 @@ namespace ORB_SLAM2
       map<KeyFrame*, size_t> observations;
 
       {
-         unique_lock<mutex> lock1(mMutexFeatures);
-         if (mbBad)
-            return;
+         if (mbBad) return;
+         unique_lock<mutex> lock2(mMutexFeatures);
          observations = mObservations;
       }
 
@@ -362,7 +270,7 @@ namespace ORB_SLAM2
       {
          unique_lock<mutex> lock(mMutexFeatures);
          mDescriptor = vDescriptors[BestIdx].clone();
-         SetModified(true);
+         mModified = true;
       }
    }
 
@@ -393,14 +301,13 @@ namespace ORB_SLAM2
       KeyFrame* pRefKF;
       cv::Mat Pos;
       {
+         if (mbBad) return;
          unique_lock<mutex> lock1(mMutexFeatures);
-         unique_lock<mutex> lock2(mMutexPos);
-         if (mbBad)
-            return;
          observations = mObservations;
          if (mpRefKF == NULL)
             throw exception("MapPoint::UpdateNormalAndDepth mpRefKF is NULL");
          pRefKF = mpRefKF;
+         unique_lock<mutex> lock2(mMutexPos);
          Pos = mWorldPos.clone();
       }
 
@@ -413,7 +320,7 @@ namespace ORB_SLAM2
       {
          KeyFrame* pKF = mit->first;
          cv::Mat Owi = pKF->GetCameraCenter();
-         cv::Mat normali = mWorldPos - Owi;
+         cv::Mat normali = Pos - Owi;
          normal = normal + normali / cv::norm(normali);
          n++;
       }
@@ -425,11 +332,11 @@ namespace ORB_SLAM2
       const int nLevels = pRefKF->scaleLevels;
 
       {
+         mModified = true;
          unique_lock<mutex> lock3(mMutexPos);
          mfMaxDistance = dist * levelScaleFactor;
          mfMinDistance = mfMaxDistance / pRefKF->scaleFactors[nLevels - 1];
          mNormalVector = normal / n;
-         SetModified(true);
       }
    }
 
@@ -481,14 +388,45 @@ namespace ORB_SLAM2
 
    bool MapPoint::GetModified()
    {
-      unique_lock<mutex> lock(mMutexModified);
       return mModified;
    }
 
    void MapPoint::SetModified(bool b)
    {
-      unique_lock<mutex> lock(mMutexModified);
       mModified = b;
+   }
+
+   void MapPoint::CompleteLink(size_t idx, KeyFrame & rKF) 
+   {
+      if (mpRefKF == NULL)
+         mpRefKF = &rKF;
+
+      if (rKF.right[idx] >= 0)
+         mnObs += 2;
+      else
+         mnObs++;
+
+      mModified = true;
+   }
+
+   void MapPoint::CompleteUnlink(size_t idx, KeyFrame & rKF) 
+   {
+      if (rKF.right[idx] >= 0)
+         mnObs -= 2;
+      else
+         mnObs--;
+      
+      if (mpRefKF == &rKF) {
+         if (mObservations.empty())
+            mpRefKF = NULL;
+         else
+            mpRefKF = mObservations.begin()->first;
+      }
+
+      if (mnObs == 0)
+         mbBad = true;
+
+      mModified = true;
    }
 
    MapPoint * MapPoint::Find(const id_type id, const Map & map, std::unordered_map<id_type, MapPoint *> & newMapPoints)
@@ -628,6 +566,9 @@ namespace ORB_SLAM2
 
    size_t MapPoint::GetBufferSize()
    {
+      unique_lock<mutex> lock1(mMutexPos);
+      unique_lock<mutex> lock2(mMutexFeatures);
+
       size_t size = sizeof(MapPoint::Header);
       size += Serializer::GetMatBufferSize(mWorldPos);
       size += Serializer::GetMatBufferSize(mNormalVector);
@@ -642,12 +583,15 @@ namespace ORB_SLAM2
       std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
       std::unordered_map<id_type, MapPoint *> & newMapPoints)
    {
+      unique_lock<mutex> lock1(mMutexPos);
+      unique_lock<mutex> lock2(mMutexFeatures);
+
       MapPoint::Header * pHeader = (MapPoint::Header *)buffer;
       if (mnId != pHeader->mnId)
          throw exception("MapPoint::ReadBytes mnId != pHeader->mnId");
 
       mnFirstKFid = pHeader->mnFirstKFId;
-      nObs = pHeader->nObs;
+      mnObs = pHeader->mnObs;
 
       mpRefKF = KeyFrame::Find(pHeader->mpRefKFId, map, newKeyFrames);
       if (mpRefKF == NULL)
@@ -687,10 +631,13 @@ namespace ORB_SLAM2
 
    void * MapPoint::WriteBytes(void * const buffer)
    {
+      unique_lock<mutex> lock1(mMutexPos);
+      unique_lock<mutex> lock2(mMutexFeatures);
+
       MapPoint::Header * pHeader = (MapPoint::Header *)buffer;
       pHeader->mnId = mnId;
       pHeader->mnFirstKFId = firstKFid;
-      pHeader->nObs = nObs;
+      pHeader->mnObs = mnObs;
       pHeader->mpRefKFId = mpRefKF->id;
       pHeader->mnVisible = mnVisible;
       pHeader->mnFound = mnFound;

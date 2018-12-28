@@ -269,8 +269,7 @@ namespace ORB_SLAM2
                {
                   mMap.AddMapPoint(pMP);
                   mRecentAddedMapPoints[trackerId].push_back(pMP);
-                  pKF->AddMapPoint(pMP, i);
-                  pMP->AddObservation(pKF, i);
+                  mMap.Link(*pMP, i, *pKF);
                   pMP->UpdateNormalAndDepth();
                   pMP->ComputeDistinctiveDescriptors();
                }
@@ -285,8 +284,7 @@ namespace ORB_SLAM2
                pMP = updatedMapPoints[i];
                if (pMP && !pMP->isBad())
                {
-                  pKF->AddMapPoint(pMP, i);
-                  pMP->AddObservation(pKF, i);
+                  mMap.Link(*pMP, i, *pKF);
                   pMP->UpdateNormalAndDepth();
                   pMP->ComputeDistinctiveDescriptors();
                }
@@ -633,14 +631,11 @@ namespace ORB_SLAM2
             //ss << "New MapPoint id=" << pMP->id << " for KeyFrame id=" << mpCurrentKeyFrame->id;
             //Print(ss);
 
-            pMP->AddObservation(mpCurrentKeyFrame, idx1);
-            pMP->AddObservation(pKF2, idx2);
+            mMap.Link(*pMP, idx1, *mpCurrentKeyFrame);
 
-            mpCurrentKeyFrame->AddMapPoint(pMP, idx1);
-            pKF2->AddMapPoint(pMP, idx2);
+            mMap.Link(*pMP, idx2, *pKF2);
 
             pMP->ComputeDistinctiveDescriptors();
-
             pMP->UpdateNormalAndDepth();
 
             mMap.AddMapPoint(pMP);
@@ -691,7 +686,7 @@ namespace ORB_SLAM2
       for (vector<KeyFrame *>::iterator vit = vpTargetKFs.begin(), vend = vpTargetKFs.end(); vit != vend; vit++)
       {
          KeyFrame * pKFi = *vit;
-         matcher.Fuse(pKFi, vpMapPointMatches, &mMap);
+         matcher.Fuse(mMap, *pKFi, vpMapPointMatches);
       }
 
       // Search matches by projection from target KFs in current KF
@@ -714,7 +709,7 @@ namespace ORB_SLAM2
          }
       }
 
-      matcher.Fuse(mpCurrentKeyFrame, vpFuseCandidates, &mMap);
+      matcher.Fuse(mMap, *mpCurrentKeyFrame, vpFuseCandidates);
 
       // Update points
       vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();

@@ -648,6 +648,9 @@ namespace ORB_SLAM2
          // Create KeyFrame
          KeyFrame * pKFini = new KeyFrame(NewKeyFrameId(), mCurrentFrame);
 
+         // for stereo init, a map is only needed for the Link function
+         Map map;
+
          // Create MapPoints and associate to KeyFrame
          mvpLocalMapPoints.clear();
          for (int i = 0; i < mCurrentFrame.N; i++)
@@ -657,8 +660,7 @@ namespace ORB_SLAM2
             {
                cv::Mat x3D = mCurrentFrame.UnprojectStereo(i);
                MapPoint* pNewMP = new MapPoint(NewMapPointId(), x3D, pKFini);
-               pKFini->AddMapPoint(pNewMP, i);
-               pNewMP->AddObservation(pKFini, i);
+               map.Link(*pNewMP, i, *pKFini);
                pNewMP->UpdateNormalAndDepth();
                pNewMP->ComputeDistinctiveDescriptors();
                mCurrentFrame.mvpMapPoints[i] = pNewMP;
@@ -790,11 +792,9 @@ namespace ORB_SLAM2
          cv::Mat worldPos(mvIniP3D[i]);
          MapPoint* pMP = new MapPoint(NewMapPointId(), worldPos, pKFcur);
 
-         pKFini->AddMapPoint(pMP, i);
-         pMP->AddObservation(pKFini, i);
+         map.Link(*pMP, i, *pKFini);
 
-         pKFcur->AddMapPoint(pMP, mvIniMatches[i]);
-         pMP->AddObservation(pKFcur, mvIniMatches[i]);
+         map.Link(*pMP, mvIniMatches[i], *pKFcur);
 
          pMP->ComputeDistinctiveDescriptors();
          pMP->UpdateNormalAndDepth();

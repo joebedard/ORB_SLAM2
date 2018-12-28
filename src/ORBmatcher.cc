@@ -844,19 +844,19 @@ namespace ORB_SLAM2
       return nmatches;
    }
 
-   int ORBmatcher::Fuse(KeyFrame *pKF, const vector<MapPoint *> &vpMapPoints, Map * pMap, const float th)
+   int ORBmatcher::Fuse(Map & rMap, KeyFrame & rKF, const vector<MapPoint *> & vpMapPoints, const float th)
    {
       Print("begin Fuse 1");
-      cv::Mat Rcw = pKF->GetRotation();
-      cv::Mat tcw = pKF->GetTranslation();
+      cv::Mat Rcw = rKF.GetRotation();
+      cv::Mat tcw = rKF.GetTranslation();
 
-      const float &fx = pKF->mFC.fx;
-      const float &fy = pKF->mFC.fy;
-      const float &cx = pKF->mFC.cx;
-      const float &cy = pKF->mFC.cy;
-      const float &bf = pKF->mFC.blfx;
+      const float &fx = rKF.mFC.fx;
+      const float &fy = rKF.mFC.fy;
+      const float &cx = rKF.mFC.cx;
+      const float &cy = rKF.mFC.cy;
+      const float &bf = rKF.mFC.blfx;
 
-      cv::Mat Ow = pKF->GetCameraCenter();
+      cv::Mat Ow = rKF.GetCameraCenter();
 
       int nFused = 0;
 
@@ -869,7 +869,7 @@ namespace ORB_SLAM2
          if (!pMP)
             continue;
 
-         if (pMP->isBad() || pMP->IsObserving(pKF))
+         if (pMP->isBad() || pMP->IsObserving(&rKF))
             continue;
 
          cv::Mat p3Dw = pMP->GetWorldPos();
@@ -887,7 +887,7 @@ namespace ORB_SLAM2
          const float v = fy * y + cy;
 
          // Point must be inside the image
-         if (!pKF->IsInImage(u, v))
+         if (!rKF.IsInImage(u, v))
             continue;
 
          const float ur = u - bf * invz;
@@ -907,12 +907,12 @@ namespace ORB_SLAM2
          if (PO.dot(Pn) < 0.5*dist3D)
             continue;
 
-         int nPredictedLevel = pMP->PredictScale(dist3D, pKF);
+         int nPredictedLevel = pMP->PredictScale(dist3D, &rKF);
 
          // Search in a radius
-         const float radius = th * pKF->scaleFactors[nPredictedLevel];
+         const float radius = th * rKF.scaleFactors[nPredictedLevel];
 
-         const vector<size_t> vIndices = pKF->GetFeaturesInArea(u, v, radius);
+         const vector<size_t> vIndices = rKF.GetFeaturesInArea(u, v, radius);
 
          if (vIndices.empty())
             continue;
@@ -927,25 +927,25 @@ namespace ORB_SLAM2
          {
             const size_t idx = *vit;
 
-            const cv::KeyPoint &kp = pKF->keysUn[idx];
+            const cv::KeyPoint &kp = rKF.keysUn[idx];
 
             const int &kpLevel = kp.octave;
 
             if (kpLevel<nPredictedLevel - 1 || kpLevel>nPredictedLevel)
                continue;
 
-            if (pKF->right[idx] >= 0)
+            if (rKF.right[idx] >= 0)
             {
                // Check reprojection error in stereo
                const float &kpx = kp.pt.x;
                const float &kpy = kp.pt.y;
-               const float &kpr = pKF->right[idx];
+               const float &kpr = rKF.right[idx];
                const float ex = u - kpx;
                const float ey = v - kpy;
                const float er = ur - kpr;
                const float e2 = ex * ex + ey * ey + er * er;
 
-               if (e2*pKF->invLevelSigma2[kpLevel] > 7.8)
+               if (e2*rKF.invLevelSigma2[kpLevel] > 7.8)
                   continue;
             }
             else
@@ -956,11 +956,11 @@ namespace ORB_SLAM2
                const float ey = v - kpy;
                const float e2 = ex * ex + ey * ey;
 
-               if (e2*pKF->invLevelSigma2[kpLevel] > 5.99)
+               if (e2*rKF.invLevelSigma2[kpLevel] > 5.99)
                   continue;
             }
 
-            const cv::Mat &dKF = pKF->descriptors.row(idx);
+            const cv::Mat &dKF = rKF.descriptors.row(idx);
 
             const int dist = DescriptorDistance(dMP, dKF);
 
@@ -974,25 +974,24 @@ namespace ORB_SLAM2
          // If there is already a MapPoint replace otherwise add new measurement
          if (bestDist <= TH_LOW)
          {
-            MapPoint * pMPinKF = pKF->GetMapPoint(bestIdx);
+            MapPoint * pMPinKF = rKF.GetMapPoint(bestIdx);
             if (pMPinKF)
             {
                if (!pMPinKF->isBad())
                {
                   if (pMPinKF->Observations() > pMP->Observations())
                   {
-                     pMP->Replace(pMPinKF, pMap);
+                     rMap.Replace(*pMP, *pMPinKF);
                   }
                   else
                   {
-                     pMPinKF->Replace(pMP, pMap);
+                     rMap.Replace(*pMPinKF, *pMP);
                   }
                }
             }
             else
             {
-               pMP->AddObservation(pKF, bestIdx);
-               pKF->AddMapPoint(pMP, bestIdx);
+               rMap.Link(*pMP, bestIdx, rKF);
             }
             nFused++;
          }
@@ -1002,14 +1001,14 @@ namespace ORB_SLAM2
       return nFused;
    }
 
-   int ORBmatcher::Fuse(KeyFrame *pKF, cv::Mat Scw, const vector<MapPoint *> &vpPoints, float th, vector<MapPoint *> &vpReplacePoint)
+   int ORBmatcher::Fuse(Map & rMap, KeyFrame & rKF, cv::Mat Scw, const vector<MapPoint *> & vpPoints, float th, vector<MapPoint *> & vpReplacePoint)
    {
       Print("begin Fuse 2");
       // Get Calibration Parameters for later projection
-      const float &fx = pKF->mFC.fx;
-      const float &fy = pKF->mFC.fy;
-      const float &cx = pKF->mFC.cx;
-      const float &cy = pKF->mFC.cy;
+      const float &fx = rKF.mFC.fx;
+      const float &fy = rKF.mFC.fy;
+      const float &cx = rKF.mFC.cx;
+      const float &cy = rKF.mFC.cy;
 
       // Decompose Scw
       cv::Mat sRcw = Scw.rowRange(0, 3).colRange(0, 3);
@@ -1019,7 +1018,7 @@ namespace ORB_SLAM2
       cv::Mat Ow = -Rcw.t()*tcw;
 
       // Set of MapPoints already found in the KeyFrame
-      const set<MapPoint*> spAlreadyFound = pKF->GetMapPoints();
+      const set<MapPoint*> spAlreadyFound = rKF.GetMapPoints();
 
       int nFused = 0;
 
@@ -1053,7 +1052,7 @@ namespace ORB_SLAM2
          const float v = fy * y + cy;
 
          // Point must be inside the image
-         if (!pKF->IsInImage(u, v))
+         if (!rKF.IsInImage(u, v))
             continue;
 
          // Depth must be inside the scale pyramid of the image
@@ -1072,12 +1071,12 @@ namespace ORB_SLAM2
             continue;
 
          // Compute predicted scale level
-         const int nPredictedLevel = pMP->PredictScale(dist3D, pKF);
+         const int nPredictedLevel = pMP->PredictScale(dist3D, &rKF);
 
          // Search in a radius
-         const float radius = th * pKF->scaleFactors[nPredictedLevel];
+         const float radius = th * rKF.scaleFactors[nPredictedLevel];
 
-         const vector<size_t> vIndices = pKF->GetFeaturesInArea(u, v, radius);
+         const vector<size_t> vIndices = rKF.GetFeaturesInArea(u, v, radius);
 
          if (vIndices.empty())
             continue;
@@ -1091,12 +1090,12 @@ namespace ORB_SLAM2
          for (vector<size_t>::const_iterator vit = vIndices.begin(); vit != vIndices.end(); vit++)
          {
             const size_t idx = *vit;
-            const int &kpLevel = pKF->keysUn[idx].octave;
+            const int &kpLevel = rKF.keysUn[idx].octave;
 
             if (kpLevel<nPredictedLevel - 1 || kpLevel>nPredictedLevel)
                continue;
 
-            const cv::Mat &dKF = pKF->descriptors.row(idx);
+            const cv::Mat &dKF = rKF.descriptors.row(idx);
 
             int dist = DescriptorDistance(dMP, dKF);
 
@@ -1110,7 +1109,7 @@ namespace ORB_SLAM2
          // If there is already a MapPoint replace otherwise add new measurement
          if (bestDist <= TH_LOW)
          {
-            MapPoint* pMPinKF = pKF->GetMapPoint(bestIdx);
+            MapPoint* pMPinKF = rKF.GetMapPoint(bestIdx);
             if (pMPinKF)
             {
                if (!pMPinKF->isBad())
@@ -1118,8 +1117,7 @@ namespace ORB_SLAM2
             }
             else
             {
-               pMP->AddObservation(pKF, bestIdx);
-               pKF->AddMapPoint(pMP, bestIdx);
+               rMap.Link(*pMP, bestIdx, rKF);
             }
             nFused++;
          }

@@ -239,8 +239,7 @@ namespace ORB_SLAM2
             if (pMP && !pMP->isBad())
             {
                mMap.AddMapPoint(pMP);
-               pKF->AddMapPoint(pMP, i);
-               pMP->AddObservation(pKF, i);
+               mMap.Link(*pMP, i, *pKF);
                pMP->UpdateNormalAndDepth();
                pMP->ComputeDistinctiveDescriptors();
             }
@@ -255,8 +254,7 @@ namespace ORB_SLAM2
             pMP = updatedMapPoints[i];
             if (pMP && !pMP->isBad())
             {
-               pKF->AddMapPoint(pMP, i);
-               pMP->AddObservation(pKF, i);
+               mMap.Link(*pMP, i, * pKF);
                pMP->UpdateNormalAndDepth();
                pMP->ComputeDistinctiveDescriptors();
             }

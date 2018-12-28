@@ -606,12 +606,11 @@ namespace ORB_SLAM2
                MapPoint* pCurMP = mpCurrentKF->GetMapPoint(i);
                if (pCurMP)
                {
-                  pCurMP->Replace(pLoopMP, &mMap);
+                  mMap.Replace(*pCurMP, *pLoopMP);
                }
                else
                {
-                  mpCurrentKF->AddMapPoint(pLoopMP, i);
-                  pLoopMP->AddObservation(mpCurrentKF, i);
+                  mMap.Link(*pLoopMP, i, *mpCurrentKF);
                   pLoopMP->ComputeDistinctiveDescriptors();
                }
             }
@@ -687,7 +686,7 @@ namespace ORB_SLAM2
          cv::Mat cvScw = Converter::toCvMat(g2oScw);
 
          vector<MapPoint*> vpReplacePoints(mvpLoopMapPoints.size(), static_cast<MapPoint*>(NULL));
-         matcher.Fuse(pKF, cvScw, mvpLoopMapPoints, 4, vpReplacePoints);
+         matcher.Fuse(mMap, *pKF, cvScw, mvpLoopMapPoints, 4, vpReplacePoints);
 
          // Get Map Mutex
          Print("unique_lock<mutex> lock(mMutexMapUpdate);");
@@ -698,7 +697,7 @@ namespace ORB_SLAM2
             MapPoint* pRep = vpReplacePoints[i];
             if (pRep)
             {
-               pRep->Replace(mvpLoopMapPoints[i], &mMap);
+               mMap.Replace(*pRep, *mvpLoopMapPoints[i]);
             }
          }
       }
