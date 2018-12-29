@@ -55,13 +55,23 @@ namespace ORB_SLAM2
       mMapPoints[pMP->id] = pMP;
    }
 
-   void Map::EraseMapPoint(MapPoint *pMP)
+   void Map::EraseMapPoint(MapPoint * pMP)
    {
-      unique_lock<mutex> lock(mMutexMap);
+      Print("begin EraseMapPoint");
+      unique_lock<mutex> lock1(mMutexMap);
       mMapPoints.erase(pMP->id);
+
+      unique_lock<mutex> lock2(pMP->mMutexFeatures);
+      while (pMP->mObservations.size() > 0)
+      {
+         KeyFrame * pKF = pMP->mObservations.begin()->first;
+         unique_lock<mutex> lock3(pKF->mMutexFeatures);
+         UnlinkWithoutLock(*pMP, *pKF);
+      }
 
       // TODO: This only erase the pointer.
       // Delete the MapPoint
+      Print("end EraseMapPoint");
    }
 
    void Map::EraseMapPoint(id_type mapPointId)
@@ -209,8 +219,7 @@ namespace ORB_SLAM2
    {
       Print("begin Link");
       unique_lock<mutex> lock1(mMutexMap);
-      unique_lock<mutex> lock2(rMP.mMutexFeatures);
-      unique_lock<mutex> lock3(rKF.mMutexFeatures);
+      unique_lock<mutex> lock2(rKF.mMutexFeatures);
 
       MapPoint * prevMP = rKF.mvpMapPoints.at(idx);
       if (prevMP != NULL) {
@@ -221,11 +230,13 @@ namespace ORB_SLAM2
          else {
             // rKF is already linked to a different MP, so unlink them
             rKF.mvpMapPoints.at(idx) = NULL;
-            unique_lock<mutex> lock(prevMP->mMutexFeatures);
+            unique_lock<mutex> lock3(prevMP->mMutexFeatures);
             prevMP->mObservations.erase(&rKF);
             prevMP->CompleteUnlink(idx, rKF);
          }
       }
+
+      unique_lock<mutex> lock3(rMP.mMutexFeatures);
 
       if (rMP.mObservations.count(&rKF) > 0) {
          size_t prevIdx = rMP.mObservations[&rKF];
@@ -249,9 +260,16 @@ namespace ORB_SLAM2
    {
       Print("begin Unlink");
       unique_lock<mutex> lock1(mMutexMap);
-      unique_lock<mutex> lock2(rMP.mMutexFeatures);
-      unique_lock<mutex> lock3(rKF.mMutexFeatures);
+      unique_lock<mutex> lock2(rKF.mMutexFeatures);
+      unique_lock<mutex> lock3(rMP.mMutexFeatures);
 
+      UnlinkWithoutLock(rMP, rKF);
+      Print("end Unlink");
+   }
+
+   void Map::UnlinkWithoutLock(MapPoint & rMP, KeyFrame & rKF)
+   {
+      Print("begin UnlinkWithoutLock");
       if (rMP.mObservations.count(&rKF) > 0) {
          size_t prevIdx = rMP.mObservations[&rKF];
          rKF.mvpMapPoints.at(prevIdx) = NULL;
@@ -260,7 +278,7 @@ namespace ORB_SLAM2
          rKF.SetModified(true);
          rMP.CompleteUnlink(prevIdx, rKF);
       }
-      Print("end Unlink");
+      Print("end UnlinkWithoutLock");
    }
 
    void Map::Replace(MapPoint & oldMP, MapPoint & newMP) {
@@ -281,6 +299,63 @@ namespace ORB_SLAM2
          Link(newMP, p.second, rKF);
       }
       Print("end Replace 2");
+   }
+
+   void Map::ValidateAllLinks()
+   {
+      Print("begin ValidateAllLinks");
+      unique_lock<mutex> lock1(mMutexMap);
+      
+      // for each KeyFrame
+      for (auto itKF = mKeyFrames.begin(); itKF != mKeyFrames.end(); itKF++)
+      {
+         KeyFrame & rKF = *itKF->second;
+         set<MapPoint *> mapPoints;
+         unique_lock<mutex> lock2(rKF.mMutexFeatures);
+         for (size_t i = 0; i < rKF.mvpMapPoints.size(); i++)
+         {
+            MapPoint * pMP = rKF.mvpMapPoints[i];
+            if (pMP)
+            {
+               unique_lock<mutex> lock3(pMP->mMutexFeatures);
+               if (mapPoints.count(pMP) > 0)
+                  throw exception("Map::ValidateAllLinks detected a duplicate MapPoint in a KeyFrame");
+               else
+                  mapPoints.insert(pMP);
+               if (pMP->mObservations.count(&rKF) < 1)
+                  throw exception("Map::ValidateAllLinks detected a missing link from a MapPoint to a KeyFrame");
+               else if (pMP->mObservations[&rKF] != i)
+               {
+                  Print(rKF.IsBad() ? "rKF is bad" : "rKF is good");
+                  Print(pMP->IsBad() ? "pMP is bad" : "pMP is good");
+                  throw exception("Map::ValidateAllLinks detected an invalid link between a MapPoint and a KeyFrame");
+               }
+            }
+         }
+         if (rKF.IsBad() && mapPoints.size() > 0)
+            throw exception("Map::ValidateAllLinks detected a bad KeyFrame with MapPoints");
+      }
+
+      for (auto itMP = mMapPoints.begin(); itMP != mMapPoints.end(); ++itMP)
+      {
+         MapPoint & rMP = *itMP->second;
+         unique_lock<mutex> lock2(rMP.mMutexFeatures);
+         for (auto itKF = rMP.mObservations.begin(); itKF != rMP.mObservations.end(); itKF++)
+         {
+            KeyFrame * pKF = itKF->first;
+            if (pKF)
+            {
+               unique_lock<mutex> lock3(pKF->mMutexFeatures);
+               if (pKF->mvpMapPoints.at(itKF->second) != &rMP)
+                  throw exception("Map::ValidateAllLinks detected an invalid link between a KeyFrame and a MapPoint");
+            }
+            else
+               throw exception("Map::ValidateAllLinks detected a MapPoint with a NULL KeyFrame");
+         }
+         if (rMP.IsBad() && rMP.mObservations.size() > 0)
+            throw exception("Map::ValidateAllLinks detected a bad MapPoint with KeyFrames");
+      }
+      Print("end ValidateAllLinks");
    }
 
    Map & Map::operator=(const Map & map)

@@ -86,7 +86,10 @@ namespace ORB_SLAM2
 
       void Replace(MapPoint & oldMP, MapPoint & newMP);
 
-      Map & operator=(const Map & map);
+      // only for debugging
+      void ValidateAllLinks();
+
+      Map & operator=(const Map & rMap);
 
       vector<KeyFrame *> mvpKeyFrameOrigins;
 
@@ -107,6 +110,7 @@ namespace ORB_SLAM2
 
       unordered_map<id_type, KeyFrame *> mKeyFrames;
 
+      void UnlinkWithoutLock(MapPoint & rMP, KeyFrame & rKF);
    };
 
 } //namespace ORB_SLAM

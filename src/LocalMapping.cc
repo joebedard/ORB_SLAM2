@@ -364,14 +364,14 @@ namespace ORB_SLAM2
          }
          else if (pMP->GetFoundRatio() < 0.25f)
          {
-            pMP->SetBadFlag(&mMap);
+            mMap.EraseMapPoint(pMP);
             lit = recentAddedMapPoints.erase(lit);
             quantLowFoundRatio++;
             //Print(to_string(pMP->id) + "=MapPointId erased 2");
          }
          else if ((nCurrentKFid - pMP->firstKFid) >= (2 * mKeyFrameIdSpan) && pMP->Observations() <= cnThObs)
          {
-            pMP->SetBadFlag(&mMap);
+            mMap.EraseMapPoint(pMP);
             lit = recentAddedMapPoints.erase(lit);
             quantLowObs++;
             //Print(to_string(pMP->id) + "=MapPointId erased 3");

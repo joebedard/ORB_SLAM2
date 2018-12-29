@@ -63,7 +63,6 @@ namespace ORB_SLAM2
       int GetIndexInKeyFrame(KeyFrame* pKF);
       bool IsObserving(KeyFrame* pKF);
 
-      void SetBadFlag(Map * pMap);
       bool IsBad();
 
       MapPoint * GetReplaced();

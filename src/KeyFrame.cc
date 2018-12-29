@@ -76,7 +76,7 @@ namespace ORB_SLAM2
       , mvScaleFactors(frame.mvScaleFactors)
       , mvLevelSigma2(frame.mvLevelSigma2)
       , mvInvLevelSigma2(frame.mvInvLevelSigma2)
-      , mvpMapPoints(frame.N)
+      , mvpMapPoints(frame.N, static_cast<MapPoint *>(NULL))
       , mnTrackReferenceForFrame(0)
       , mnFuseTargetForKF(0)
       , mnBALocalForKF(0)
@@ -527,7 +527,7 @@ namespace ORB_SLAM2
       vector<MapPoint *> vpMP;
 
       {
-         unique_lock<mutex> lockMPs(mMutexFeatures);
+         unique_lock<mutex> lock(mMutexFeatures);
          vpMP = mvpMapPoints;
       }
 
@@ -726,7 +726,7 @@ namespace ORB_SLAM2
          {
             pMap->Unlink(*pMP, *this);
             if (pMP->Observations() <= 2)
-               pMP->SetBadFlag(pMap);
+               pMap->EraseMapPoint(pMP);
          }
       }
 

@@ -818,7 +818,7 @@ namespace ORB_SLAM2
             MapPoint* pMPi = vToErase[i].second;
             theMap.Unlink(*pMPi, *pKFi);
             if (pMPi->Observations() <= 2)
-               pMPi->SetBadFlag(&theMap);
+               theMap.EraseMapPoint(pMPi);
          }
       }
 

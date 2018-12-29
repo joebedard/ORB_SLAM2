@@ -81,6 +81,9 @@ namespace ORB_SLAM2
 
       void NotifyMapChanged(Map & theMap)
       {
+         // only for debugging
+         //theMap.ValidateAllLinks();
+
          MapChangeEvent mapChanges;
 
          set<KeyFrame *> setKFs = theMap.GetKeyFrameSet();

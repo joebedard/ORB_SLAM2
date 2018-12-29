@@ -134,26 +134,6 @@ namespace ORB_SLAM2
       return mnObs;
    }
 
-   void MapPoint::SetBadFlag(Map * pMap)
-   {
-      map<KeyFrame*, size_t> obs;
-      {
-         mbBad = true;
-         mModified = true;
-         unique_lock<mutex> lock(mMutexFeatures);
-         obs = mObservations;
-         mObservations.clear();
-      }
-      for (map<KeyFrame*, size_t>::iterator mit = obs.begin(), mend = obs.end(); mit != mend; mit++)
-      {
-         KeyFrame* pKF = mit->first;
-         pMap->Unlink(*this, *pKF);
-      }
-
-      if (pMap)
-         pMap->EraseMapPoint(this);
-   }
-
    MapPoint * MapPoint::GetReplaced()
    {
       unique_lock<mutex> lock1(mMutexFeatures);
@@ -405,6 +385,9 @@ namespace ORB_SLAM2
          mnObs += 2;
       else
          mnObs++;
+
+      if (mnObs > 0)
+         mbBad = false;
 
       mModified = true;
    }
