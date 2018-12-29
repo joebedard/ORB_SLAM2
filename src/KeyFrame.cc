@@ -123,9 +123,9 @@ namespace ORB_SLAM2
       SetPose(frame.mTcw);
    }
 
-   KeyFrame * KeyFrame::Find(id_type id, const Map & map, std::unordered_map<id_type, KeyFrame *> & newKeyFrames)
+   KeyFrame * KeyFrame::Find(id_type id, const Map & rMap, unordered_map<id_type, KeyFrame *> & newKeyFrames)
    {
-      KeyFrame * pKF = map.GetKeyFrame(id);
+      KeyFrame * pKF = rMap.GetKeyFrame(id);
       if (pKF == NULL)
       {
          pKF = (newKeyFrames.count(id)) ? newKeyFrames.at(id) : NULL;
@@ -135,9 +135,9 @@ namespace ORB_SLAM2
 
    void * KeyFrame::ReadMapPointIds(
       void * const buffer, 
-      const Map & map, 
-      std::unordered_map<id_type, MapPoint *> & newMapPoints,
-      std::vector<MapPoint *> & mpv)
+      const Map & rMap, 
+      unordered_map<id_type, MapPoint *> & newMapPoints,
+      vector<MapPoint *> & mpv)
    {
       size_t * pQuantity = (size_t *)buffer;
       mpv.resize(*pQuantity);
@@ -147,7 +147,7 @@ namespace ORB_SLAM2
          MapPoint * pMP = NULL;
          if (*pData != (id_type)-1)
          {
-            pMP = MapPoint::Find(*pData, map, newMapPoints);
+            pMP = MapPoint::Find(*pData, rMap, newMapPoints);
             if (pMP == NULL)
             {
                pMP = new MapPoint(*pData);
@@ -160,7 +160,7 @@ namespace ORB_SLAM2
       return pData;
    }
 
-   void * KeyFrame::WriteMapPointIds(void * const buffer, const std::vector<MapPoint *> & mpv)
+   void * KeyFrame::WriteMapPointIds(void * const buffer, const vector<MapPoint *> & mpv)
    {
       size_t * pQuantity = (size_t *)buffer;
       *pQuantity = mpv.size();
@@ -179,9 +179,9 @@ namespace ORB_SLAM2
 
    void * KeyFrame::ReadKeyFrameWeights(
       void * const buffer, 
-      const Map & map, 
-      std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
-      std::map<KeyFrame *, int> & kfWeights)
+      const Map & rMap, 
+      unordered_map<id_type, KeyFrame *> & newKeyFrames, 
+      map<KeyFrame *, int> & kfWeights)
    {
       kfWeights.clear();
       size_t * pQuantity = (size_t *)buffer;
@@ -189,7 +189,7 @@ namespace ORB_SLAM2
       KeyFrameWeight * pEnd = pData + *pQuantity;
       while (pData < pEnd)
       {
-         KeyFrame * pKF = KeyFrame::Find(pData->keyFrameId, map, newKeyFrames);
+         KeyFrame * pKF = KeyFrame::Find(pData->keyFrameId, rMap, newKeyFrames);
          if (pKF == NULL)
          {
             pKF = new KeyFrame(pData->keyFrameId);
@@ -201,12 +201,12 @@ namespace ORB_SLAM2
       return pData;
    }
 
-   void * KeyFrame::WriteKeyFrameWeights(void * const buffer, const std::map<KeyFrame *, int> & kfWeights)
+   void * KeyFrame::WriteKeyFrameWeights(void * const buffer, const map<KeyFrame *, int> & kfWeights)
    {
       size_t * pQuantity = (size_t *)buffer;
       *pQuantity = kfWeights.size();
       KeyFrameWeight * pData = (KeyFrameWeight *)(pQuantity + 1);
-      for (std::pair<KeyFrame *, size_t> p : kfWeights)
+      for (pair<KeyFrame *, size_t> p : kfWeights)
       {
          pData->keyFrameId = p.first->id;
          pData->weight = p.second;
@@ -217,16 +217,16 @@ namespace ORB_SLAM2
 
    void * KeyFrame::ReadKeyFrameIds(
       void * const buffer, 
-      const Map & map, 
-      std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
-      std::vector<KeyFrame *> & kfv)
+      const Map & rMap, 
+      unordered_map<id_type, KeyFrame *> & newKeyFrames,
+      vector<KeyFrame *> & kfv)
    {
       size_t * pQuantity = (size_t *)buffer;
       kfv.resize(*pQuantity);
       id_type * pData = (id_type *)(pQuantity + 1);
       for (int i = 0; i < *pQuantity; ++i)
       {
-         KeyFrame * pKF = KeyFrame::Find(*pData, map, newKeyFrames);
+         KeyFrame * pKF = KeyFrame::Find(*pData, rMap, newKeyFrames);
          if (pKF == NULL)
          {
             pKF = new KeyFrame(*pData);
@@ -238,7 +238,7 @@ namespace ORB_SLAM2
       return pData;
    }
 
-   void * KeyFrame::WriteKeyFrameIds(void * const buffer, const std::vector<KeyFrame *> & kfv)
+   void * KeyFrame::WriteKeyFrameIds(void * const buffer, const vector<KeyFrame *> & kfv)
    {
       size_t * pQuantity = (size_t *)buffer;
       *pQuantity = kfv.size();
@@ -253,16 +253,16 @@ namespace ORB_SLAM2
 
    void * KeyFrame::ReadKeyFrameIds(
       void * const buffer, 
-      const Map & map, 
-      std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
-      std::set<KeyFrame *> & kfs)
+      const Map & rMap, 
+      unordered_map<id_type, KeyFrame *> & newKeyFrames,
+      set<KeyFrame *> & kfs)
    {
       size_t * pQuantity = (size_t *)buffer;
       kfs.clear();
       id_type * pData = (id_type *)(pQuantity + 1);
       for (int i = 0; i < *pQuantity; ++i)
       {
-         KeyFrame * pKF = KeyFrame::Find(*pData, map, newKeyFrames);
+         KeyFrame * pKF = KeyFrame::Find(*pData, rMap, newKeyFrames);
          if (pKF == NULL)
          {
             pKF = new KeyFrame(*pData);
@@ -274,7 +274,7 @@ namespace ORB_SLAM2
       return pData;
    }
 
-   void * KeyFrame::WriteKeyFrameIds(void * const buffer, const std::set<KeyFrame *> & kfs)
+   void * KeyFrame::WriteKeyFrameIds(void * const buffer, const set<KeyFrame *> & kfs)
    {
       size_t * pQuantity = (size_t *)buffer;
       *pQuantity = kfs.size();
@@ -944,24 +944,24 @@ namespace ORB_SLAM2
 
    void * KeyFrame::Read(
       void * buffer, 
-      const Map & map, 
-      std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
-      std::unordered_map<id_type, MapPoint *> & newMapPoints,
+      const Map & rMap, 
+      unordered_map<id_type, KeyFrame *> & newKeyFrames,
+      unordered_map<id_type, MapPoint *> & newMapPoints,
       KeyFrame ** const ppKF)
    {
       id_type id = KeyFrame::PeekId(buffer);
-      KeyFrame * pKF = Find(id, map, newKeyFrames);
+      KeyFrame * pKF = Find(id, rMap, newKeyFrames);
       if (pKF == NULL)
       {
          pKF = new KeyFrame(id);
          newKeyFrames[id] = pKF;
       }
-      void * pData = pKF->ReadBytes(buffer, map, newKeyFrames, newMapPoints);
+      void * pData = pKF->ReadBytes(buffer, rMap, newKeyFrames, newMapPoints);
       if (ppKF) *ppKF = pKF;
       return pData;
    }
 
-   size_t KeyFrame::GetVectorBufferSize(const std::vector<KeyFrame *> & kfv)
+   size_t KeyFrame::GetVectorBufferSize(const vector<KeyFrame *> & kfv)
    {
       size_t size = sizeof(size_t);
       for (KeyFrame * pKF : kfv)
@@ -971,10 +971,10 @@ namespace ORB_SLAM2
 
    void * KeyFrame::ReadVector(
       void * buffer,
-      const Map & map,
-      std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
-      std::unordered_map<id_type, MapPoint *> & newMapPoints,
-      std::vector<KeyFrame *> & kfv)
+      const Map & rMap,
+      unordered_map<id_type, KeyFrame *> & newKeyFrames,
+      unordered_map<id_type, MapPoint *> & newMapPoints,
+      vector<KeyFrame *> & kfv)
    {
       size_t quantityKFs;
       void * pData = Serializer::ReadValue<size_t>(buffer, quantityKFs);
@@ -982,19 +982,19 @@ namespace ORB_SLAM2
       for (int i = 0; i < quantityKFs; ++i)
       {
          id_type id = KeyFrame::PeekId(pData);
-         KeyFrame * pKF = KeyFrame::Find(id, map, newKeyFrames);
+         KeyFrame * pKF = KeyFrame::Find(id, rMap, newKeyFrames);
          if (pKF == NULL)
          {
             pKF = new KeyFrame(id);
             newKeyFrames[id] = pKF;
          }
-         pData = pKF->ReadBytes(pData, map, newKeyFrames, newMapPoints);
+         pData = pKF->ReadBytes(pData, rMap, newKeyFrames, newMapPoints);
          kfv[i] = pKF;
       }
       return pData;
    }
 
-   size_t KeyFrame::GetSetBufferSize(const std::set<KeyFrame *> & kfs)
+   size_t KeyFrame::GetSetBufferSize(const set<KeyFrame *> & kfs)
    {
       size_t size = sizeof(size_t);
       for (KeyFrame * pKF : kfs)
@@ -1004,10 +1004,10 @@ namespace ORB_SLAM2
 
    void * KeyFrame::ReadSet(
       void * buffer,
-      const Map & map,
-      std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
-      std::unordered_map<id_type, MapPoint *> & newMapPoints,
-      std::set<KeyFrame *> & kfs)
+      const Map & rMap,
+      unordered_map<id_type, KeyFrame *> & newKeyFrames,
+      unordered_map<id_type, MapPoint *> & newMapPoints,
+      set<KeyFrame *> & kfs)
    {
       size_t quantityKFs;
       void * pData = Serializer::ReadValue<size_t>(buffer, quantityKFs);
@@ -1015,13 +1015,13 @@ namespace ORB_SLAM2
       for (int i = 0; i < quantityKFs; ++i)
       {
          id_type id = KeyFrame::PeekId(pData);
-         KeyFrame * pKF = KeyFrame::Find(id, map, newKeyFrames);
+         KeyFrame * pKF = KeyFrame::Find(id, rMap, newKeyFrames);
          if (pKF == NULL)
          {
             pKF = new KeyFrame(id);
             newKeyFrames[id] = pKF;
          }
-         pData = pKF->ReadBytes(pData, map, newKeyFrames, newMapPoints);
+         pData = pKF->ReadBytes(pData, rMap, newKeyFrames, newMapPoints);
          kfs.insert(pKF);
       }
       return pData;
@@ -1029,7 +1029,7 @@ namespace ORB_SLAM2
 
    void * KeyFrame::WriteSet(
       void * buffer,
-      std::set<KeyFrame *> & kfs)
+      set<KeyFrame *> & kfs)
    {
       void * pData = Serializer::WriteValue<size_t>(buffer, kfs.size());
       for (KeyFrame * pKF : kfs)
@@ -1073,9 +1073,9 @@ namespace ORB_SLAM2
 
    void * KeyFrame::ReadBytes(
       const void * data, 
-      const Map & map, 
-      std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
-      std::unordered_map<id_type, MapPoint *> & newMapPoints)
+      const Map & rMap, 
+      unordered_map<id_type, KeyFrame *> & newKeyFrames, 
+      unordered_map<id_type, MapPoint *> & newMapPoints)
    {
       unique_lock<mutex> lock1(mMutexPose);
       unique_lock<mutex> lock2(mMutexFeatures);
@@ -1095,7 +1095,7 @@ namespace ORB_SLAM2
          mpParent = NULL;
       else
       {
-         mpParent = map.GetKeyFrame(pHeader->parentKeyFrameId);
+         mpParent = rMap.GetKeyFrame(pHeader->parentKeyFrameId);
          if (mpParent == NULL)
          {
             mpParent = new KeyFrame(pHeader->parentKeyFrameId);
@@ -1118,12 +1118,12 @@ namespace ORB_SLAM2
       pData = Serializer::ReadMatrix(pData, Tcw);
       pData = Serializer::ReadMatrix(pData, Twc);
       pData = Serializer::ReadMatrix(pData, Ow);
-      pData = ReadMapPointIds(pData, map, newMapPoints, mvpMapPoints);
-      pData = ReadKeyFrameWeights(pData, map, newKeyFrames, mConnectedKeyFrameWeights);
-      pData = ReadKeyFrameIds(pData, map, newKeyFrames, mvpOrderedConnectedKeyFrames);
+      pData = ReadMapPointIds(pData, rMap, newMapPoints, mvpMapPoints);
+      pData = ReadKeyFrameWeights(pData, rMap, newKeyFrames, mConnectedKeyFrameWeights);
+      pData = ReadKeyFrameIds(pData, rMap, newKeyFrames, mvpOrderedConnectedKeyFrames);
       pData = Serializer::ReadVector<int>(pData, mvOrderedWeights);
-      pData = ReadKeyFrameIds(pData, map, newKeyFrames, mspChildrens);
-      pData = ReadKeyFrameIds(pData, map, newKeyFrames, mspLoopEdges);
+      pData = ReadKeyFrameIds(pData, rMap, newKeyFrames, mspChildrens);
+      pData = ReadKeyFrameIds(pData, rMap, newKeyFrames, mspLoopEdges);
 
       // rebuild mGrid
       AssignFeaturesToGrid();

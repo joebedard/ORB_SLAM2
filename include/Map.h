@@ -33,7 +33,6 @@
 
 namespace ORB_SLAM2
 {
-
    class MapPoint;
    class KeyFrame;
 
@@ -61,15 +60,15 @@ namespace ORB_SLAM2
 
       int GetLastBigChangeIdx();
 
-      std::vector<KeyFrame *> GetAllKeyFrames();
+      vector<KeyFrame *> GetAllKeyFrames();
 
-      std::set<KeyFrame *> GetKeyFrameSet();
+      set<KeyFrame *> GetKeyFrameSet();
 
       KeyFrame * GetKeyFrame(id_type keyFrameId) const;
 
-      std::vector<MapPoint *> GetAllMapPoints();
+      vector<MapPoint *> GetAllMapPoints();
 
-      std::set<MapPoint *> GetMapPointSet();
+      set<MapPoint *> GetMapPointSet();
 
       MapPoint * GetMapPoint(id_type mapPointId) const;
 
@@ -98,15 +97,15 @@ namespace ORB_SLAM2
       // Index related to a big change in the map (loop closure, global BA)
       int mnBigChangeIdx;
 
-      std::mutex mMutexMap;
+      mutex mMutexMap;
 
    private:
       // This avoids that two points (with same id) are created simultaneously in separate threads (id conflict)
-      std::mutex mMutexPointCreation;
+      mutex mMutexPointCreation;
 
-      std::unordered_map<id_type, MapPoint *> mMapPoints;
+      unordered_map<id_type, MapPoint *> mMapPoints;
 
-      std::unordered_map<id_type, KeyFrame *> mKeyFrames;
+      unordered_map<id_type, KeyFrame *> mKeyFrames;
 
    };
 

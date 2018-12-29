@@ -57,7 +57,7 @@ namespace ORB_SLAM2
       cv::Mat GetNormal();
       KeyFrame* GetReferenceKeyFrame();
 
-      std::map<KeyFrame*, size_t> GetObservations();
+      map<KeyFrame*, size_t> GetObservations();
       size_t Observations();
 
       int GetIndexInKeyFrame(KeyFrame* pKF);
@@ -93,41 +93,41 @@ namespace ORB_SLAM2
       bool GetModified();
       void SetModified(bool b);
 
-      static MapPoint * Find(const id_type id, const Map & map, std::unordered_map<id_type, MapPoint *> & newMapPoints);
+      static MapPoint * Find(const id_type id, const Map & rMap, unordered_map<id_type, MapPoint *> & newMapPoints);
 
-      static size_t GetVectorBufferSize(const std::vector<MapPoint *> & mpv);
+      static size_t GetVectorBufferSize(const vector<MapPoint *> & mpv);
 
       static void * ReadVector(
          void * buffer, 
-         const Map & map, 
-         std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
-         std::unordered_map<id_type, MapPoint *> & newMapPoints,
-         std::vector<MapPoint *> & mpv);
+         const Map & rMap, 
+         unordered_map<id_type, KeyFrame *> & newKeyFrames,
+         unordered_map<id_type, MapPoint *> & newMapPoints,
+         vector<MapPoint *> & mpv);
 
       static void * WriteVector(
          void * buffer,
-         std::vector<MapPoint *> & mpv);
+         vector<MapPoint *> & mpv);
 
-      static size_t GetSetBufferSize(const std::set<MapPoint *> & mps);
+      static size_t GetSetBufferSize(const set<MapPoint *> & mps);
 
       static void * ReadSet(
          void * buffer, 
-         const Map & map, 
-         std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
-         std::unordered_map<id_type, MapPoint *> & newMapPoints, 
-         std::set<MapPoint *> & mps);
+         const Map & rMap, 
+         unordered_map<id_type, KeyFrame *> & newKeyFrames, 
+         unordered_map<id_type, MapPoint *> & newMapPoints, 
+         set<MapPoint *> & mps);
 
       static void * WriteSet(
          void * buffer,
-         std::set<MapPoint *> & mps);
+         set<MapPoint *> & mps);
 
       size_t GetBufferSize();
 
       void * ReadBytes(
          void * const buffer, 
-         const Map & map, 
-         std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
-         std::unordered_map<id_type, MapPoint *> & newMapPoints);
+         const Map & rMap, 
+         unordered_map<id_type, KeyFrame *> & newKeyFrames, 
+         unordered_map<id_type, MapPoint *> & newMapPoints);
 
       void * WriteBytes(void * const buffer);
 
@@ -158,16 +158,16 @@ namespace ORB_SLAM2
       cv::Mat mPosGBA;
       unsigned long int mnBAGlobalForKF;
 
-      static std::mutex mGlobalMutex;
+      static mutex mGlobalMutex;
 
    protected:
 
       const atomic_size_t & nObs;
 
-      std::mutex mMutexFeatures;
+      mutex mMutexFeatures;
 
       // Keyframes observing the point and associated index in keyframe
-      std::map<KeyFrame*, size_t> mObservations;
+      map<KeyFrame*, size_t> mObservations;
 
       // called from Map::Link when all linking is complete
       // pre: the thread has locked this->mMutexFeatures and rKF.mMutexFeatures
@@ -238,11 +238,11 @@ namespace ORB_SLAM2
 
       static void * ReadObservations(
          void * const buffer,
-         const Map & map,
-         std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
-         std::map<KeyFrame *, size_t> & observations);
+         const Map & rMap,
+         unordered_map<id_type, KeyFrame *> & newKeyFrames,
+         map<KeyFrame *, size_t> & observations);
 
-      static void * WriteObservations(void * const buffer, std::map<KeyFrame *, size_t> & observations);
+      static void * WriteObservations(void * const buffer, map<KeyFrame *, size_t> & observations);
 
    };
 

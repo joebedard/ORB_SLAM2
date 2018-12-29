@@ -429,9 +429,9 @@ namespace ORB_SLAM2
       mModified = true;
    }
 
-   MapPoint * MapPoint::Find(const id_type id, const Map & map, std::unordered_map<id_type, MapPoint *> & newMapPoints)
+   MapPoint * MapPoint::Find(const id_type id, const Map & rMap, std::unordered_map<id_type, MapPoint *> & newMapPoints)
    {
-      MapPoint * pMP = map.GetMapPoint(id);
+      MapPoint * pMP = rMap.GetMapPoint(id);
       if (pMP == NULL)
       {
          pMP = (newMapPoints.count(id) == 1) ? newMapPoints.at(id) : NULL;
@@ -460,7 +460,7 @@ namespace ORB_SLAM2
 
    void * MapPoint::ReadVector(
       void * buffer, 
-      const Map & map, 
+      const Map & rMap, 
       std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
       std::unordered_map<id_type, MapPoint *> & newMapPoints, 
       std::vector<MapPoint *> & mpv)
@@ -479,7 +479,7 @@ namespace ORB_SLAM2
          }
          else
          {
-            MapPoint * pMP = map.GetMapPoint(id);
+            MapPoint * pMP = rMap.GetMapPoint(id);
             if (pMP == NULL)
             {
                pMP = (newMapPoints.count(id) == 1) ? newMapPoints.at(id) : NULL;
@@ -489,7 +489,7 @@ namespace ORB_SLAM2
                   newMapPoints[id] = pMP;
                }
             }
-            pData = pMP->ReadBytes(pData, map, newKeyFrames, newMapPoints);
+            pData = pMP->ReadBytes(pData, rMap, newKeyFrames, newMapPoints);
             mpv[i] = pMP;
          }
       }
@@ -525,7 +525,7 @@ namespace ORB_SLAM2
 
    void * MapPoint::ReadSet(
       void * buffer, 
-      const Map & map, 
+      const Map & rMap, 
       std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
       std::unordered_map<id_type, MapPoint *> & newMapPoints, 
       std::set<MapPoint *> & mps)
@@ -536,7 +536,7 @@ namespace ORB_SLAM2
       for (int i = 0; i < quantityMPs; ++i)
       {
          id_type id = MapPoint::PeekId(pData);
-         MapPoint * pMP = map.GetMapPoint(id);
+         MapPoint * pMP = rMap.GetMapPoint(id);
          if (pMP == NULL)
          {
             pMP = (newMapPoints.count(id) == 1) ? newMapPoints.at(id) : NULL;
@@ -546,7 +546,7 @@ namespace ORB_SLAM2
                newMapPoints[id] = pMP;
             }
          }
-         pData = pMP->ReadBytes(pData, map, newKeyFrames, newMapPoints);
+         pData = pMP->ReadBytes(pData, rMap, newKeyFrames, newMapPoints);
          mps.insert(pMP);
       }
       return pData;
@@ -579,7 +579,7 @@ namespace ORB_SLAM2
 
    void * MapPoint::ReadBytes(
       void * const buffer, 
-      const Map & map, 
+      const Map & rMap, 
       std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
       std::unordered_map<id_type, MapPoint *> & newMapPoints)
    {
@@ -593,7 +593,7 @@ namespace ORB_SLAM2
       mnFirstKFid = pHeader->mnFirstKFId;
       mnObs = pHeader->mnObs;
 
-      mpRefKF = KeyFrame::Find(pHeader->mpRefKFId, map, newKeyFrames);
+      mpRefKF = KeyFrame::Find(pHeader->mpRefKFId, rMap, newKeyFrames);
       if (mpRefKF == NULL)
       {
          std::stringstream ss;
@@ -610,7 +610,7 @@ namespace ORB_SLAM2
          mpReplaced = NULL;
       else
       {
-         mpReplaced = MapPoint::Find(pHeader->mpReplacedId, map, newMapPoints);
+         mpReplaced = MapPoint::Find(pHeader->mpReplacedId, rMap, newMapPoints);
          if (mpReplaced == NULL)
          {
             mpReplaced = new MapPoint(pHeader->mpReplacedId);
@@ -625,7 +625,7 @@ namespace ORB_SLAM2
       pData = Serializer::ReadMatrix(pData, mWorldPos);
       pData = Serializer::ReadMatrix(pData, mNormalVector);
       pData = Serializer::ReadMatrix(pData, mDescriptor);
-      pData = ReadObservations(pData, map, newKeyFrames, mObservations);
+      pData = ReadObservations(pData, rMap, newKeyFrames, mObservations);
       return pData;
    }
 
@@ -660,7 +660,7 @@ namespace ORB_SLAM2
 
    void * MapPoint::ReadObservations(
       void * const buffer,
-      const Map & map,
+      const Map & rMap,
       std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
       std::map<KeyFrame *, size_t> & observations)
    {
@@ -670,7 +670,7 @@ namespace ORB_SLAM2
       Observation * pEnd = pData + *pQuantity;
       while (pData < pEnd)
       {
-         KeyFrame * pKF = KeyFrame::Find(pData->keyFrameId, map, newKeyFrames);
+         KeyFrame * pKF = KeyFrame::Find(pData->keyFrameId, rMap, newKeyFrames);
          if (pKF == NULL)
          {
             std::stringstream ss;

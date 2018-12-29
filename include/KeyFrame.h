@@ -73,32 +73,32 @@ namespace ORB_SLAM2
       void EraseConnection(KeyFrame * pKF);
       void UpdateConnections();
       void UpdateBestCovisibles();
-      std::set<KeyFrame *> GetConnectedKeyFrames();
-      std::vector<KeyFrame * > GetVectorCovisibleKeyFrames();
-      std::vector<KeyFrame *> GetBestCovisibilityKeyFrames(const int & n);
-      std::vector<KeyFrame *> GetCovisiblesByWeight(const int & w);
+      set<KeyFrame *> GetConnectedKeyFrames();
+      vector<KeyFrame * > GetVectorCovisibleKeyFrames();
+      vector<KeyFrame *> GetBestCovisibilityKeyFrames(const int & n);
+      vector<KeyFrame *> GetCovisiblesByWeight(const int & w);
       int GetWeight(KeyFrame * pKF);
 
       // Spanning tree functions
       void AddChild(KeyFrame * pKF);
       void EraseChild(KeyFrame * pKF);
       void ChangeParent(KeyFrame * pKF);
-      std::set<KeyFrame *> GetChilds();
+      set<KeyFrame *> GetChilds();
       KeyFrame * GetParent();
       bool hasChild(KeyFrame * pKF);
 
       // Loop Edges
       void AddLoopEdge(KeyFrame * pKF);
-      std::set<KeyFrame *> GetLoopEdges();
+      set<KeyFrame *> GetLoopEdges();
 
       // MapPoint observation functions
-      std::set<MapPoint*> GetMapPoints();
-      std::vector<MapPoint*> GetMapPointMatches();
+      set<MapPoint*> GetMapPoints();
+      vector<MapPoint*> GetMapPointMatches();
       int TrackedMapPoints(const int &minObs);
       MapPoint* GetMapPoint(const size_t idx);
 
       // KeyPoint functions
-      std::vector<size_t> GetFeaturesInArea(const float &x, const float  &y, const float  &r) const;
+      vector<size_t> GetFeaturesInArea(const float &x, const float  &y, const float  &r) const;
       cv::Mat UnprojectStereo(int i);
 
       // Image
@@ -124,44 +124,44 @@ namespace ORB_SLAM2
       bool GetModified();
       void SetModified(bool b);
 
-      static KeyFrame * Find(id_type id, const Map & map, std::unordered_map<id_type, KeyFrame *> & newKeyFrames);
+      static KeyFrame * Find(id_type id, const Map & rMap, unordered_map<id_type, KeyFrame *> & newKeyFrames);
 
       static void * Read(
          void * buffer, 
-         const Map & map, 
-         std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
-         std::unordered_map<id_type, MapPoint *> & newMapPoints,
+         const Map & rMap, 
+         unordered_map<id_type, KeyFrame *> & newKeyFrames,
+         unordered_map<id_type, MapPoint *> & newMapPoints,
          KeyFrame ** const ppKF);
 
-      static size_t GetVectorBufferSize(const std::vector<KeyFrame *> & kfv);
+      static size_t GetVectorBufferSize(const vector<KeyFrame *> & kfv);
 
       static void * ReadVector(
          void * buffer, 
-         const Map & map, 
-         std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
-         std::unordered_map<id_type, MapPoint *> & newMapPoints,
-         std::vector<KeyFrame *> & kfv);
+         const Map & rMap, 
+         unordered_map<id_type, KeyFrame *> & newKeyFrames,
+         unordered_map<id_type, MapPoint *> & newMapPoints,
+         vector<KeyFrame *> & kfv);
 
-      static size_t GetSetBufferSize(const std::set<KeyFrame *> & kfs);
+      static size_t GetSetBufferSize(const set<KeyFrame *> & kfs);
 
       static void * ReadSet(
          void * buffer, 
-         const Map & map, 
-         std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
-         std::unordered_map<id_type, MapPoint *> & newMapPoints,
-         std::set<KeyFrame *> & kfs);
+         const Map & rMap, 
+         unordered_map<id_type, KeyFrame *> & newKeyFrames,
+         unordered_map<id_type, MapPoint *> & newMapPoints,
+         set<KeyFrame *> & kfs);
 
       static void * WriteSet(
          void * buffer,
-         std::set<KeyFrame *> & kfs);
+         set<KeyFrame *> & kfs);
 
       size_t GetBufferSize();
 
       void * ReadBytes(
          const void * data, 
-         const Map & map, 
-         std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
-         std::unordered_map<id_type, MapPoint *> & newMapPoints);
+         const Map & rMap, 
+         unordered_map<id_type, KeyFrame *> & newKeyFrames, 
+         unordered_map<id_type, MapPoint *> & newMapPoints);
 
       void * WriteBytes(const void * data);
 
@@ -211,15 +211,15 @@ namespace ORB_SLAM2
       // Vector of undistorted KeyPoints (features). Used by tracking and mapping.
       // If it is a stereo frame, mvKeysUn is redundant because images are pre-rectified.
       // If it is a RGB-D frame, the RGB images might be distorted.
-      const std::vector<cv::KeyPoint> & keysUn;
+      const vector<cv::KeyPoint> & keysUn;
 
       // Corresponding stereo coordinate for each KeyPoint.
       // If this frame is monocular, all elements are negative.
-      const std::vector<float> & right;
+      const vector<float> & right;
 
       // Corresponding depth for each KeyPoint.
       // If this frame is monocular, all elements are negative.
-      const std::vector<float> & depth;
+      const vector<float> & depth;
 
       // Corresponding descriptor for each KeyPoint.
       const cv::Mat & descriptors;
@@ -235,9 +235,9 @@ namespace ORB_SLAM2
       const int & scaleLevels;
       const float & scaleFactor;
       const float & logScaleFactor;
-      const std::vector<float> & scaleFactors;
-      const std::vector<float> & levelSigma2;
-      const std::vector<float> & invLevelSigma2;
+      const vector<float> & scaleFactors;
+      const vector<float> & levelSigma2;
+      const vector<float> & invLevelSigma2;
 
 
    // The following variables need to be accessed trough a mutex to be thread safe.
@@ -250,30 +250,30 @@ namespace ORB_SLAM2
 
       // MapPoints associated to KeyPoints (via the index), NULL pointer if no association.
       // Each non-null element corresponds to an element in mvKeysUn.
-      std::vector<MapPoint*> mvpMapPoints;
+      vector<MapPoint*> mvpMapPoints;
 
       // Grid over the image to speed up feature matching
       // not serialized, rebuilt with AssignFeaturesToGrid()
-      std::vector<std::size_t> mGrid[FRAME_GRID_COLS][FRAME_GRID_ROWS];
+      vector<size_t> mGrid[FRAME_GRID_COLS][FRAME_GRID_ROWS];
 
-      std::map<KeyFrame *, int> mConnectedKeyFrameWeights;
-      std::vector<KeyFrame *> mvpOrderedConnectedKeyFrames;
-      std::vector<int> mvOrderedWeights;
+      map<KeyFrame *, int> mConnectedKeyFrameWeights;
+      vector<KeyFrame *> mvpOrderedConnectedKeyFrames;
+      vector<int> mvOrderedWeights;
 
       // Spanning Tree and Loop Edges
       bool mbFirstConnection;
       KeyFrame * mpParent;
-      std::set<KeyFrame *> mspChildrens;
-      std::set<KeyFrame *> mspLoopEdges;
+      set<KeyFrame *> mspChildrens;
+      set<KeyFrame *> mspLoopEdges;
 
       // Bad flags
       bool mbNotErase; //server-only
       bool mbToBeErased; //server-only
       bool mbBad;
 
-      std::mutex mMutexPose;
-      std::mutex mMutexConnections;
-      std::mutex mMutexFeatures;
+      mutex mMutexPose;
+      mutex mMutexConnections;
+      mutex mMutexFeatures;
 
    private:
       struct Header
@@ -302,13 +302,13 @@ namespace ORB_SLAM2
       int mN;
 
       // Vector of KeyPoints (features) based on original image(s). Used for visualization.
-      std::vector<cv::KeyPoint> mvKeys;
+      vector<cv::KeyPoint> mvKeys;
 
-      std::vector<cv::KeyPoint> mvKeysUn;
+      vector<cv::KeyPoint> mvKeysUn;
 
-      std::vector<float> mvuRight;
+      vector<float> mvuRight;
 
-      std::vector<float> mvDepth;
+      vector<float> mvDepth;
 
       cv::Mat mDescriptors;
 
@@ -317,9 +317,9 @@ namespace ORB_SLAM2
       int mnScaleLevels;
       float mfScaleFactor;
       float mfLogScaleFactor;
-      std::vector<float> mvScaleFactors;
-      std::vector<float> mvLevelSigma2;
-      std::vector<float> mvInvLevelSigma2;
+      vector<float> mvScaleFactors;
+      vector<float> mvLevelSigma2;
+      vector<float> mvInvLevelSigma2;
 
       // Grid (to speed up feature matching)
       const int mnGridCols;
@@ -331,35 +331,35 @@ namespace ORB_SLAM2
 
       static void * ReadMapPointIds(
          void * const buffer, 
-         const Map & map, 
-         std::unordered_map<id_type, MapPoint *> & newMapPoints, 
-         std::vector<MapPoint *> & mpv);
+         const Map & rMap, 
+         unordered_map<id_type, MapPoint *> & newMapPoints, 
+         vector<MapPoint *> & mpv);
 
-      static void * WriteMapPointIds(void * const buffer, const std::vector<MapPoint *> & mpv);
+      static void * WriteMapPointIds(void * const buffer, const vector<MapPoint *> & mpv);
 
       static void * ReadKeyFrameWeights(
          void * const buffer, 
-         const Map & map, 
-         std::unordered_map<id_type, KeyFrame *> & newKeyFrames, 
-         std::map<KeyFrame *, int> & kfWeights);
+         const Map & rMap, 
+         unordered_map<id_type, KeyFrame *> & newKeyFrames, 
+         map<KeyFrame *, int> & kfWeights);
     
-      static void * WriteKeyFrameWeights(void * const buffer, const std::map<KeyFrame *, int> & kfWeights);
+      static void * WriteKeyFrameWeights(void * const buffer, const map<KeyFrame *, int> & kfWeights);
 
       static void * ReadKeyFrameIds(
          void * const buffer, 
-         const Map & map, 
-         std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
-         std::vector<KeyFrame *> & kfv);
+         const Map & rMap, 
+         unordered_map<id_type, KeyFrame *> & newKeyFrames,
+         vector<KeyFrame *> & kfv);
 
-      static void * WriteKeyFrameIds(void * const buffer, const std::vector<KeyFrame *> & kfv);
+      static void * WriteKeyFrameIds(void * const buffer, const vector<KeyFrame *> & kfv);
 
       static void * ReadKeyFrameIds(
          void * const buffer, 
-         const Map & map, 
-         std::unordered_map<id_type, KeyFrame *> & newKeyFrames,
-         std::set<KeyFrame *> & kfs);
+         const Map & rMap, 
+         unordered_map<id_type, KeyFrame *> & newKeyFrames,
+         set<KeyFrame *> & kfs);
 
-      static void * WriteKeyFrameIds(void * const buffer, const std::set<KeyFrame *> & kfs);
+      static void * WriteKeyFrameIds(void * const buffer, const set<KeyFrame *> & kfs);
 
       bool PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY);
 
