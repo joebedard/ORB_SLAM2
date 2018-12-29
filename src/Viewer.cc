@@ -218,6 +218,7 @@ namespace ORB_SLAM2
          else
          {
             vTrackerWindowNames.push_back(name);
+            cv::namedWindow(name, CV_WINDOW_NORMAL | CV_WINDOW_KEEPRATIO);
          }
       }
 
