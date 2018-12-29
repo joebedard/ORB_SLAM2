@@ -63,7 +63,7 @@ namespace ORB_SLAM2
       for (size_t i = 0; i < vpKFs.size(); i++)
       {
          KeyFrame* pKF = vpKFs[i];
-         if (pKF->isBad())
+         if (pKF->IsBad())
             continue;
          g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
          vSE3->setEstimate(Converter::toSE3Quat(pKF->GetPose()));
@@ -82,7 +82,7 @@ namespace ORB_SLAM2
       for (size_t i = 0; i < vpMPs.size(); i++)
       {
          MapPoint* pMP = vpMPs[i];
-         if (pMP->isBad())
+         if (pMP->IsBad())
             continue;
          g2o::VertexSBAPointXYZ* vPoint = new g2o::VertexSBAPointXYZ();
          vPoint->setEstimate(Converter::toVector3d(pMP->GetWorldPos()));
@@ -102,7 +102,7 @@ namespace ORB_SLAM2
          {
 
             KeyFrame* pKF = mit->first;
-            if (pKF->isBad() || pKF->id > maxKFid)
+            if (pKF->IsBad() || pKF->id > maxKFid)
                continue;
 
             nEdges++;
@@ -201,7 +201,7 @@ namespace ORB_SLAM2
       for (size_t i = 0; i < vpKFs.size(); i++)
       {
          KeyFrame* pKF = vpKFs[i];
-         if (pKF->isBad())
+         if (pKF->IsBad())
             continue;
          g2o::VertexSE3Expmap* vSE3 = static_cast<g2o::VertexSE3Expmap*>(optimizer.vertex(pKF->id));
          g2o::SE3Quat SE3quat = vSE3->estimate();
@@ -226,7 +226,7 @@ namespace ORB_SLAM2
 
          MapPoint* pMP = vpMPs[i];
 
-         if (pMP->isBad())
+         if (pMP->IsBad())
             continue;
          g2o::VertexSBAPointXYZ* vPoint = static_cast<g2o::VertexSBAPointXYZ*>(optimizer.vertex(pMP->id + maxKFid + 1));
 
@@ -546,7 +546,7 @@ namespace ORB_SLAM2
       {
          KeyFrame* pKFi = vNeighKFs[i];
          pKFi->mnBALocalForKF = pKF->id;
-         if (!pKFi->isBad())
+         if (!pKFi->IsBad())
             lLocalKeyFrames.push_back(pKFi);
       }
 
@@ -558,7 +558,7 @@ namespace ORB_SLAM2
          {
             MapPoint* pMP = *vit;
             if (pMP)
-               if (!pMP->isBad())
+               if (!pMP->IsBad())
                   if (pMP->mnBALocalForKF != pKF->id)
                   {
                      lLocalMapPoints.push_back(pMP);
@@ -579,7 +579,7 @@ namespace ORB_SLAM2
             if (pKFi->mnBALocalForKF != pKF->id && pKFi->mnBAFixedForKF != pKF->id)
             {
                pKFi->mnBAFixedForKF = pKF->id;
-               if (!pKFi->isBad())
+               if (!pKFi->IsBad())
                   lFixedCameras.push_back(pKFi);
             }
          }
@@ -646,7 +646,7 @@ namespace ORB_SLAM2
          {
             KeyFrame* pKFi = mit->first;
 
-            if (!pKFi->isBad())
+            if (!pKFi->IsBad())
             {
                const cv::KeyPoint &kpUn = pKFi->keysUn[mit->second];
 
@@ -730,7 +730,7 @@ namespace ORB_SLAM2
          g2o::EdgeSE3ProjectXYZ* e = vpEdgesMono[i];
          MapPoint* pMP = vpMapPointEdgeMono[i];
 
-         if (pMP->isBad())
+         if (pMP->IsBad())
             continue;
 
          if (e->chi2() > 5.991 || !e->isDepthPositive())
@@ -746,7 +746,7 @@ namespace ORB_SLAM2
          g2o::EdgeStereoSE3ProjectXYZ* e = vpEdgesStereo[i];
          MapPoint* pMP = vpMapPointEdgeStereo[i];
 
-         if (pMP->isBad())
+         if (pMP->IsBad())
             continue;
 
          if (e->chi2() > 7.815 || !e->isDepthPositive())
@@ -780,7 +780,7 @@ namespace ORB_SLAM2
          g2o::EdgeSE3ProjectXYZ* e = vpEdgesMono[i];
          MapPoint* pMP = vpMapPointEdgeMono[i];
 
-         if (pMP->isBad())
+         if (pMP->IsBad())
             continue;
 
          if (e->chi2() > 5.991 || !e->isDepthPositive())
@@ -795,7 +795,7 @@ namespace ORB_SLAM2
          g2o::EdgeStereoSE3ProjectXYZ* e = vpEdgesStereo[i];
          MapPoint* pMP = vpMapPointEdgeStereo[i];
 
-         if (pMP->isBad())
+         if (pMP->IsBad())
             continue;
 
          if (e->chi2() > 7.815 || !e->isDepthPositive())
@@ -940,7 +940,7 @@ namespace ORB_SLAM2
       for (size_t i = 0, iend = vpKFs.size(); i < iend;i++)
       {
          KeyFrame* pKF = vpKFs[i];
-         if (pKF->isBad())
+         if (pKF->IsBad())
             continue;
          g2o::VertexSim3Expmap* VSim3 = new g2o::VertexSim3Expmap();
 
@@ -1085,7 +1085,7 @@ namespace ORB_SLAM2
             KeyFrame* pKFn = *vit;
             if (pKFn && pKFn != pParentKF && !pKF->hasChild(pKFn) && !sLoopEdges.count(pKFn))
             {
-               if (!pKFn->isBad() && pKFn->id < pKF->id)
+               if (!pKFn->IsBad() && pKFn->id < pKF->id)
                {
                   if (sInsertedEdges.count(make_pair(min(pKF->id, pKFn->id), max(pKF->id, pKFn->id))))
                      continue;
@@ -1152,7 +1152,7 @@ namespace ORB_SLAM2
       {
          MapPoint* pMP = vpMPs[i];
 
-         if (pMP->isBad())
+         if (pMP->IsBad())
             continue;
 
          int nIDr;
@@ -1323,7 +1323,7 @@ namespace ORB_SLAM2
 
          if (pMP1 && pMP2)
          {
-            if (!pMP1->isBad() && !pMP2->isBad() && i2 >= 0)
+            if (!pMP1->IsBad() && !pMP2->IsBad() && i2 >= 0)
             {
                g2o::VertexSBAPointXYZ* vPoint1 = new g2o::VertexSBAPointXYZ();
                cv::Mat P3D1w = pMP1->GetWorldPos();

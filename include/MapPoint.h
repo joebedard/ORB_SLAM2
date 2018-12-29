@@ -64,7 +64,7 @@ namespace ORB_SLAM2
       bool IsObserving(KeyFrame* pKF);
 
       void SetBadFlag(Map * pMap);
-      bool isBad();
+      bool IsBad();
 
       MapPoint * GetReplaced();
       static MapPoint * FindFinalReplacement(MapPoint * pMP);

@@ -65,7 +65,7 @@ namespace ORB_SLAM2
          if (!pMP->mbTrackInView)
             continue;
 
-         if (pMP->isBad())
+         if (pMP->IsBad())
             continue;
 
          const int &nPredictedLevel = pMP->mnTrackScaleLevel;
@@ -206,7 +206,7 @@ namespace ORB_SLAM2
                if (!pMP)
                   continue;
 
-               if (pMP->isBad())
+               if (pMP->IsBad())
                   continue;
 
                const cv::Mat &dKF = pKF->descriptors.row(realIdxKF);
@@ -329,7 +329,7 @@ namespace ORB_SLAM2
          MapPoint* pMP = vpPoints[iMP];
 
          // Discard Bad MapPoints and already found
-         if (pMP->isBad() || spAlreadyFound.count(pMP))
+         if (pMP->IsBad() || spAlreadyFound.count(pMP))
             continue;
 
          // Get 3D Coords.
@@ -577,7 +577,7 @@ namespace ORB_SLAM2
                MapPoint* pMP1 = vpMapPoints1[idx1];
                if (!pMP1)
                   continue;
-               if (pMP1->isBad())
+               if (pMP1->IsBad())
                   continue;
 
                const cv::Mat &d1 = Descriptors1.row(idx1);
@@ -595,7 +595,7 @@ namespace ORB_SLAM2
                   if (vbMatched2[idx2] || !pMP2)
                      continue;
 
-                  if (pMP2->isBad())
+                  if (pMP2->IsBad())
                      continue;
 
                   const cv::Mat &d2 = Descriptors2.row(idx2);
@@ -869,7 +869,7 @@ namespace ORB_SLAM2
          if (!pMP)
             continue;
 
-         if (pMP->isBad() || pMP->IsObserving(&rKF))
+         if (pMP->IsBad() || pMP->IsObserving(&rKF))
             continue;
 
          cv::Mat p3Dw = pMP->GetWorldPos();
@@ -977,7 +977,7 @@ namespace ORB_SLAM2
             MapPoint * pMPinKF = rKF.GetMapPoint(bestIdx);
             if (pMPinKF)
             {
-               if (!pMPinKF->isBad())
+               if (!pMPinKF->IsBad())
                {
                   if (pMPinKF->Observations() > pMP->Observations())
                   {
@@ -1030,7 +1030,7 @@ namespace ORB_SLAM2
          MapPoint* pMP = vpPoints[iMP];
 
          // Discard Bad MapPoints and already found
-         if (pMP->isBad() || spAlreadyFound.count(pMP))
+         if (pMP->IsBad() || spAlreadyFound.count(pMP))
             continue;
 
          // Get 3D Coords.
@@ -1112,7 +1112,7 @@ namespace ORB_SLAM2
             MapPoint* pMPinKF = rKF.GetMapPoint(bestIdx);
             if (pMPinKF)
             {
-               if (!pMPinKF->isBad())
+               if (!pMPinKF->IsBad())
                   vpReplacePoint[iMP] = pMPinKF;
             }
             else
@@ -1181,7 +1181,7 @@ namespace ORB_SLAM2
          if (!pMP || vbAlreadyMatched1[i1])
             continue;
 
-         if (pMP->isBad())
+         if (pMP->IsBad())
             continue;
 
          cv::Mat p3Dw = pMP->GetWorldPos();
@@ -1261,7 +1261,7 @@ namespace ORB_SLAM2
          if (!pMP || vbAlreadyMatched2[i2])
             continue;
 
-         if (pMP->isBad())
+         if (pMP->IsBad())
             continue;
 
          cv::Mat p3Dw = pMP->GetWorldPos();
@@ -1520,7 +1520,7 @@ namespace ORB_SLAM2
 
          if (pMP)
          {
-            if (!pMP->isBad() && !sAlreadyFound.count(pMP))
+            if (!pMP->IsBad() && !sAlreadyFound.count(pMP))
             {
                //Project
                cv::Mat x3Dw = pMP->GetWorldPos();

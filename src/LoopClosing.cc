@@ -177,7 +177,7 @@ namespace ORB_SLAM2
       for (size_t i = 0; i < vpConnectedKeyFrames.size(); i++)
       {
          KeyFrame* pKF = vpConnectedKeyFrames[i];
-         if (pKF->isBad())
+         if (pKF->IsBad())
             continue;
          const DBoW2::BowVector &BowVec = pKF->mBowVec;
 
@@ -316,7 +316,7 @@ namespace ORB_SLAM2
          // avoid that local mapping erase it while it is being processed in this thread
          pKF->SetNotErase();
 
-         if (pKF->isBad())
+         if (pKF->IsBad())
          {
             vbDiscarded[i] = true;
             continue;
@@ -426,7 +426,7 @@ namespace ORB_SLAM2
             MapPoint* pMP = vpMapPoints[i];
             if (pMP)
             {
-               if (!pMP->isBad() && pMP->mnLoopPointForKF != mpCurrentKF->id)
+               if (!pMP->IsBad() && pMP->mnLoopPointForKF != mpCurrentKF->id)
                {
                   mvpLoopMapPoints.push_back(pMP);
                   pMP->mnLoopPointForKF = mpCurrentKF->id;
@@ -563,7 +563,7 @@ namespace ORB_SLAM2
                MapPoint* pMPi = vpMPsi[iMP];
                if (!pMPi)
                   continue;
-               if (pMPi->isBad())
+               if (pMPi->IsBad())
                   continue;
                if (pMPi->mnCorrectedByKF == mpCurrentKF->id)
                   continue;
@@ -805,7 +805,7 @@ namespace ORB_SLAM2
             {
                MapPoint* pMP = vpMPs[i];
 
-               if (pMP->isBad())
+               if (pMP->IsBad())
                   continue;
 
                if (pMP->mnBAGlobalForKF == loopKeyFrameId)

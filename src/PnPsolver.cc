@@ -83,7 +83,7 @@ namespace ORB_SLAM2
 
          if (pMP)
          {
-            if (!pMP->isBad())
+            if (!pMP->IsBad())
             {
                const cv::KeyPoint &kp = F.mvKeysUn[i];
 

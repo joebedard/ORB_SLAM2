@@ -116,7 +116,7 @@ namespace ORB_SLAM2
       // returns true if this object is deleted, false otherwise
       bool SetBadFlag(Map* pMap, KeyFrameDatabase* pKeyFrameDB);
 
-      bool isBad();
+      bool IsBad();
 
       // Compute Scene Depth (q=2 median). Used in monocular.
       float ComputeSceneMedianDepth(const int q);

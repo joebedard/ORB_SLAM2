@@ -465,7 +465,7 @@ namespace ORB_SLAM2
       set<MapPoint *> s;
       for (MapPoint * pMP : mvpMapPoints)
       {
-         if (pMP && !pMP->isBad())
+         if (pMP && !pMP->IsBad())
             s.insert(pMP);
       }
       return s;
@@ -484,7 +484,7 @@ namespace ORB_SLAM2
       for (int i = 0; i < N; i++)
       {
          MapPoint * pMP = vpMapPoints.at(i);
-         if (pMP && !pMP->isBad())
+         if (pMP && !pMP->IsBad())
          {
             if (bCheckObs)
             {
@@ -540,7 +540,7 @@ namespace ORB_SLAM2
          if (!pMP)
             continue;
 
-         if (pMP->isBad())
+         if (pMP->IsBad())
             continue;
 
          map<KeyFrame *, size_t> observations = pMP->GetObservations();
@@ -753,7 +753,7 @@ namespace ORB_SLAM2
             for (set<KeyFrame *>::iterator sit = mspChildrens.begin(), send = mspChildrens.end(); sit != send; sit++)
             {
                KeyFrame * pKF = *sit;
-               if (pKF->isBad())
+               if (pKF->IsBad())
                   continue;
 
                // Check if a parent candidate is connected to the keyframe
@@ -808,7 +808,7 @@ namespace ORB_SLAM2
       return true;
    }
 
-   bool KeyFrame::isBad()
+   bool KeyFrame::IsBad()
    {
       unique_lock<mutex> lock(mMutexConnections);
       return mbBad;

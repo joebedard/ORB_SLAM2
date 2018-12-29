@@ -86,7 +86,7 @@ namespace ORB_SLAM2
       {
          if (spRefMPs.count(pMP))
             continue;
-         if (pMP->isBad())
+         if (pMP->IsBad())
             continue;
          cv::Mat pos = pMP->GetWorldPos();
          if (pos.empty())
@@ -111,7 +111,7 @@ namespace ORB_SLAM2
 
       for (MapPoint * pMP : spRefMPs)
       {
-         if (pMP->isBad())
+         if (pMP->IsBad())
             continue;
          cv::Mat pos = pMP->GetWorldPos();
          if (pos.empty())

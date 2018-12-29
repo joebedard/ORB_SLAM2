@@ -240,7 +240,7 @@ namespace ORB_SLAM2
          cv::Mat Trw = cv::Mat::eye(4, 4, CV_32F);
 
          // If the reference keyframe was culled, traverse the spanning tree to get a suitable keyframe.
-         while (pKF->isBad())
+         while (pKF->IsBad())
          {
             Trw = Trw * pKF->Tcp;
             pKF = pKF->GetParent();
@@ -284,7 +284,7 @@ namespace ORB_SLAM2
 
          // pKF->SetPose(pKF->GetPose()*Two);
 
-         if (pKF->isBad())
+         if (pKF->IsBad())
             continue;
 
          cv::Mat R = pKF->GetRotation().t();
@@ -335,7 +335,7 @@ namespace ORB_SLAM2
 
          cv::Mat Trw = cv::Mat::eye(4, 4, CV_32F);
 
-         while (pKF->isBad())
+         while (pKF->IsBad())
          {
             //Print("bad parent");
             Trw = Trw * pKF->Tcp;

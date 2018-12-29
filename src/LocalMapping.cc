@@ -191,7 +191,7 @@ namespace ORB_SLAM2
          for (int i = 0; i < n; i++)
          {
             pMP = newMapPoints[i];
-            if (pMP && !pMP->isBad())
+            if (pMP && !pMP->IsBad())
             {
                mMap.AddMapPoint(pMP);
                mRecentAddedMapPoints[trackerId].push_back(pMP);
@@ -228,7 +228,7 @@ namespace ORB_SLAM2
          for (int i = 0; i < n; i++)
          {
             pMP = newMapPoints[i];
-            if (pMP && !pMP->isBad())
+            if (pMP && !pMP->IsBad())
             {
                mMap.AddMapPoint(pMP);
                mRecentAddedMapPoints[trackerId].push_back(pMP);
@@ -265,7 +265,7 @@ namespace ORB_SLAM2
             for (int i = 0; i < n; i++)
             {
                pMP = createdMapPoints[i];
-               if (pMP && !pMP->isBad())
+               if (pMP && !pMP->IsBad())
                {
                   mMap.AddMapPoint(pMP);
                   mRecentAddedMapPoints[trackerId].push_back(pMP);
@@ -282,7 +282,7 @@ namespace ORB_SLAM2
             for (int i = 0; i < m; i++)
             {
                pMP = updatedMapPoints[i];
-               if (pMP && !pMP->isBad())
+               if (pMP && !pMP->IsBad())
                {
                   mMap.Link(*pMP, i, *pKF);
                   pMP->UpdateNormalAndDepth();
@@ -355,7 +355,7 @@ namespace ORB_SLAM2
          if (pMP == NULL)
             throw exception("LocalMapping::MapPointCulling: pMP == NULL");
 
-         if (pMP->isBad())
+         if (pMP->IsBad())
          {
             // this shouldn't happen but if it does, remove it
             lit = recentAddedMapPoints.erase(lit);
@@ -662,7 +662,7 @@ namespace ORB_SLAM2
       for (vector<KeyFrame *>::const_iterator vit = vpNeighKFs.begin(), vend = vpNeighKFs.end(); vit != vend; vit++)
       {
          KeyFrame * pKFi = *vit;
-         if (pKFi->isBad() || pKFi->mnFuseTargetForKF == mpCurrentKeyFrame->id)
+         if (pKFi->IsBad() || pKFi->mnFuseTargetForKF == mpCurrentKeyFrame->id)
             continue;
          vpTargetKFs.push_back(pKFi);
          pKFi->mnFuseTargetForKF = mpCurrentKeyFrame->id;
@@ -672,7 +672,7 @@ namespace ORB_SLAM2
          for (vector<KeyFrame *>::const_iterator vit2 = vpSecondNeighKFs.begin(), vend2 = vpSecondNeighKFs.end(); vit2 != vend2; vit2++)
          {
             KeyFrame * pKFi2 = *vit2;
-            if (pKFi2->isBad()
+            if (pKFi2->IsBad()
                || pKFi2->mnFuseTargetForKF == mpCurrentKeyFrame->id
                || pKFi2->id == mpCurrentKeyFrame->id)
                continue;
@@ -702,7 +702,7 @@ namespace ORB_SLAM2
             MapPoint * pMP = *vitMP;
             if (!pMP)
                continue;
-            if (pMP->isBad() || pMP->mnFuseCandidateForKF == mpCurrentKeyFrame->id)
+            if (pMP->IsBad() || pMP->mnFuseCandidateForKF == mpCurrentKeyFrame->id)
                continue;
             pMP->mnFuseCandidateForKF = mpCurrentKeyFrame->id;
             vpFuseCandidates.push_back(pMP);
@@ -718,7 +718,7 @@ namespace ORB_SLAM2
          MapPoint * pMP = vpMapPointMatches[i];
          if (pMP)
          {
-            if (!pMP->isBad())
+            if (!pMP->IsBad())
             {
                pMP->ComputeDistinctiveDescriptors();
                pMP->UpdateNormalAndDepth();
@@ -885,7 +885,7 @@ namespace ORB_SLAM2
             MapPoint * pMP = vpMapPoints[i];
             if (pMP)
             {
-               if (!pMP->isBad())
+               if (!pMP->IsBad())
                {
                   if (!mbMonocular)
                   {

@@ -67,7 +67,7 @@ namespace ORB_SLAM2
             if (!pMP1)
                continue;
 
-            if (pMP1->isBad() || pMP2->isBad())
+            if (pMP1->IsBad() || pMP2->IsBad())
                continue;
 
             int indexKF1 = pMP1->GetIndexInKeyFrame(pKF1);

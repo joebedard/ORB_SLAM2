@@ -236,7 +236,7 @@ namespace ORB_SLAM2
          for (int i = 0; i < n; i++)
          {
             pMP = createdMapPoints[i];
-            if (pMP && !pMP->isBad())
+            if (pMP && !pMP->IsBad())
             {
                mMap.AddMapPoint(pMP);
                mMap.Link(*pMP, i, *pKF);
@@ -252,7 +252,7 @@ namespace ORB_SLAM2
          for (int i = 0; i < m; i++)
          {
             pMP = updatedMapPoints[i];
-            if (pMP && !pMP->isBad())
+            if (pMP && !pMP->IsBad())
             {
                mMap.Link(*pMP, i, * pKF);
                pMP->UpdateNormalAndDepth();

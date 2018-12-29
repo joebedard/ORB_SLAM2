@@ -894,7 +894,7 @@ namespace ORB_SLAM2
          if (pMP)
          {
             MapPoint * pRep = MapPoint::FindFinalReplacement(pMP);
-            if (pRep->isBad())
+            if (pRep->IsBad())
             {
                mLastFrame.mvpMapPoints[i] = NULL;
             }
@@ -1173,7 +1173,7 @@ namespace ORB_SLAM2
          MapPoint* pMP = *vit;
          if (pMP)
          {
-            if (pMP->isBad())
+            if (pMP->IsBad())
             {
                *vit = static_cast<MapPoint*>(NULL);
             }
@@ -1194,7 +1194,7 @@ namespace ORB_SLAM2
          MapPoint* pMP = *vit;
          if (pMP->mnLastFrameSeen == mCurrentFrame.mnId)
             continue;
-         if (pMP->isBad())
+         if (pMP->IsBad())
             continue;
          // Project (this fills MapPoint variables for matching)
          if (mCurrentFrame.isInFrustum(pMP, 0.5))
@@ -1246,7 +1246,7 @@ namespace ORB_SLAM2
                continue;
             if (pMP->mnTrackReferenceForFrame == mCurrentFrame.mnId)
                continue;
-            if (!pMP->isBad())
+            if (!pMP->IsBad())
             {
                mvpLocalMapPoints.push_back(pMP);
                pMP->mnTrackReferenceForFrame = mCurrentFrame.mnId;
@@ -1265,7 +1265,7 @@ namespace ORB_SLAM2
          MapPoint * pMP = mCurrentFrame.mvpMapPoints[i];
          if (pMP)
          {
-            if (pMP->isBad())
+            if (pMP->IsBad())
             {
                mCurrentFrame.mvpMapPoints[i] = NULL;
             }
@@ -1294,7 +1294,7 @@ namespace ORB_SLAM2
       {
          KeyFrame * pKF = it->first;
 
-         if (pKF->isBad())
+         if (pKF->IsBad())
             continue;
 
          if (it->second > max)
@@ -1319,7 +1319,7 @@ namespace ORB_SLAM2
          for (vector<KeyFrame *>::const_iterator itNeighKF = vNeighs.begin(), itEndNeighKF = vNeighs.end(); itNeighKF != itEndNeighKF; itNeighKF++)
          {
             KeyFrame * pNeighKF = *itNeighKF;
-            if (!pNeighKF->isBad())
+            if (!pNeighKF->IsBad())
             {
                if (pNeighKF->mnTrackReferenceForFrame != mCurrentFrame.mnId)
                {
@@ -1334,7 +1334,7 @@ namespace ORB_SLAM2
          for (set<KeyFrame *>::const_iterator sit = spChilds.begin(), send = spChilds.end(); sit != send; sit++)
          {
             KeyFrame * pChildKF = *sit;
-            if (!pChildKF->isBad())
+            if (!pChildKF->IsBad())
             {
                if (pChildKF->mnTrackReferenceForFrame != mCurrentFrame.mnId)
                {
@@ -1402,7 +1402,7 @@ namespace ORB_SLAM2
       for (int i = 0; i < nCandidateKFs; i++)
       {
          KeyFrame * pKF = vpCandidateKFs[i];
-         if (pKF->isBad())
+         if (pKF->IsBad())
             vbDiscarded[i] = true;
          else
          {

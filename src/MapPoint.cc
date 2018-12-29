@@ -175,7 +175,7 @@ namespace ORB_SLAM2
       return pMP;
    }
 
-   bool MapPoint::isBad()
+   bool MapPoint::IsBad()
    {
       return mbBad;
    }
@@ -222,7 +222,7 @@ namespace ORB_SLAM2
       {
          KeyFrame* pKF = mit->first;
 
-         if (!pKF->isBad())
+         if (!pKF->IsBad())
             vDescriptors.push_back(pKF->descriptors.row(mit->second));
       }
 
