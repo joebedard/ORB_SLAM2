@@ -139,15 +139,16 @@ namespace ORB_SLAM2
                pt2.x = vCurrentKeys[i].pt.x + r;
                pt2.y = vCurrentKeys[i].pt.y + r;
 
-               // This is a match to a MapPoint in the map
                if (vbMap[i])
                {
+                  // This is a match to a MapPoint in the map
                   cv::rectangle(im, pt1, pt2, cv::Scalar(0, 255, 0));
                   cv::circle(im, vCurrentKeys[i].pt, 2, cv::Scalar(0, 255, 0), -1);
                   mnTracked++;
                }
-               else // This is match to a "visual odometry" MapPoint created in the last frame
+               else
                {
+                  // This is match to a "visual odometry" MapPoint created in the last frame
                   cv::rectangle(im, pt1, pt2, cv::Scalar(255, 0, 0));
                   cv::circle(im, vCurrentKeys[i].pt, 2, cv::Scalar(255, 0, 0), -1);
                   mnTrackedVO++;

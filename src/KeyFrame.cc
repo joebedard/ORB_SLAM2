@@ -475,7 +475,6 @@ namespace ORB_SLAM2
    {
       vector<MapPoint *> vpMapPoints;
       {
-         Print(to_string(id) +  "==id lock");
          unique_lock<mutex> lock(mMutexFeatures);
          vpMapPoints = mvpMapPoints;
       }
