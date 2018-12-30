@@ -131,7 +131,7 @@ namespace ORB_SLAM2
 
    MapPoint * MapPoint::GetReplaced()
    {
-      unique_lock<mutex> lock1(mMutexFeatures);
+      unique_lock<mutex> lock(mMutexFeatures);
       return mpReplaced;
    }
 
@@ -181,20 +181,18 @@ namespace ORB_SLAM2
       // Retrieve all observed descriptors
       vector<cv::Mat> vDescriptors;
 
-      map<KeyFrame*, size_t> observations;
+      map<KeyFrame*, size_t> obs;
 
       {
-         unique_lock<mutex> lock2(mMutexFeatures);
+         unique_lock<mutex> lock(mMutexFeatures);
          if (mbBad) return;
-         observations = mObservations;
+         if (mObservations.empty()) return;
+         obs = mObservations;
       }
 
-      if (observations.empty())
-         return;
+      vDescriptors.reserve(obs.size());
 
-      vDescriptors.reserve(observations.size());
-
-      for (map<KeyFrame*, size_t>::iterator mit = observations.begin(), mend = observations.end(); mit != mend; mit++)
+      for (map<KeyFrame*, size_t>::iterator mit = obs.begin(), mend = obs.end(); mit != mend; mit++)
       {
          KeyFrame* pKF = mit->first;
 
@@ -273,26 +271,26 @@ namespace ORB_SLAM2
 
    void MapPoint::UpdateNormalAndDepth()
    {
-      map<KeyFrame*, size_t> observations;
+      map<KeyFrame*, size_t> obs;
       KeyFrame* pRefKF;
       cv::Mat Pos;
       {
          unique_lock<mutex> lock1(mMutexFeatures);
          if (mbBad) return;
-         observations = mObservations;
          if (mpRefKF == NULL)
             throw exception("MapPoint::UpdateNormalAndDepth mpRefKF is NULL");
          pRefKF = mpRefKF;
+         obs = mObservations;
          unique_lock<mutex> lock2(mMutexPos);
          Pos = mWorldPos.clone();
       }
 
-      if (observations.empty())
+      if (obs.empty())
          return;
 
       cv::Mat normal = cv::Mat::zeros(3, 1, CV_32F);
       int n = 0;
-      for (map<KeyFrame*, size_t>::iterator mit = observations.begin(), mend = observations.end(); mit != mend; mit++)
+      for (map<KeyFrame*, size_t>::iterator mit = obs.begin(), mend = obs.end(); mit != mend; mit++)
       {
          KeyFrame* pKF = mit->first;
          cv::Mat Owi = pKF->GetCameraCenter();
@@ -303,7 +301,7 @@ namespace ORB_SLAM2
 
       cv::Mat PC = Pos - pRefKF->GetCameraCenter();
       const float dist = cv::norm(PC);
-      const int level = pRefKF->keysUn[observations[pRefKF]].octave;
+      const int level = pRefKF->keysUn[obs[pRefKF]].octave;
       const float levelScaleFactor = pRefKF->scaleFactors[level];
       const int nLevels = pRefKF->scaleLevels;
 

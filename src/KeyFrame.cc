@@ -899,9 +899,9 @@ namespace ORB_SLAM2
       vector<MapPoint *> vpMapPoints;
       cv::Mat Tcw_;
       {
-         unique_lock<mutex> lock(mMutexFeatures);
-         unique_lock<mutex> lock2(mMutexPose);
+         unique_lock<mutex> lock1(mMutexFeatures);
          vpMapPoints = mvpMapPoints;
+         unique_lock<mutex> lock2(mMutexPose);
          Tcw_ = Tcw.clone();
       }
 
@@ -1077,53 +1077,56 @@ namespace ORB_SLAM2
       unordered_map<id_type, KeyFrame *> & newKeyFrames, 
       unordered_map<id_type, MapPoint *> & newMapPoints)
    {
-      unique_lock<mutex> lock1(mMutexPose);
-      unique_lock<mutex> lock2(mMutexFeatures);
-      unique_lock<mutex> lock3(mMutexConnections);
-
-      KeyFrame::Header * pHeader = (KeyFrame::Header *)data;
-      if (mnId != pHeader->mnId)
-         throw exception("KeyFrame::ReadBytes mnId != pHeader->mnId");
-      
-      mTimestamp = pHeader->mTimestamp;
-      mN = pHeader->N;
-      mnScaleLevels = pHeader->mnScaleLevels;
-      mfScaleFactor = pHeader->mfScaleFactor;
-      mfLogScaleFactor = pHeader->mfLogScaleFactor;
-      mbFirstConnection = pHeader->mbFirstConnection;
-      if (pHeader->parentKeyFrameId == (id_type)-1)
-         mpParent = NULL;
-      else
+      void * pData = NULL;
       {
-         mpParent = rMap.GetKeyFrame(pHeader->parentKeyFrameId);
-         if (mpParent == NULL)
-         {
-            mpParent = new KeyFrame(pHeader->parentKeyFrameId);
-            newKeyFrames[pHeader->parentKeyFrameId] = mpParent;
-         }
-      }
-      mbBad = pHeader->mbBad;
+         unique_lock<mutex> lock1(mMutexPose);
+         unique_lock<mutex> lock2(mMutexFeatures);
+         unique_lock<mutex> lock3(mMutexConnections);
 
-      // read variable-length data
-      void * pData = pHeader + 1;
-      pData = Serializer::ReadKeyPointVector(pData, mvKeys);
-      pData = Serializer::ReadKeyPointVector(pData, mvKeysUn);
-      pData = Serializer::ReadVector<float>(pData, mvuRight);
-      pData = Serializer::ReadVector<float>(pData, mvDepth);
-      pData = Serializer::ReadMatrix(pData, mDescriptors);
-      pData = Serializer::ReadMatrix(pData, mTcp);
-      pData = Serializer::ReadVector<float>(pData, mvScaleFactors);
-      pData = Serializer::ReadVector<float>(pData, mvLevelSigma2);
-      pData = Serializer::ReadVector<float>(pData, mvInvLevelSigma2);
-      pData = Serializer::ReadMatrix(pData, Tcw);
-      pData = Serializer::ReadMatrix(pData, Twc);
-      pData = Serializer::ReadMatrix(pData, Ow);
-      pData = ReadMapPointIds(pData, rMap, newMapPoints, mvpMapPoints);
-      pData = ReadKeyFrameWeights(pData, rMap, newKeyFrames, mConnectedKeyFrameWeights);
-      pData = ReadKeyFrameIds(pData, rMap, newKeyFrames, mvpOrderedConnectedKeyFrames);
-      pData = Serializer::ReadVector<int>(pData, mvOrderedWeights);
-      pData = ReadKeyFrameIds(pData, rMap, newKeyFrames, mspChildrens);
-      pData = ReadKeyFrameIds(pData, rMap, newKeyFrames, mspLoopEdges);
+         KeyFrame::Header * pHeader = (KeyFrame::Header *)data;
+         if (mnId != pHeader->mnId)
+            throw exception("KeyFrame::ReadBytes mnId != pHeader->mnId");
+
+         mTimestamp = pHeader->mTimestamp;
+         mN = pHeader->N;
+         mnScaleLevels = pHeader->mnScaleLevels;
+         mfScaleFactor = pHeader->mfScaleFactor;
+         mfLogScaleFactor = pHeader->mfLogScaleFactor;
+         mbFirstConnection = pHeader->mbFirstConnection;
+         if (pHeader->parentKeyFrameId == (id_type)-1)
+            mpParent = NULL;
+         else
+         {
+            mpParent = rMap.GetKeyFrame(pHeader->parentKeyFrameId);
+            if (mpParent == NULL)
+            {
+               mpParent = new KeyFrame(pHeader->parentKeyFrameId);
+               newKeyFrames[pHeader->parentKeyFrameId] = mpParent;
+            }
+         }
+         mbBad = pHeader->mbBad;
+
+         // read variable-length data
+         pData = pHeader + 1;
+         pData = Serializer::ReadKeyPointVector(pData, mvKeys);
+         pData = Serializer::ReadKeyPointVector(pData, mvKeysUn);
+         pData = Serializer::ReadVector<float>(pData, mvuRight);
+         pData = Serializer::ReadVector<float>(pData, mvDepth);
+         pData = Serializer::ReadMatrix(pData, mDescriptors);
+         pData = Serializer::ReadMatrix(pData, mTcp);
+         pData = Serializer::ReadVector<float>(pData, mvScaleFactors);
+         pData = Serializer::ReadVector<float>(pData, mvLevelSigma2);
+         pData = Serializer::ReadVector<float>(pData, mvInvLevelSigma2);
+         pData = Serializer::ReadMatrix(pData, Tcw);
+         pData = Serializer::ReadMatrix(pData, Twc);
+         pData = Serializer::ReadMatrix(pData, Ow);
+         pData = ReadMapPointIds(pData, rMap, newMapPoints, mvpMapPoints);
+         pData = ReadKeyFrameWeights(pData, rMap, newKeyFrames, mConnectedKeyFrameWeights);
+         pData = ReadKeyFrameIds(pData, rMap, newKeyFrames, mvpOrderedConnectedKeyFrames);
+         pData = Serializer::ReadVector<int>(pData, mvOrderedWeights);
+         pData = ReadKeyFrameIds(pData, rMap, newKeyFrames, mspChildrens);
+         pData = ReadKeyFrameIds(pData, rMap, newKeyFrames, mspLoopEdges);
+      }
 
       // rebuild mGrid
       AssignFeaturesToGrid();

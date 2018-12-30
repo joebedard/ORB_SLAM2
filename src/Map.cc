@@ -71,15 +71,12 @@ namespace ORB_SLAM2
          Unlink(*pMP, *pKF);
       }
       
+      if (pMP->IsBad())
       {
-         unique_lock<mutex> lockMP(pMP->mMutexFeatures);
-         if (pMP->mbBad)
-         {
-            unique_lock<mutex> lock(mMutexMap);
-            mMapPoints.erase(pMP->id);
-         }
-         // else, a new KeyFrame was linked to the MapPoint by another thread
+         unique_lock<mutex> lock(mMutexMap);
+         mMapPoints.erase(pMP->id);
       }
+      // else, a new KeyFrame was linked to the MapPoint by another thread
 
       // TODO: This only erase the pointer.
       // Delete the MapPoint
