@@ -283,21 +283,36 @@ namespace ORB_SLAM2
 
    void Map::Replace(MapPoint & oldMP, MapPoint & newMP) {
       Print("begin Replace");
+
       if (oldMP.id == newMP.id)
       {
          Print("end Replace 1");
          return;
       }
+
+      int nvisible, nfound;
       map<KeyFrame *, size_t> obs;
       {
          unique_lock<mutex> lock1(mMutexMap);
          unique_lock<mutex> lock2(oldMP.mMutexFeatures);
          obs = oldMP.mObservations;
+         nvisible = oldMP.mnVisible;	
+         nfound = oldMP.mnFound;	
+         oldMP.mpReplaced = &newMP;
       }
+
+      EraseMapPoint(&oldMP);
+
       for (pair<KeyFrame *, size_t> p : obs) {
          KeyFrame & rKF = *p.first;
-         Link(newMP, p.second, rKF);
+         if (!newMP.IsObserving(&rKF)) {
+            Link(newMP, p.second, rKF);
+         }
       }
+
+      newMP.IncreaseVisible(nvisible);	
+      newMP.IncreaseFound(nfound);	
+      newMP.ComputeDistinctiveDescriptors();
       Print("end Replace 2");
    }
 

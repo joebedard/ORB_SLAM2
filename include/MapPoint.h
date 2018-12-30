@@ -161,6 +161,7 @@ namespace ORB_SLAM2
 
    protected:
 
+      // read-only access to mnObs
       const atomic_size_t & nObs;
 
       mutex mMutexFeatures;
@@ -200,6 +201,8 @@ namespace ORB_SLAM2
 
       // Bad flag (we do not currently erase MapPoint from memory)
       atomic_bool mbBad;
+
+      // the MapPoint that replaced this MapPoint
       MapPoint * mpReplaced;
 
       // Scale invariance distances
