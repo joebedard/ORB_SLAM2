@@ -58,15 +58,27 @@ namespace ORB_SLAM2
    void Map::EraseMapPoint(MapPoint * pMP)
    {
       Print("begin EraseMapPoint");
-      unique_lock<mutex> lock1(mMutexMap);
-      mMapPoints.erase(pMP->id);
 
-      unique_lock<mutex> lock2(pMP->mMutexFeatures);
-      while (pMP->mObservations.size() > 0)
+      map<KeyFrame *, size_t> obs;
       {
-         KeyFrame * pKF = pMP->mObservations.begin()->first;
-         unique_lock<mutex> lock3(pKF->mMutexFeatures);
-         UnlinkWithoutLock(*pMP, *pKF);
+         unique_lock<mutex> lockMP(pMP->mMutexFeatures);
+         obs = pMP->mObservations;
+      }
+
+      for (auto it = obs.begin(); it != obs.end(); it++)
+      {
+         KeyFrame * pKF = it->first;
+         Unlink(*pMP, *pKF);
+      }
+      
+      {
+         unique_lock<mutex> lockMP(pMP->mMutexFeatures);
+         if (pMP->mbBad)
+         {
+            unique_lock<mutex> lock(mMutexMap);
+            mMapPoints.erase(pMP->id);
+         }
+         // else, a new KeyFrame was linked to the MapPoint by another thread
       }
 
       // TODO: This only erase the pointer.
@@ -77,7 +89,10 @@ namespace ORB_SLAM2
    void Map::EraseMapPoint(id_type mapPointId)
    {
       unique_lock<mutex> lock(mMutexMap);
-      mMapPoints.erase(mapPointId);
+      if (mMapPoints.count(mapPointId) > 0)
+      {
+         EraseMapPoint(mMapPoints[mapPointId]);
+      }
 
       // TODO: This only erase the pointer.
       // Delete the MapPoint
@@ -215,11 +230,32 @@ namespace ORB_SLAM2
       mvpKeyFrameOrigins.clear();
    }
 
-   void Map::Link(MapPoint & rMP, size_t idx, KeyFrame & rKF) 
+   void Map::Link(KeyFrame & rKF, vector<MapPoint *> & mapPoints)
    {
       Print("begin Link");
-      unique_lock<mutex> lock1(mMutexMap);
-      unique_lock<mutex> lock2(rKF.mMutexFeatures);
+      unique_lock<mutex> lockKF(rKF.mMutexFeatures);
+
+      for (size_t i = 0; i < mapPoints.size(); i++) {
+         MapPoint * pMP = mapPoints[i];
+         if (pMP) {
+            LinkWithoutLock(*pMP, i, rKF);
+         }
+      }
+
+      Print("end Link");
+   }
+
+   void Map::Link(MapPoint & rMP, size_t idx, KeyFrame & rKF)
+   {
+      Print("begin Link");
+      unique_lock<mutex> lockKF(rKF.mMutexFeatures);
+      LinkWithoutLock(rMP, idx, rKF);
+      Print("begin Link");
+   }
+
+   void Map::LinkWithoutLock(MapPoint & rMP, size_t idx, KeyFrame & rKF) 
+   {
+      Print("begin LinkWithoutLock");
 
       MapPoint * prevMP = rKF.mvpMapPoints.at(idx);
       if (prevMP != NULL) {
@@ -230,13 +266,15 @@ namespace ORB_SLAM2
          else {
             // rKF is already linked to a different MP, so unlink them
             rKF.mvpMapPoints.at(idx) = NULL;
-            unique_lock<mutex> lock3(prevMP->mMutexFeatures);
+            unique_lock<mutex> lockMP(prevMP->mMutexFeatures);
             prevMP->mObservations.erase(&rKF);
             prevMP->CompleteUnlink(idx, rKF);
+            if (prevMP->mnObs <= 2)
+               Print("detected a weak MapPoint");
          }
       }
 
-      unique_lock<mutex> lock3(rMP.mMutexFeatures);
+      unique_lock<mutex> lockMP(rMP.mMutexFeatures);
 
       if (rMP.mObservations.count(&rKF) > 0) {
          size_t prevIdx = rMP.mObservations[&rKF];
@@ -253,23 +291,15 @@ namespace ORB_SLAM2
       rMP.mObservations[&rKF] = idx;
       rMP.CompleteLink(idx, rKF);
       rKF.SetModified(true);
-      Print("end Link");
+      Print("end LinkWithoutLock");
    }
 
    void Map::Unlink(MapPoint & rMP, KeyFrame & rKF) 
    {
       Print("begin Unlink");
-      unique_lock<mutex> lock1(mMutexMap);
-      unique_lock<mutex> lock2(rKF.mMutexFeatures);
-      unique_lock<mutex> lock3(rMP.mMutexFeatures);
+      unique_lock<mutex> lockKF(rKF.mMutexFeatures);
+      unique_lock<mutex> lockMP(rMP.mMutexFeatures);
 
-      UnlinkWithoutLock(rMP, rKF);
-      Print("end Unlink");
-   }
-
-   void Map::UnlinkWithoutLock(MapPoint & rMP, KeyFrame & rKF)
-   {
-      Print("begin UnlinkWithoutLock");
       if (rMP.mObservations.count(&rKF) > 0) {
          size_t prevIdx = rMP.mObservations[&rKF];
          rKF.mvpMapPoints.at(prevIdx) = NULL;
@@ -278,7 +308,8 @@ namespace ORB_SLAM2
          rKF.SetModified(true);
          rMP.CompleteUnlink(prevIdx, rKF);
       }
-      Print("end UnlinkWithoutLock");
+
+      Print("end Unlink");
    }
 
    void Map::Replace(MapPoint & oldMP, MapPoint & newMP) {
@@ -293,8 +324,7 @@ namespace ORB_SLAM2
       int nvisible, nfound;
       map<KeyFrame *, size_t> obs;
       {
-         unique_lock<mutex> lock1(mMutexMap);
-         unique_lock<mutex> lock2(oldMP.mMutexFeatures);
+         unique_lock<mutex> lock(oldMP.mMutexFeatures);
          obs = oldMP.mObservations;
          nvisible = oldMP.mnVisible;	
          nfound = oldMP.mnFound;	
@@ -319,20 +349,20 @@ namespace ORB_SLAM2
    void Map::ValidateAllLinks()
    {
       Print("begin ValidateAllLinks");
-      unique_lock<mutex> lock1(mMutexMap);
+      unique_lock<mutex> lock(mMutexMap);
       
       // for each KeyFrame
       for (auto itKF = mKeyFrames.begin(); itKF != mKeyFrames.end(); itKF++)
       {
          KeyFrame & rKF = *itKF->second;
          set<MapPoint *> mapPoints;
-         unique_lock<mutex> lock2(rKF.mMutexFeatures);
+         unique_lock<mutex> lockKF(rKF.mMutexFeatures);
          for (size_t i = 0; i < rKF.mvpMapPoints.size(); i++)
          {
             MapPoint * pMP = rKF.mvpMapPoints[i];
             if (pMP)
             {
-               unique_lock<mutex> lock3(pMP->mMutexFeatures);
+               unique_lock<mutex> lockMP(pMP->mMutexFeatures);
                if (mapPoints.count(pMP) > 0)
                   throw exception("Map::ValidateAllLinks detected a duplicate MapPoint in a KeyFrame");
                else
@@ -354,13 +384,13 @@ namespace ORB_SLAM2
       for (auto itMP = mMapPoints.begin(); itMP != mMapPoints.end(); ++itMP)
       {
          MapPoint & rMP = *itMP->second;
-         unique_lock<mutex> lock2(rMP.mMutexFeatures);
+         unique_lock<mutex> lockMP(rMP.mMutexFeatures);
          for (auto itKF = rMP.mObservations.begin(); itKF != rMP.mObservations.end(); itKF++)
          {
             KeyFrame * pKF = itKF->first;
             if (pKF)
             {
-               unique_lock<mutex> lock3(pKF->mMutexFeatures);
+               unique_lock<mutex> lockKF(pKF->mMutexFeatures);
                if (pKF->mvpMapPoints.at(itKF->second) != &rMP)
                   throw exception("Map::ValidateAllLinks detected an invalid link between a KeyFrame and a MapPoint");
             }

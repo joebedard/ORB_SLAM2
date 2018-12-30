@@ -159,29 +159,39 @@ namespace ORB_SLAM2
 
       static mutex mGlobalMutex;
 
-   protected:
+   private:
 
-      // read-only access to mnObs
-      const atomic_size_t & nObs;
+      id_type mnId;
+
+      atomic_bool mModified;
+
+      id_type mnFirstKFid;
 
       mutex mMutexFeatures;
+
+      // Reference KeyFrame
+      KeyFrame * mpRefKF;
+
+      // quantity of KeyFrames linked to this MapPoint (double if stereo mode)
+      size_t mnObs;
 
       // Keyframes observing the point and associated index in keyframe
       map<KeyFrame*, size_t> mObservations;
 
-      // called from Map::Link when all linking is complete
-      // pre: the thread has locked this->mMutexFeatures and rKF.mMutexFeatures
-      void MapPoint::CompleteLink(size_t idx, KeyFrame & rKF);
+      // Best descriptor to fast matching
+      cv::Mat mDescriptor;
 
-      // called from Map::Unlink (and Map::Link) when all unlinking is complete
-      // pre: the thread has locked this->mMutexFeatures and rKF.mMutexFeatures
-      void MapPoint::CompleteUnlink(size_t idx, KeyFrame & rKF);
+      // Tracking counters
+      int mnVisible;
+      int mnFound;
 
-   private:
+      // Bad flag (we do not currently erase MapPoint from memory)
+      bool mbBad;
 
-      id_type mnFirstKFid;
+      // the MapPoint that replaced this MapPoint
+      MapPoint * mpReplaced;
 
-      atomic_size_t mnObs;
+      mutex mMutexPos;
 
       // Position in absolute coordinates
       cv::Mat mWorldPos;
@@ -189,32 +199,11 @@ namespace ORB_SLAM2
       // Mean viewing direction
       cv::Mat mNormalVector;
 
-      // Best descriptor to fast matching
-      cv::Mat mDescriptor;
-
-      // Reference KeyFrame
-      KeyFrame * mpRefKF;
-
-      // Tracking counters
-      int mnVisible;
-      int mnFound;
-
-      // Bad flag (we do not currently erase MapPoint from memory)
-      atomic_bool mbBad;
-
-      // the MapPoint that replaced this MapPoint
-      MapPoint * mpReplaced;
-
       // Scale invariance distances
       float mfMinDistance;
       float mfMaxDistance;
 
-      mutex mMutexPos;
-
    private:
-      id_type mnId;
-
-      atomic_bool mModified;
 
       struct Header
       {
@@ -245,6 +234,14 @@ namespace ORB_SLAM2
          map<KeyFrame *, size_t> & observations);
 
       static void * WriteObservations(void * const buffer, map<KeyFrame *, size_t> & observations);
+
+      // called from Map::Link when all linking is complete
+      // pre: the thread has locked this->mMutexFeatures and rKF.mMutexFeatures
+      void MapPoint::CompleteLink(size_t idx, KeyFrame & rKF);
+
+      // called from Map::Unlink (and Map::Link) when all unlinking is complete
+      // pre: the thread has locked this->mMutexFeatures and rKF.mMutexFeatures
+      void MapPoint::CompleteUnlink(size_t idx, KeyFrame & rKF);
 
    };
 

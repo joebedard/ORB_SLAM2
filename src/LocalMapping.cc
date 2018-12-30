@@ -257,8 +257,11 @@ namespace ORB_SLAM2
             // add keyframe to map
             mMap.AddKeyFrame(pKF);
 
-            // add new points to map and recent points, associate them to the new keyframe, 
-            // update normal/depth and compute descriptor
+            // link new and pre-existing MapPoints to the new KeyFrame
+            mMap.Link(*pKF, createdMapPoints);
+            mMap.Link(*pKF, updatedMapPoints);
+
+            // new MapPoints - add to mRecentAddedMapPoints, update normal/depth and compute descriptor
             // NOTE: this vector is always empty during monocular mode
             const int n = createdMapPoints.size();
             MapPoint * pMP = static_cast<MapPoint *>(NULL);
@@ -269,20 +272,18 @@ namespace ORB_SLAM2
                {
                   mMap.AddMapPoint(pMP);
                   mRecentAddedMapPoints[trackerId].push_back(pMP);
-                  mMap.Link(*pMP, i, *pKF);
                   pMP->UpdateNormalAndDepth();
                   pMP->ComputeDistinctiveDescriptors();
                }
             }
 
-            // associate existing points to the new keyframe, update normal/depth and compute descriptor
+            // pre-existing MapPoints - update normal/depth and compute descriptor
             const int m = updatedMapPoints.size();
             for (int i = 0; i < m; i++)
             {
                pMP = updatedMapPoints[i];
                if (pMP && !pMP->IsBad())
                {
-                  mMap.Link(*pMP, i, *pKF);
                   pMP->UpdateNormalAndDepth();
                   pMP->ComputeDistinctiveDescriptors();
                }

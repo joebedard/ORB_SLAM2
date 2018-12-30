@@ -80,6 +80,8 @@ namespace ORB_SLAM2
 
       void Clear();
 
+      void Link(KeyFrame & rKF, vector<MapPoint *> & mapPoints);
+
       void Link(MapPoint & rMP, size_t idx, KeyFrame & rKF);
 
       void Unlink(MapPoint & rMP, KeyFrame & rKF);
@@ -110,7 +112,8 @@ namespace ORB_SLAM2
 
       unordered_map<id_type, KeyFrame *> mKeyFrames;
 
-      void UnlinkWithoutLock(MapPoint & rMP, KeyFrame & rKF);
+      void LinkWithoutLock(MapPoint & rMP, size_t idx, KeyFrame & rKF);
+
    };
 
 } //namespace ORB_SLAM

@@ -55,9 +55,6 @@ namespace ORB_SLAM2
       // public read-only access to private variables
       , id(mnId)
       , firstKFid(mnFirstKFid)
-
-      // protected read-only access to private variables
-      , nObs(mnObs)
    {
    }
 
@@ -87,9 +84,6 @@ namespace ORB_SLAM2
       // public read-only access to private variables
       , id(mnId)
       , firstKFid(mnFirstKFid)
-
-      // protected read-only access to private variables
-      , nObs(mnObs)
    {
       if (worldPos.empty())
          throw exception("MapPoint::SetWorldPos([])!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
@@ -131,6 +125,7 @@ namespace ORB_SLAM2
 
    size_t MapPoint::Observations()
    {
+      unique_lock<mutex> lock(mMutexFeatures);
       return mnObs;
    }
 
@@ -157,6 +152,7 @@ namespace ORB_SLAM2
 
    bool MapPoint::IsBad()
    {
+      unique_lock<mutex> lock(mMutexFeatures);
       return mbBad;
    }
 
@@ -188,8 +184,8 @@ namespace ORB_SLAM2
       map<KeyFrame*, size_t> observations;
 
       {
-         if (mbBad) return;
          unique_lock<mutex> lock2(mMutexFeatures);
+         if (mbBad) return;
          observations = mObservations;
       }
 
@@ -281,8 +277,8 @@ namespace ORB_SLAM2
       KeyFrame* pRefKF;
       cv::Mat Pos;
       {
-         if (mbBad) return;
          unique_lock<mutex> lock1(mMutexFeatures);
+         if (mbBad) return;
          observations = mObservations;
          if (mpRefKF == NULL)
             throw exception("MapPoint::UpdateNormalAndDepth mpRefKF is NULL");
