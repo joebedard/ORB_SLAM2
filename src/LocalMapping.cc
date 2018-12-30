@@ -276,8 +276,6 @@ namespace ORB_SLAM2
             }
 
             // associate existing points to the new keyframe, update normal/depth and compute descriptor
-            // NOTE: this vector is empty during initialization
-            // see: MapperServer::InitializeStereo, MapperServer::InitializeMono
             const int m = updatedMapPoints.size();
             for (int i = 0; i < m; i++)
             {
