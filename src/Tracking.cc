@@ -1636,11 +1636,12 @@ namespace ORB_SLAM2
             {
                int i = vDepthIdx[j].second;
                MapPoint * pMP = currentFrame.mvpMapPoints[i];
-               if (!pMP || pMP->Observations() < 1)
+               if (!pMP || pMP->IsBad())
                {
                   cv::Mat x3D = currentFrame.UnprojectStereo(i);
                   pMP = new MapPoint(NewMapPointId(), x3D, pKF);
                   createdMapPoints[i] = pMP;
+                  updatedMapPoints[i] = NULL;
                }
                
                if (vDepthIdx[j].first > currentFrame.mFC->thDepth && j > 99)
