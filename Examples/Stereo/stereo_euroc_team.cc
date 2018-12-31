@@ -243,19 +243,19 @@ catch (cv::Exception & e)
 {
    string msg = string("cv::Exception: ") + e.what();
    cerr << "RunTracker: " << msg << endl;
-   gOutMain.Print(msg);
+   gOutTrak.Print(msg);
 }
 catch (const exception & e)
 {
    string msg = string("exception: ") + e.what();
    cerr << "RunTracker: " << msg << endl;
-   gOutMain.Print(msg);
+   gOutTrak.Print(msg);
 }
 catch (...)
 {
    string msg = string("There was an unknown exception in the main thread.");
    cerr << "RunTracker: " << msg << endl;
-   gOutMain.Print(msg);
+   gOutTrak.Print(msg);
 }
 
 void PrintStatistics()

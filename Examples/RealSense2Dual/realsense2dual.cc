@@ -157,25 +157,25 @@ void RunTracker(int threadId) try
 catch( cv::Exception & e ) {
    string msg = string("cv::Exception: ") + e.what();
    cerr << "RunTracker: " << msg << endl;
-   gOutMain.Print(msg);
+   gOutTrak.Print(msg);
 }
 catch (const rs2::error & e)
 {
    string msg = string("RealSense error calling ") + e.get_failed_function() + "(" + e.get_failed_args() + "): " + e.what();
    cerr << "RunTracker: " << msg << endl;
-   gOutMain.Print(msg);
+   gOutTrak.Print(msg);
 }
 catch (const exception& e)
 {
    string msg = string("exception: ") + e.what();
    cerr << "RunTracker: " << msg << endl;
-   gOutMain.Print(msg);
+   gOutTrak.Print(msg);
 }
 catch (...)
 {
    string msg = string("There was an unknown exception in the main thread.");
    cerr << "RunTracker: " << msg << endl;
-   gOutMain.Print(msg);
+   gOutTrak.Print(msg);
 }
 
 void PrintStatistics()
