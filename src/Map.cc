@@ -28,14 +28,14 @@ namespace ORB_SLAM2
 {
 
    Map::Map()
-      : mnMaxKFid(0), mnBigChangeIdx(0), SyncPrint("Map: ", false)
+      : mnMaxKFid(0), mnBigChangeIdx(0), SyncPrint("Map: ")
    {
 
    }
 
    void Map::AddKeyFrame(KeyFrame *pKF)
    {
-      Print("begin AddKeyFrame");
+      //Print("begin AddKeyFrame");
       if (!pKF)
          throw exception("Map::AddKeyFrame: can not add a NULL KeyFrame *");
 
@@ -43,7 +43,7 @@ namespace ORB_SLAM2
       mKeyFrames[pKF->id] = pKF;
       if (pKF->id > mnMaxKFid)
          mnMaxKFid = pKF->id;
-      Print("end AddKeyFrame");
+      //Print("end AddKeyFrame");
    }
 
    void Map::AddMapPoint(MapPoint *pMP)
@@ -62,6 +62,7 @@ namespace ORB_SLAM2
       map<KeyFrame *, size_t> obs;
       {
          unique_lock<mutex> lockMP(pMP->mMutexFeatures);
+         pMP->mbBad = true;
          obs = pMP->mObservations;
       }
 
@@ -71,12 +72,13 @@ namespace ORB_SLAM2
          Unlink(*pMP, *pKF);
       }
       
-      if (pMP->IsBad())
-      {
+      if (pMP->IsBad()) {
          unique_lock<mutex> lock(mMutexMap);
          mMapPoints.erase(pMP->id);
       }
-      // else, a new KeyFrame was linked to the MapPoint by another thread
+      else {
+         Print("a new KeyFrame was linked to the MapPoint by another thread");
+      }
 
       // TODO: This only erase the pointer.
       // Delete the MapPoint
@@ -127,7 +129,7 @@ namespace ORB_SLAM2
 
    vector<KeyFrame *> Map::GetAllKeyFrames()
    {
-      Print("begin GetAllKeyFrames");
+      //Print("begin GetAllKeyFrames");
       unique_lock<mutex> lock(mMutexMap);
       vector<KeyFrame *> allKeyFrames;
       for (unordered_map<id_type, KeyFrame *>::iterator it = mKeyFrames.begin(); it != mKeyFrames.end(); ++it)
@@ -135,13 +137,13 @@ namespace ORB_SLAM2
          if (it->second == NULL) Print("it->second == NULL");
          allKeyFrames.push_back(it->second);
       }
-      Print("end GetAllKeyFrames");
+      //Print("end GetAllKeyFrames");
       return allKeyFrames;
    }
 
    set<KeyFrame *> Map::GetKeyFrameSet()
    {
-      Print("begin GetKeyFrameSet");
+      //Print("begin GetKeyFrameSet");
       unique_lock<mutex> lock(mMutexMap);
       set<KeyFrame *> allKeyFrames;
       for (unordered_map<id_type, KeyFrame *>::iterator it = mKeyFrames.begin(); it != mKeyFrames.end(); ++it)
@@ -149,7 +151,7 @@ namespace ORB_SLAM2
          if (it->second == NULL) Print("it->second == NULL");
          allKeyFrames.insert(it->second);
       }
-      Print("end GetKeyFrameSet");
+      //Print("end GetKeyFrameSet");
       return allKeyFrames;
    }
 
@@ -161,7 +163,7 @@ namespace ORB_SLAM2
 
    vector<MapPoint *> Map::GetAllMapPoints()
    {
-      Print("begin GetAllMapPoints");
+      //Print("begin GetAllMapPoints");
       unique_lock<mutex> lock(mMutexMap);
       vector<MapPoint *> allMapPoints;
       for (unordered_map<id_type, MapPoint *>::iterator it = mMapPoints.begin(); it != mMapPoints.end(); ++it)
@@ -169,13 +171,13 @@ namespace ORB_SLAM2
          if (it->second == NULL) Print("it->second == NULL");
          allMapPoints.push_back(it->second);
       }
-      Print("end GetAllMapPoints");
+      //Print("end GetAllMapPoints");
       return allMapPoints;
    }
 
    set<MapPoint *> Map::GetMapPointSet()
    {
-      Print("begin GetMapPointSet");
+      //Print("begin GetMapPointSet");
       unique_lock<mutex> lock(mMutexMap);
       set<MapPoint *> allMapPoints;
       for (unordered_map<id_type, MapPoint *>::iterator it = mMapPoints.begin(); it != mMapPoints.end(); ++it)
@@ -183,7 +185,7 @@ namespace ORB_SLAM2
          if (it->second == NULL) Print("it->second == NULL");
          allMapPoints.insert(it->second);
       }
-      Print("end GetMapPointSet");
+      //Print("end GetMapPointSet");
       return allMapPoints;
    }
 
@@ -318,23 +320,34 @@ namespace ORB_SLAM2
          return;
       }
 
+      stringstream ss;
+      ss << "Replace oldMP.id==" << oldMP.id << " with newMP.id==" << newMP.id;
+      Print(ss);
+
       int nvisible, nfound;
       map<KeyFrame *, size_t> obs;
       {
          unique_lock<mutex> lock(oldMP.mMutexFeatures);
+         oldMP.mbBad = true;
          obs = oldMP.mObservations;
          nvisible = oldMP.mnVisible;	
          nfound = oldMP.mnFound;	
          oldMP.mpReplaced = &newMP;
       }
 
-      EraseMapPoint(&oldMP);
-
       for (pair<KeyFrame *, size_t> p : obs) {
          KeyFrame & rKF = *p.first;
          if (!newMP.IsObserving(&rKF)) {
             Link(newMP, p.second, rKF);
          }
+      }
+
+      if (oldMP.IsBad()) {
+         unique_lock<mutex> lock(mMutexMap);
+         mMapPoints.erase(oldMP.id);
+      }
+      else {
+         Print("a new KeyFrame was linked to the old MapPoint by another thread");
       }
 
       newMP.IncreaseVisible(nvisible);	

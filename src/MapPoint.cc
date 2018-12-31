@@ -137,16 +137,26 @@ namespace ORB_SLAM2
 
    MapPoint * MapPoint::FindFinalReplacement(MapPoint * pMP)
    {
+      //Print("MapPoint: ", "begin FindFinalReplacement");
       if (!pMP)
          throw exception("MapPoint::FindFinalReplacement pMP == NULL");
+
+      set<MapPoint *> alreadySeen;
 
       // search through replacement points until it finds the last one
       MapPoint * pNext = pMP->GetReplaced();
       while (pNext)
       {
+         if (alreadySeen.count(pNext) > 0) {
+            string m = string("detected a loop in replacement MapPoints pNext->id==") + to_string(pNext->id);
+            throw exception(m.c_str());
+         }
+         alreadySeen.insert(pNext);
+
          pMP = pNext;
          pNext = pMP->GetReplaced();
       }
+      //Print("MapPoint: ", "end FindFinalReplacement");
       return pMP;
    }
 
@@ -380,9 +390,6 @@ namespace ORB_SLAM2
       else
          mnObs++;
 
-      if (mnObs > 0)
-         mbBad = false;
-
       mModified = true;
    }
 
@@ -400,7 +407,7 @@ namespace ORB_SLAM2
             mpRefKF = mObservations.begin()->first;
       }
 
-      if (mnObs == 0)
+      if (mnObs <= 2)
          mbBad = true;
 
       mModified = true;
