@@ -231,36 +231,51 @@ namespace ORB_SLAM2
 
    void Map::Link(KeyFrame & rKF, vector<MapPoint *> & mapPoints)
    {
-      Print("begin Link");
-      unique_lock<mutex> lockKF(rKF.mMutexFeatures);
-
-      for (size_t i = 0; i < mapPoints.size(); i++) {
-         MapPoint * pMP = mapPoints[i];
-         if (pMP) {
-            LinkWithoutLock(*pMP, i, rKF);
+      //Print("begin Link");
+      set<MapPoint *> prevMPs;
+      {
+         unique_lock<mutex> lockKF(rKF.mMutexFeatures);
+         for (size_t i = 0; i < mapPoints.size(); i++)
+         {
+            MapPoint * pMP = mapPoints[i];
+            if (pMP) {
+               MapPoint * prevMP = LinkWithoutLock(*pMP, i, rKF);
+               if (prevMP)
+                  prevMPs.insert(prevMP);
+            }
          }
       }
-
-      Print("end Link");
+      for (MapPoint * prevMP : prevMPs)
+      {
+         if (prevMP->Observations() <= 2)
+            EraseMapPoint(prevMP);
+      }
+      //Print("end Link");
    }
 
    void Map::Link(MapPoint & rMP, size_t idx, KeyFrame & rKF)
    {
-      Print("begin Link");
-      unique_lock<mutex> lockKF(rKF.mMutexFeatures);
-      LinkWithoutLock(rMP, idx, rKF);
-      Print("begin Link");
+      //Print("begin Link");
+      MapPoint * prevMP = NULL;
+      {
+         unique_lock<mutex> lockKF(rKF.mMutexFeatures);
+         prevMP = LinkWithoutLock(rMP, idx, rKF);
+      }
+      if (prevMP && prevMP->Observations() <= 2)
+         EraseMapPoint(prevMP);
+      //Print("begin Link");
    }
 
-   void Map::LinkWithoutLock(MapPoint & rMP, size_t idx, KeyFrame & rKF) 
+   MapPoint * Map::LinkWithoutLock(MapPoint & rMP, size_t idx, KeyFrame & rKF) 
    {
-      Print("begin LinkWithoutLock");
+      //Print("begin LinkWithoutLock");
 
       MapPoint * prevMP = rKF.mvpMapPoints.at(idx);
       if (prevMP != NULL) {
          if (prevMP == &rMP) {
             // the MP and KF are already linked
-            return;
+            //Print("end LinkWithoutLock 1");
+            return NULL;
          }
          else {
             // rKF is already linked to a different MP, so unlink them
@@ -268,8 +283,6 @@ namespace ORB_SLAM2
             unique_lock<mutex> lockMP(prevMP->mMutexFeatures);
             prevMP->mObservations.erase(&rKF);
             prevMP->CompleteUnlink(idx, rKF);
-            if (prevMP->mnObs <= 2)
-               Print("detected a weak MapPoint");
          }
       }
 
@@ -290,12 +303,13 @@ namespace ORB_SLAM2
       rMP.mObservations[&rKF] = idx;
       rMP.CompleteLink(idx, rKF);
       rKF.SetModified(true);
-      Print("end LinkWithoutLock");
+      //Print("end LinkWithoutLock 2");
+      return prevMP;
    }
 
    void Map::Unlink(MapPoint & rMP, KeyFrame & rKF) 
    {
-      Print("begin Unlink");
+      //Print("begin Unlink");
       unique_lock<mutex> lockKF(rKF.mMutexFeatures);
       unique_lock<mutex> lockMP(rMP.mMutexFeatures);
 
@@ -308,7 +322,7 @@ namespace ORB_SLAM2
          rMP.CompleteUnlink(prevIdx, rKF);
       }
 
-      Print("end Unlink");
+      //Print("end Unlink");
    }
 
    void Map::Replace(MapPoint & oldMP, MapPoint & newMP) {

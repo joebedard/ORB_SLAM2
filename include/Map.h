@@ -112,7 +112,8 @@ namespace ORB_SLAM2
 
       unordered_map<id_type, KeyFrame *> mKeyFrames;
 
-      void LinkWithoutLock(MapPoint & rMP, size_t idx, KeyFrame & rKF);
+      // returns a MapPoint if it was replaced, otherwise returns NULL
+      MapPoint * LinkWithoutLock(MapPoint & rMP, size_t idx, KeyFrame & rKF);
 
    };
 
