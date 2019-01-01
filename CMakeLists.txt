@@ -200,14 +200,14 @@ target_include_directories(realsense2 PUBLIC ${RealSense2_INCLUDE_DIRS})
 target_link_libraries(realsense2 ${PROJECT_NAME} ${RealSense2_LIBS})
 
 add_executable(realsense2dual
-Examples/RealSense2Dual/realsense2dual.cc)
+Examples/RealSense2/realsense2dual.cc)
 target_include_directories(realsense2dual PUBLIC ${RealSense2_INCLUDE_DIRS})
 target_link_libraries(realsense2dual ${PROJECT_NAME} ${RealSense2_LIBS})
 
-# build client and server
+# experimental client and server
 
 add_executable(realsense2client
-src-client/realsense2client.cc)
+Examples/RealSense2/realsense2client.cc)
 target_include_directories(realsense2client PUBLIC ${RealSense2_INCLUDE_DIRS})
 target_link_libraries(realsense2client ${PROJECT_NAME} ${RealSense2_LIBS})
 

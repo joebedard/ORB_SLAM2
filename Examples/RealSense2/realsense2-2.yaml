@@ -11,10 +11,6 @@ Camera.fx: 383.242828369141
 Camera.fy: 383.242828369141
 Camera.cx: 319.657806396484
 Camera.cy: 243.611282348633
-#Camera.fx: 385
-#Camera.fy: 385
-#Camera.cx: 320
-#Camera.cy: 240
 Camera.k1: 0.0
 Camera.k2: 0.0
 Camera.p1: 0.0
@@ -23,7 +19,6 @@ Camera.p2: 0.0
 
 # manual calibration
 Camera.bl: 0.0500099108959238
-
 
 Camera.width: 640
 Camera.height: 480
@@ -62,7 +57,6 @@ LEFT.D: !!opencv-matrix
    cols: 5
    dt: d
    data:[0.00553589065864589, -0.00764699583865207, 0.00408021636795671, 0, 0]
-#   data:[0, 0, 0, 0, 0]
 LEFT.K: !!opencv-matrix
    rows: 3
    cols: 3
@@ -81,7 +75,6 @@ RIGHT.D: !!opencv-matrix
    cols: 5
    dt: d
    data:[0.00715478562454628, -0.0111517819898512, 0.00595108922349590, 0.0, 0.0]
-#   data:[0, 0, 0, 0.0, 0.0]
 RIGHT.K: !!opencv-matrix
    rows: 3
    cols: 3
