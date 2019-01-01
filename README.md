@@ -1,11 +1,13 @@
-# ORB-SLAM2
-**Authors:** [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2))
+# ORB-SLAM2-TEAM
+**Authors:** [Joe Bedard](https://www.linkedin.com/in/joe-bedard-04b7633/), [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2))
+
+**1 Jan 2019**: Cooperative SLAM is now supported. Distributed (network) SLAM is experimental [more info](https://github.com/joebedard/ORB_SLAM2_TEAM/Distributed.md).
 
 **13 Jan 2017**: OpenCV 3 and Eigen 3.3 are now supported.
 
 **22 Dec 2016**: Added AR demo (see section 7).
 
-ORB-SLAM2 is a real-time SLAM library for **Monocular**, **Stereo** and **RGB-D** cameras that computes the camera trajectory and a sparse 3D reconstruction (in the stereo and RGB-D case with true scale). It is able to detect loops and relocalize the camera in real time. We provide examples to run the SLAM system in the [KITTI dataset](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) as stereo or monocular, in the [TUM dataset](http://vision.in.tum.de/data/datasets/rgbd-dataset) as RGB-D or monocular, and in the [EuRoC dataset](http://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets) as stereo or monocular. We also provide a ROS node to process live monocular, stereo or RGB-D streams. **The library can be compiled without ROS**. ORB-SLAM2 provides a GUI to change between a *SLAM Mode* and *Localization Mode*, see section 9 of this document.
+ORB-SLAM2-TEAM is a real-time Cooperative SLAM library for **Monocular**, **Stereo** and **RGB-D** cameras that computes the camera trajectory and a sparse 3D reconstruction (in the stereo and RGB-D case with true scale). It is based on [ORB-SLAM2](https://github.com/raulmur/ORB_SLAM2/). It is able to detect loops and relocalize the camera in real time. We provide examples to run the SLAM system in the [KITTI dataset](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) as stereo or monocular, in the [TUM dataset](http://vision.in.tum.de/data/datasets/rgbd-dataset) as cooperative, RGB-D or monocular, and in the [EuRoC dataset](http://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets) as cooperative, stereo or monocular. Additionally, there are single and cooperative examples for the [Intel RealSense](https://realsense.intel.com/) depth camera. We also provide a ROS node to process live monocular, stereo or RGB-D streams. **The library can be compiled without ROS and Intel RealSense SDK**. ORB-SLAM2-TEAM provides a GUI to change between a *SLAM Mode* and *Localization Mode*, see section 10 of this document.
 
 <a href="https://www.youtube.com/embed/ufvPS5wJAx0" target="_blank"><img src="http://img.youtube.com/vi/ufvPS5wJAx0/0.jpg" 
 alt="ORB-SLAM2" width="240" height="180" border="10" /></a>
@@ -25,11 +27,11 @@ alt="ORB-SLAM2" width="240" height="180" border="10" /></a>
 
 # 1. License
 
-ORB-SLAM2 is released under a [GPLv3 license](https://github.com/raulmur/ORB_SLAM2/blob/master/License-gpl.txt). For a list of all code/library dependencies (and associated licenses), please see [Dependencies.md](https://github.com/raulmur/ORB_SLAM2/blob/master/Dependencies.md).
+ORB-SLAM2-TEAM is released under a [GPLv3 license](https://github.com/joebedard/ORB_SLAM2_TEAM/blob/master/License-gpl.txt). For a list of all code/library dependencies (and associated licenses), please see [Dependencies.md](https://github.com/joebedard/ORB_SLAM2_TEAM/blob/master/Dependencies.md).
 
-For a closed-source version of ORB-SLAM2 for commercial purposes, please contact the authors: orbslam (at) unizar (dot) es.
+For a closed-source version of ORB-SLAM2-TEAM (and ORB-SLAM2) for commercial purposes, please contact the authors: [Joe Bedard](https://www.linkedin.com/in/joe-bedard-04b7633/), and orbslam (at) unizar (dot) es.
 
-If you use ORB-SLAM2 (Monocular) in an academic work, please cite:
+If you use ORB-SLAM2-TEAM or ORB-SLAM2 (Monocular) in an academic work, please cite:
 
     @article{murTRO2015,
       title={{ORB-SLAM}: a Versatile and Accurate Monocular {SLAM} System},
@@ -42,7 +44,7 @@ If you use ORB-SLAM2 (Monocular) in an academic work, please cite:
       year={2015}
      }
 
-if you use ORB-SLAM2 (Stereo or RGB-D) in an academic work, please cite:
+if you use ORB-SLAM2-TEAM or ORB-SLAM2 (Stereo or RGB-D) in an academic work, please cite:
 
     @article{murORB2,
       title={{ORB-SLAM2}: an Open-Source {SLAM} System for Monocular, Stereo and {RGB-D} Cameras},
@@ -56,7 +58,7 @@ if you use ORB-SLAM2 (Stereo or RGB-D) in an academic work, please cite:
      }
 
 # 2. Prerequisites
-We have tested the library in **Ubuntu 12.04**, **14.04** and **16.04**, but it should be easy to compile in other platforms. A powerful computer (e.g. i7) will ensure real-time performance and provide more stable and accurate results.
+We have tested the library in **Windows 10**, **Ubuntu 12.04**, **14.04** and **16.04**, but it should be easy to compile in other platforms. A powerful computer (e.g. i7) will ensure real-time performance and provide more stable and accurate results.
 
 ## C++11 or C++0x Compiler
 We use the new thread and chrono functionalities of C++11.
@@ -73,26 +75,79 @@ Required by g2o (see below). Download and install instructions can be found at: 
 ## DBoW2 and g2o (Included in Thirdparty folder)
 We use modified versions of the [DBoW2](https://github.com/dorian3d/DBoW2) library to perform place recognition and [g2o](https://github.com/RainerKuemmerle/g2o) library to perform non-linear optimizations. Both modified libraries (which are BSD) are included in the *Thirdparty* folder.
 
+## ZeroMQ (cppzmq and libzmq)
+Required for distributed (network) SLAM, but it is currently experimental. Tested with v4.3.0 of [cppzmq](https://github.com/zeromq/cppzmq) and [libzmq](https://github.com/zeromq/libzmq).
+
 ## ROS (optional)
 We provide some examples to process the live input of a monocular, stereo or RGB-D camera using [ROS](ros.org). Building these examples is optional. In case you want to use ROS, a version Hydro or newer is needed.
 
-# 3. Building ORB-SLAM2 library and examples
+## Intel RealSense SDK (optional)
+There are examples to process live input of stereo images from Intel RealSense depth cameras (and SDK). Download the SDK from the [Intel RealSense website](https://realsense.intel.com/). Building these examples is optional.
+
+# 3. Building ORB-SLAM2-TEAM library and examples
 
 Clone the repository:
 ```
-git clone https://github.com/raulmur/ORB_SLAM2.git ORB_SLAM2
+git clone https://github.com/joebedard/ORB_SLAM2_TEAM.git ORB_SLAM2_TEAM
 ```
 
-We provide a script `build.sh` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
+CMake 3.1 or newer is supported. Start with `CMakeLists.txt`.
+
+There is also a script `build.sh` to build the *Thirdparty* libraries and *ORB-SLAM2-TEAM*. Please make sure you have installed all required dependencies (see section 2). Execute:
 ```
-cd ORB_SLAM2
+cd ORB_SLAM2_TEAM
 chmod +x build.sh
 ./build.sh
 ```
 
 This will create **libORB_SLAM2.so**  at *lib* folder and the executables **mono_tum**, **mono_kitti**, **rgbd_tum**, **stereo_kitti**, **mono_euroc** and **stereo_euroc** in *Examples* folder.
 
-# 4. Monocular Examples
+
+# 4. Cooperative Examples
+
+## TUM RGB-D Datasets
+
+1. Download the following sequences from http://vision.in.tum.de/data/datasets/rgbd-dataset/download and uncompress them: fr1/room, fr1/desk, and fr1/desk2
+
+2. Modify `Examples/RGB-D/rgbd_tum_team.yaml` to refer to the vocabulary and mapper files, as well as settings, images, and associations files and paths for each tracking camera.
+   * Mapper - `Examples/RGB-D/mapper.yaml`
+   * Tracker.Settings.X - If you are using the three sequences above, this is TUM1.yaml (preceded by the path).
+   * See RGB-D examples below for more information about the images folder and associations file.
+
+3. Execute the following command. 
+```
+./Examples/RGB-D/rgbd_tum_team Examples/RGB-D/rgbd_tum_team.yaml
+```
+
+## EuRoC Stereo Dataset
+
+1. Download the EuRoC sequences from http://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets (at this time they might require your email address). This example will run with Machine Hall 01-05 data sets.
+
+2. Modify `Examples/Stereo/stereo_euroc_team.yaml` to refer to the vocabulary and mapper files, as well as settings, images, and timings files and paths for each tracking camera.
+   * Mapper - `Examples/Stereo/mapper.yaml`
+   * Tracker.Settings.X - If you are using the sequences above, this is EuRoC.yaml (preceded by the path).
+   * See EuRoC examples below for more information about the images folders and timings file. However, you must explicitly define the left and right camera folders.
+
+3. Execute the following command.
+```
+./Examples/Stereo/stereo_euroc_team Examples/Stereo/stereo_euroc_team.yaml 
+```
+
+## Intel RealSense 2 - Dual Stereo Cameras
+
+1. Refer to Intel RealSense [website](https://realsense.intel.com/) to acquire cameras and download the SDK.
+
+2. Copy or modify the mapper and tracker settings files. Example files are at:
+   * `Examples/RealSense2/mapper.yaml`
+   * `Examples/RealSense2/realsense2-1.yaml` (Viewer Parameters are ignored by realsense2dual)
+   * `Examples/RealSense2/realsense2-2.yaml` (Viewer Parameters are ignored by realsense2dual)
+
+3. Execute the following command.
+```
+./Examples/RealSense2/realsense2dual vocabulary_file_and_path mapper_settings_file_and_path tracker1_settings_file_and_path tracker2_settings_file_and_path
+```
+
+# 5. Monocular Examples
 
 ## TUM Dataset
 
@@ -125,7 +180,7 @@ This will create **libORB_SLAM2.so**  at *lib* folder and the executables **mono
 ./Examples/Monocular/mono_euroc Vocabulary/ORBvoc.txt Examples/Monocular/EuRoC.yaml PATH_TO_SEQUENCE/cam0/data Examples/Monocular/EuRoC_TimeStamps/SEQUENCE.txt 
 ```
 
-# 5. Stereo Examples
+# 6. Stereo Examples
 
 ## KITTI Dataset
 
@@ -148,7 +203,20 @@ This will create **libORB_SLAM2.so**  at *lib* folder and the executables **mono
 ./Examples/Stereo/stereo_euroc Vocabulary/ORBvoc.txt Examples/Stereo/EuRoC.yaml PATH_TO_SEQUENCE/cam0/data PATH_TO_SEQUENCE/cam1/data Examples/Stereo/EuRoC_TimeStamps/SEQUENCE.txt
 ```
 
-# 6. RGB-D Example
+## Intel RealSense 2
+
+1. Refer to Intel RealSense [website](https://realsense.intel.com/) to acquire cameras and download the SDK.
+
+2. Copy or modify the tracker settings files. Example files are at:
+   * `Examples/RealSense2/realsense2-1.yaml` (Viewer Parameters are required)
+   * `Examples/RealSense2/realsense2-2.yaml` (Viewer Parameters are required)
+
+3. Execute the following command.
+```
+./Examples/RealSense2/realsense2 vocabulary_file_and_path settings_file_and_path
+```
+
+# 7. RGB-D Example
 
 ## TUM Dataset
 
@@ -166,13 +234,13 @@ This will create **libORB_SLAM2.so**  at *lib* folder and the executables **mono
   ./Examples/RGB-D/rgbd_tum Vocabulary/ORBvoc.txt Examples/RGB-D/TUMX.yaml PATH_TO_SEQUENCE_FOLDER ASSOCIATIONS_FILE
   ```
 
-# 7. ROS Examples
+# 8. ROS Examples
 
 ### Building the nodes for mono, monoAR, stereo and RGB-D
-1. Add the path including *Examples/ROS/ORB_SLAM2* to the ROS_PACKAGE_PATH environment variable. Open .bashrc file and add at the end the following line. Replace PATH by the folder where you cloned ORB_SLAM2:
+1. Add the path including *Examples/ROS/ORB_SLAM2* to the ROS_PACKAGE_PATH environment variable. Open .bashrc file and add at the end the following line. Replace PATH by the folder where you cloned ORB_SLAM2_TEAM:
 
   ```
-  export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:PATH/ORB_SLAM2/Examples/ROS
+  export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:PATH/ORB_SLAM2_TEAM/Examples/ROS
   ```
   
 2. Execute `build_ros.sh` script:
@@ -183,10 +251,10 @@ This will create **libORB_SLAM2.so**  at *lib* folder and the executables **mono
   ```
   
 ### Running Monocular Node
-For a monocular input from topic `/camera/image_raw` run node ORB_SLAM2/Mono. You will need to provide the vocabulary file and a settings file. See the monocular examples above.
+For a monocular input from topic `/camera/image_raw` run node ORB_SLAM2_TEAM/Mono. You will need to provide the vocabulary file and a settings file. See the monocular examples above.
 
   ```
-  rosrun ORB_SLAM2 Mono PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE
+  rosrun ORB_SLAM2_TEAM Mono PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE
   ```
   
 ### Running Monocular Augmented Reality Demo
@@ -194,14 +262,14 @@ This is a demo of augmented reality where you can use an interface to insert vir
 The node reads images from topic `/camera/image_raw`.
 
   ```
-  rosrun ORB_SLAM2 MonoAR PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE
+  rosrun ORB_SLAM2_TEAM MonoAR PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE
   ```
   
 ### Running Stereo Node
-For a stereo input from topic `/camera/left/image_raw` and `/camera/right/image_raw` run node ORB_SLAM2/Stereo. You will need to provide the vocabulary file and a settings file. If you **provide rectification matrices** (see Examples/Stereo/EuRoC.yaml example), the node will recitify the images online, **otherwise images must be pre-rectified**.
+For a stereo input from topic `/camera/left/image_raw` and `/camera/right/image_raw` run node ORB_SLAM2_TEAM/Stereo. You will need to provide the vocabulary file and a settings file. If you **provide rectification matrices** (see Examples/Stereo/EuRoC.yaml example), the node will recitify the images online, **otherwise images must be pre-rectified**.
 
   ```
-  rosrun ORB_SLAM2 Stereo PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE ONLINE_RECTIFICATION
+  rosrun ORB_SLAM2_TEAM Stereo PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE ONLINE_RECTIFICATION
   ```
   
 **Example**: Download a rosbag (e.g. V1_01_easy.bag) from the EuRoC dataset (http://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets). Open 3 tabs on the terminal and run the following command at each tab:
@@ -210,31 +278,31 @@ For a stereo input from topic `/camera/left/image_raw` and `/camera/right/image_
   ```
   
   ```
-  rosrun ORB_SLAM2 Stereo Vocabulary/ORBvoc.txt Examples/Stereo/EuRoC.yaml true
+  rosrun ORB_SLAM2_TEAM Stereo Vocabulary/ORBvoc.txt Examples/Stereo/EuRoC.yaml true
   ```
   
   ```
   rosbag play --pause V1_01_easy.bag /cam0/image_raw:=/camera/left/image_raw /cam1/image_raw:=/camera/right/image_raw
   ```
   
-Once ORB-SLAM2 has loaded the vocabulary, press space in the rosbag tab. Enjoy!. Note: a powerful computer is required to run the most exigent sequences of this dataset.
+Once ORB-SLAM2-TEAM has loaded the vocabulary, press space in the rosbag tab. Enjoy!. Note: a powerful computer is required to run the most exigent sequences of this dataset.
 
 ### Running RGB_D Node
 For an RGB-D input from topics `/camera/rgb/image_raw` and `/camera/depth_registered/image_raw`, run node ORB_SLAM2/RGBD. You will need to provide the vocabulary file and a settings file. See the RGB-D example above.
 
   ```
-  rosrun ORB_SLAM2 RGBD PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE
+  rosrun ORB_SLAM2_TEAM RGBD PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE
   ```
   
-# 8. Processing your own sequences
-You will need to create a settings file with the calibration of your camera. See the settings file provided for the TUM and KITTI datasets for monocular, stereo and RGB-D cameras. We use the calibration model of OpenCV. See the examples to learn how to create a program that makes use of the ORB-SLAM2 library and how to pass images to the SLAM system. Stereo input must be synchronized and rectified. RGB-D input must be synchronized and depth registered.
+# 9. Processing your own sequences
+You will need to create a settings file with the calibration of your camera. See the settings file provided for the TUM and KITTI datasets for monocular, stereo and RGB-D cameras. We use the calibration model of OpenCV. See the examples to learn how to create a program that makes use of the ORB-SLAM2-TEAM library and how to pass images to the SLAM system. Stereo input must be synchronized and rectified. RGB-D input must be synchronized and depth registered.
 
-# 9. SLAM and Localization Modes
-You can change between the *SLAM* and *Localization mode* using the GUI of the map viewer.
+# 10. SLAM and Localization Modes
+You can change between *SLAM Mode* and *Localization Mode* for each camera using the GUI of the map viewer. Each camera runs in its own thread. The system runs Mapping and Loop Closing threads in the background.
 
 ### SLAM Mode
-This is the default mode. The system runs in parallal three threads: Tracking, Local Mapping and Loop Closing. The system localizes the camera, builds new map and tries to close loops.
+This is the default mode for each camera. The system localizes the camera and extends the map.
 
 ### Localization Mode
-This mode can be used when you have a good map of your working area. In this mode the Local Mapping and Loop Closing are deactivated. The system localizes the camera in the map (which is no longer updated), using relocalization if needed. 
+This mode can be used when you have a good map of your working area. The system localizes the camera in the map, using relocalization if needed. (The map is still updated by other cameras running in SLAM mode.) Visual odometry was removed during implementation (of cooperative SLAM) and will eventually be added again.
 

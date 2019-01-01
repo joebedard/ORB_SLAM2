@@ -1,7 +1,7 @@
 ##List of Known Dependencies
-###ORB-SLAM2 version 1.0
+###ORB-SLAM2-TEAM version 1.0
 
-In this document we list all the pieces of code included  by ORB-SLAM2 and linked libraries which are not property of the authors of ORB-SLAM2.
+In this document we list all the pieces of code included by ORB-SLAM2-TEAM and linked libraries which are not property of the authors of ORB-SLAM2-TEAM or ORB-SLAM2.
 
 
 #####Code in **src** and **include** folders
@@ -35,6 +35,10 @@ BSD license.
 
 * **Eigen3**.
 For versions greater than 3.1.1 is MPL2, earlier versions are LGPLv3.
+
+* **ZeroMQ**.
+libzmq - LGPLv3 license.
+cppzmq - mostly unrestricted
 
 * **ROS (Optional, only if you build Examples/ROS)**.
 BSD license. In the manifest.xml the only declared package dependencies are roscpp, tf, sensor_msgs, image_transport, cv_bridge, which are all BSD licensed.
