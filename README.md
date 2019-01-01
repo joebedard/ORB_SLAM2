@@ -9,6 +9,10 @@
 
 ORB-SLAM2-TEAM is a real-time Cooperative SLAM library for **Monocular**, **Stereo** and **RGB-D** cameras that computes the camera trajectory and a sparse 3D reconstruction (in the stereo and RGB-D case with true scale). It is based on [ORB-SLAM2](https://github.com/raulmur/ORB_SLAM2/). It is able to detect loops and relocalize the camera in real time. We provide examples to run the SLAM system in the [KITTI dataset](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) as stereo or monocular, in the [TUM dataset](http://vision.in.tum.de/data/datasets/rgbd-dataset) as cooperative, RGB-D or monocular, and in the [EuRoC dataset](http://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets) as cooperative, stereo or monocular. Additionally, there are single and cooperative examples for the [Intel RealSense](https://realsense.intel.com/) depth camera. We also provide a ROS node to process live monocular, stereo or RGB-D streams. **The library can be compiled without ROS and Intel RealSense SDK**. ORB-SLAM2-TEAM provides a GUI to change between a *SLAM Mode* and *Localization Mode*, see section 10 of this document.
 
+<a href="https://www.youtube.com/embed/W6xuQcryVt4" target="_blank"><img src="http://img.youtube.com/vi/W6xuQcryVt4/1.jpg" 
+alt="ORB-SLAM2-TEAM" width="240" height="180" border="10" /></a>
+<a href="https://www.youtube.com/embed/WcI2K0u8gPw" target="_blank"><img src="http://img.youtube.com/vi/WcI2K0u8gPw/1.jpg" 
+alt="ORB-SLAM2-TEAM" width="240" height="180" border="10" /></a>
 <a href="https://www.youtube.com/embed/ufvPS5wJAx0" target="_blank"><img src="http://img.youtube.com/vi/ufvPS5wJAx0/0.jpg" 
 alt="ORB-SLAM2" width="240" height="180" border="10" /></a>
 <a href="https://www.youtube.com/embed/T-9PYCKhDLM" target="_blank"><img src="http://img.youtube.com/vi/T-9PYCKhDLM/0.jpg" 
