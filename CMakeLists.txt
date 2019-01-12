@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1.0 FATAL_ERROR)
-project(ORB_SLAM2 CXX)
+project(ORB_SLAM2_TEAM CXX)
 
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release)
@@ -211,9 +211,9 @@ Examples/RealSense2/realsense2client.cc)
 target_include_directories(realsense2client PUBLIC ${RealSense2_INCLUDE_DIRS})
 target_link_libraries(realsense2client ${PROJECT_NAME} ${RealSense2_LIBS})
 
-add_executable(ORB_SLAM2_server
+add_executable(server
 src-server/server.cc)
-target_link_libraries(ORB_SLAM2_server ${PROJECT_NAME})
+target_link_libraries(server ${PROJECT_NAME})
 
 
 # build tools
