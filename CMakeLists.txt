@@ -67,6 +67,7 @@ add_subdirectory("Thirdparty/g2o" ${PROJECT_BINARY_DIR}/Thirdparty/g2o)
 
 add_library(${PROJECT_NAME} STATIC
 include/Converter.h
+include/Duration.h
 include/Enums.h
 include/Frame.h
 include/FrameCalibration.h
@@ -204,6 +205,7 @@ Examples/RealSense2/realsense2dual.cc)
 target_include_directories(realsense2dual PUBLIC ${RealSense2_INCLUDE_DIRS})
 target_link_libraries(realsense2dual ${PROJECT_NAME} ${RealSense2_LIBS})
 
+
 # experimental client and server
 
 add_executable(realsense2client
@@ -221,3 +223,19 @@ target_link_libraries(server ${PROJECT_NAME})
 add_executable(bin_vocabulary
 tools/bin_vocabulary.cc)
 target_link_libraries(bin_vocabulary ${PROJECT_NAME})
+
+
+# install target
+
+install(TARGETS ORB_SLAM2_TEAM rgbd_tum rgbd_tum_team stereo_kitti stereo_euroc stereo_euroc_team mono_tum mono_kitti mono_euroc realsense2 realsense2dual
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib)
+install(
+    DIRECTORY ${CMAKE_SOURCE_DIR}/include/
+    DESTINATION include
+    FILES_MATCHING PATTERN "*.h*")
+install(
+    DIRECTORY ${CMAKE_SOURCE_DIR}/Vocabulary/
+    DESTINATION vocabulary
+    FILES_MATCHING PATTERN "*.bin")
