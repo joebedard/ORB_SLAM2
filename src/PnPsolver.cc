@@ -56,7 +56,7 @@
 
 #include <vector>
 #include <cmath>
-#include "Thirdparty/DBoW2/DUtils/Random.h"
+#include "DUtils/Random.h"
 #include <algorithm>
 
 using namespace std;

@@ -28,7 +28,7 @@
 #include "MapPoint.h"
 #include "KeyFrame.h"
 #include "SyncPrint.h"
-#include<pangolin/pangolin.h>
+#include <pangolin/pangolin.h>
 
 #include<mutex>
 

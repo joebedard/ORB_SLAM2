@@ -24,20 +24,26 @@ set(SRCS_DUTILS
   DUtils/Random.cpp
   DUtils/Timestamp.cpp)
 
-find_package(OpenCV 3.0 QUIET)
-if(NOT OpenCV_FOUND)
-   find_package(OpenCV 2.4.3 QUIET)
-   if(NOT OpenCV_FOUND)
-      message(FATAL_ERROR "OpenCV > 2.4.3 not found.")
-   endif()
-endif()
-
-include_directories(${OpenCV_INCLUDE_DIRS})
-
 IF(WIN32)
    add_library(DBoW2 STATIC ${SRCS_DBOW2} ${SRCS_DUTILS})
 ELSE(WIN32)
    add_library(DBoW2 SHARED ${SRCS_DBOW2} ${SRCS_DUTILS})
 ENDIF(WIN32)
 
+target_include_directories(DBoW2 PRIVATE ${OpenCV_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR})
+
 target_link_libraries(DBoW2 ${OpenCV_LIBS})
+
+install(TARGETS DBoW2 EXPORT DBoW2_TARGETS
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        INCLUDES DESTINATION include) #/DBoW2)
+install(
+    DIRECTORY DBoW2
+    DESTINATION include
+    FILES_MATCHING PATTERN "*.h*")
+install(
+    DIRECTORY DUtils
+    DESTINATION include
+    FILES_MATCHING PATTERN "*.h*")

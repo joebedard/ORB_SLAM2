@@ -1,0 +1,3 @@
+include("${CMAKE_CURRENT_LIST_DIR}/OrbSlam2TeamTargets.cmake")
+get_target_property(OrbSlam2Team_INCLUDE_DIRS OrbSlam2Team::ORB_SLAM2_TEAM INTERFACE_INCLUDE_DIRECTORIES)
+get_target_property(OrbSlam2Team_LIBRARIES OrbSlam2Team::ORB_SLAM2_TEAM INTERFACE_LINK_LIBRARIES)

@@ -22,7 +22,7 @@
 
 #include "Initializer.h"
 
-#include "Thirdparty/DBoW2/DUtils/Random.h"
+#include "DUtils/Random.h"
 
 #include<thread>
 

@@ -26,7 +26,7 @@
 #include <vector>
 #include <cmath>
 
-#include "Thirdparty/DBoW2/DUtils/Random.h"
+#include "DUtils/Random.h"
 
 namespace ORB_SLAM2_TEAM
 {
