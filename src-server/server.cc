@@ -32,10 +32,10 @@
 #include <Viewer.h>
 #include <Serializer.h>
 
-using namespace ORB_SLAM2;
+using namespace ORB_SLAM2_TEAM;
 
 /***
-   ORB_SLAM2 Server with shared map for multiple tracking clients.
+   ORB_SLAM2_TEAM Server with shared map for multiple tracking clients.
 ***/
 
 // logging variables

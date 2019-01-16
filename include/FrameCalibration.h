@@ -24,7 +24,7 @@
 
 #include <opencv2/opencv.hpp>
 
-namespace ORB_SLAM2
+namespace ORB_SLAM2_TEAM
 {
 #define FRAME_GRID_ROWS 48
 #define FRAME_GRID_COLS 64
@@ -126,6 +126,6 @@ namespace ORB_SLAM2
 
    };
 
-} // namespace ORB_SLAM2
+} // namespace ORB_SLAM2_TEAM
 
 #endif // FRAMECALIBRATION_H

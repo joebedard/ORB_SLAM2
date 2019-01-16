@@ -26,7 +26,7 @@
 
 #include<thread>
 
-namespace ORB_SLAM2
+namespace ORB_SLAM2_TEAM
 {
 
    Initializer::Initializer(const Frame &ReferenceFrame, float sigma, int iterations)

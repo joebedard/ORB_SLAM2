@@ -23,7 +23,7 @@
 #include "Sleep.h"
 #include <exception>
 
-namespace ORB_SLAM2
+namespace ORB_SLAM2_TEAM
 {
 
    MapperServer::MapperServer(ORBVocabulary & vocab, const bool bMonocular, const unsigned int maxTrackers) :
@@ -51,11 +51,11 @@ namespace ORB_SLAM2
 
       //Initialize and start the Local Mapping thread
       mLocalMapper.AddObserver(&mLocalMappingObserver);
-      mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run, &mLocalMapper);
+      mptLocalMapping = new thread(&ORB_SLAM2_TEAM::LocalMapping::Run, &mLocalMapper);
 
       //Initialize and start the Loop Closing thread
       mLoopCloser.AddObserver(&mLoopClosingObserver);
-      mptLoopClosing = new thread(&ORB_SLAM2::LoopClosing::Run, &mLoopCloser);
+      mptLoopClosing = new thread(&ORB_SLAM2_TEAM::LoopClosing::Run, &mLoopCloser);
 
       mLocalMapper.SetLoopCloser(&mLoopCloser);
       mLoopCloser.SetLocalMapper(&mLocalMapper);

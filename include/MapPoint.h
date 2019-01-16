@@ -33,7 +33,7 @@
 #include "Frame.h"
 #include "Map.h"
 
-namespace ORB_SLAM2
+namespace ORB_SLAM2_TEAM
 {
    class KeyFrame;
    class Map;

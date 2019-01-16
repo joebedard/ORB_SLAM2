@@ -38,7 +38,7 @@
 
 using namespace std;
 
-namespace ORB_SLAM2
+namespace ORB_SLAM2_TEAM
 {
 
    Tracking::Tracking(
@@ -1756,4 +1756,4 @@ namespace ORB_SLAM2
       Print("end HandleMapReset");
    }
 
-} //namespace ORB_SLAM2
+} //namespace ORB_SLAM2_TEAM

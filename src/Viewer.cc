@@ -27,7 +27,7 @@
 
 #include <mutex>
 
-namespace ORB_SLAM2
+namespace ORB_SLAM2_TEAM
 {
 
    Viewer::Viewer(FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, Mapper & mapper, bool embeddedFrameDrawer, bool embeddedVertical) :

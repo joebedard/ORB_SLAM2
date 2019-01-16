@@ -26,7 +26,7 @@
 #include "Converter.h"
 #include <pangolin/pangolin.h>
 
-namespace ORB_SLAM2
+namespace ORB_SLAM2_TEAM
 {
 
    System::System(
@@ -226,7 +226,7 @@ namespace ORB_SLAM2
 
       // For each frame we have a reference keyframe (lRit), the timestamp (lT) and a flag
       // which is true when tracking failed (lbL).
-      list<ORB_SLAM2::KeyFrame*>::iterator lRit = mpTracker->mlpReferenceKFs.begin();
+      list<ORB_SLAM2_TEAM::KeyFrame*>::iterator lRit = mpTracker->mlpReferenceKFs.begin();
       list<double>::iterator lT = mpTracker->mlFrameTimes.begin();
       list<bool>::iterator lbL = mpTracker->mlbLost.begin();
       for (list<cv::Mat>::iterator lit = mpTracker->mlRelativeFramePoses.begin(),
@@ -327,11 +327,11 @@ namespace ORB_SLAM2
 
       // For each frame we have a reference keyframe (lRit), the timestamp (lT) and a flag
       // which is true when tracking failed (lbL).
-      list<ORB_SLAM2::KeyFrame*>::iterator lRit = mpTracker->mlpReferenceKFs.begin();
+      list<ORB_SLAM2_TEAM::KeyFrame*>::iterator lRit = mpTracker->mlpReferenceKFs.begin();
       list<double>::iterator lT = mpTracker->mlFrameTimes.begin();
       for (list<cv::Mat>::iterator lit = mpTracker->mlRelativeFramePoses.begin(), lend = mpTracker->mlRelativeFramePoses.end();lit != lend;lit++, lRit++, lT++)
       {
-         ORB_SLAM2::KeyFrame* pKF = *lRit;
+         ORB_SLAM2_TEAM::KeyFrame* pKF = *lRit;
 
          cv::Mat Trw = cv::Mat::eye(4, 4, CV_32F);
 

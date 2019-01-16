@@ -61,7 +61,7 @@
 
 using namespace std;
 
-namespace ORB_SLAM2
+namespace ORB_SLAM2_TEAM
 {
 
 

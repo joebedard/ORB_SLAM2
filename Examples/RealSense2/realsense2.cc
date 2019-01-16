@@ -26,7 +26,7 @@
 #include <System.h>
 #include <Enums.h>
 
-using namespace ORB_SLAM2;
+using namespace ORB_SLAM2_TEAM;
 
 char * gVocabFilename = NULL;
 char * gSettingsFilename = NULL;

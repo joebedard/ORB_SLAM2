@@ -32,7 +32,7 @@
 #include <Mapper.h>
 #include <SyncPrint.h>
 
-using namespace ORB_SLAM2;
+using namespace ORB_SLAM2_TEAM;
 
 // logging variables
 SyncPrint gOutMain("main: ");

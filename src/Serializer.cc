@@ -21,7 +21,7 @@
 #include "Serializer.h"
 #include <sstream>
 
-namespace ORB_SLAM2
+namespace ORB_SLAM2_TEAM
 {
 
    using namespace std;

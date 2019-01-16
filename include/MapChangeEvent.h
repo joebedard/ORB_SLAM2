@@ -25,7 +25,7 @@
 #include "MapPoint.h"
 #include "KeyFrame.h"
 
-namespace ORB_SLAM2
+namespace ORB_SLAM2_TEAM
 {
 
    // collects all map changes into a composite event

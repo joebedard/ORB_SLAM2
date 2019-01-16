@@ -25,7 +25,7 @@
 #include "Sleep.h"
 #include "Serializer.h"
 
-namespace ORB_SLAM2
+namespace ORB_SLAM2_TEAM
 {
 
    MapperClient::MapperClient(cv::FileStorage & settings, ORBVocabulary & vocab, const bool bMonocular) 
@@ -83,7 +83,7 @@ namespace ORB_SLAM2
       mSocketSub.setsockopt<unsigned int>(ZMQ_SUBSCRIBE, -1); // -1 is for broadcast messages
 
       //Initialize and start the Subscriber thread
-      mThreadSub = new thread(&ORB_SLAM2::MapperClient::RunSubscriber, this);
+      mThreadSub = new thread(&ORB_SLAM2_TEAM::MapperClient::RunSubscriber, this);
 
       GreetServer();
    }

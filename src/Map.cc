@@ -24,11 +24,11 @@
 
 #include<mutex>
 
-namespace ORB_SLAM2
+namespace ORB_SLAM2_TEAM
 {
 
    Map::Map()
-      : mnMaxKFid(0), mnBigChangeIdx(0), SyncPrint("Map: ")
+      : mnMaxKFid(0), mnBigChangeIdx(0), SyncPrint("Map: ", false)
    {
 
    }

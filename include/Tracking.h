@@ -43,7 +43,7 @@
 
 #include <mutex>
 
-namespace ORB_SLAM2
+namespace ORB_SLAM2_TEAM
 {
 
    class Viewer;

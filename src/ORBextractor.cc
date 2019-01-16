@@ -66,7 +66,7 @@
 using namespace cv;
 using namespace std;
 
-namespace ORB_SLAM2
+namespace ORB_SLAM2_TEAM
 {
 
    const int PATCH_SIZE = 31;

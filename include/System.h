@@ -38,7 +38,7 @@
 #include "Enums.h"
 #include "SyncPrint.h"
 
-namespace ORB_SLAM2
+namespace ORB_SLAM2_TEAM
 {
 
    class System : SyncPrint

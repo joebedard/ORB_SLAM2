@@ -34,7 +34,7 @@
 #include "MapChangeEvent.h"
 #include "SyncPrint.h"
 
-namespace ORB_SLAM2
+namespace ORB_SLAM2_TEAM
 {
 
    class ORBmatcher : protected SyncPrint
