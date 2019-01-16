@@ -229,6 +229,8 @@ namespace ORB_SLAM2
    {
       Print("begin Update");
       unique_lock<mutex> lock(mMutex);
+      if (imGray.size().height != GetImageHeight() || imGray.size().width != GetImageWidth())
+         throw exception("FrameDrawer::Update: imGray dimensions do not match Camera dimensions in settings file");
       imGray.copyTo(mIm);
       mvCurrentKeys = currentKeys;
       int N = currentKeys.size();
