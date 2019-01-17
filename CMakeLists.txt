@@ -60,7 +60,7 @@ find_package(RealSense2)
 
 # ZeroMQ cpp bindings
 # https://github.com/zeromq/cppzmq
-find_package(cppzmq REQUIRED)
+find_package(cppzmq 3.4 REQUIRED)
 
 add_subdirectory("Thirdparty/DBoW2" ${PROJECT_BINARY_DIR}/Thirdparty/DBoW2)
 add_subdirectory("Thirdparty/g2o" ${PROJECT_BINARY_DIR}/Thirdparty/g2o)
@@ -143,21 +143,21 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 IF(WIN32)
    target_link_libraries(${PROJECT_NAME}
-      ${OpenCV_LIBS}
-      ${Pangolin_LIBRARIES}
-      $<INSTALL_INTERFACE:DBoW2.lib> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/Thirdparty/DBoW2/$(Configuration)/DBoW2.lib>
-      $<INSTALL_INTERFACE:g2o.lib> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/Thirdparty/g2o/$(Configuration)/g2o.lib>
-      ws2_32 #ZeroMQ dependency
-      Iphlpapi #ZeroMQ dependency
-      cppzmq-static
+      $<BUILD_INTERFACE:${OpenCV_LIBS}>
+      $<BUILD_INTERFACE:${Pangolin_LIBRARIES}>
+      $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/DBoW2.lib> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/Thirdparty/DBoW2/$(Configuration)/DBoW2.lib>
+      $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/g2o.lib> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/Thirdparty/g2o/$(Configuration)/g2o.lib>
+      $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/ORB_SLAM2_TEAM.lib>
+      $<BUILD_INTERFACE:cppzmq-static>
    )
 ELSE(WIN32)
    target_link_libraries(${PROJECT_NAME}
-      ${OpenCV_LIBS}
-      ${Pangolin_LIBRARIES}
-      ${PROJECT_BINARY_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
-      ${PROJECT_BINARY_DIR}/Thirdparty/g2o/lib/libg2o.so
-      cppzmq-static
+      $<BUILD_INTERFACE:${OpenCV_LIBS}>
+      $<BUILD_INTERFACE:${Pangolin_LIBRARIES}>
+      $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/DBoW2.lib> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/Thirdparty/DBoW2/$(Configuration)/DBoW2.lib>
+      $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/g2o.lib> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/Thirdparty/g2o/$(Configuration)/g2o.lib>
+      $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/ORB_SLAM2_TEAM.lib>
+      $<BUILD_INTERFACE:cppzmq-static>
    )
 ENDIF(WIN32)
 
