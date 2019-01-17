@@ -652,13 +652,17 @@ int main(int argc, char * argv[]) try
 
    return EXIT_SUCCESS;
 }
-catch (const std::exception& e)
+catch (const std::exception & e)
 {
-   gOutMain.Print(string("exception: ") + e.what());
+   string s = string("exception: ") + e.what();
+   gOutMain.Print(s);
+   cerr << "main: " << s << endl;
    return EXIT_FAILURE;
 }
 catch (...)
 {
-   gOutMain.Print("an exception was not caught in main");
+   const char * s = "an exception was not caught in main";
+   gOutMain.Print(s);
+   cerr << "main: " << s << endl;
    return EXIT_FAILURE;
 }
