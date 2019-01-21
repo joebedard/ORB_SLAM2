@@ -478,15 +478,18 @@ namespace ORB_SLAM2_TEAM
             else
                MonocularInitialization();
 
-            mpFrameDrawer->Update(
-               mbOnlyTracking, 
-               mState, 
-               imGray, 
-               mInitialFrame.mvKeys,
-               mvIniMatches,
-               mCurrentFrame.mvKeys,
-               mCurrentFrame.mvpMapPoints,
-               mCurrentFrame.mvbOutlier);
+            if (mpFrameDrawer)
+            {
+               mpFrameDrawer->Update(
+                  mbOnlyTracking, 
+                  mState, 
+                  imGray, 
+                  mInitialFrame.mvKeys,
+                  mvIniMatches,
+                  mCurrentFrame.mvKeys,
+                  mCurrentFrame.mvpMapPoints,
+                  mCurrentFrame.mvbOutlier);
+            }
 
             if (!mMapper.GetInitialized())
             {
@@ -543,16 +546,19 @@ namespace ORB_SLAM2_TEAM
          else
             mState = TRACKING_LOST;
 
-         // Update drawer
-         mpFrameDrawer->Update(
-            mbOnlyTracking, 
-            mState, 
-            imGray, 
-            mInitialFrame.mvKeys,
-            mvIniMatches,
-            mCurrentFrame.mvKeys,
-            mCurrentFrame.mvpMapPoints,
-            mCurrentFrame.mvbOutlier);
+         if (mpFrameDrawer)
+         {
+            // Update drawer
+            mpFrameDrawer->Update(
+               mbOnlyTracking, 
+               mState, 
+               imGray, 
+               mInitialFrame.mvKeys,
+               mvIniMatches,
+               mCurrentFrame.mvKeys,
+               mCurrentFrame.mvpMapPoints,
+               mCurrentFrame.mvbOutlier);
+         }
 
          // If tracking was good, check if we insert a keyframe
          if (bOK)
