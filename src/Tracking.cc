@@ -70,6 +70,7 @@ namespace ORB_SLAM2_TEAM
       mMapPointIdSpan(0),
       mMapperObserver(this),
       pivotCal(4, 4, CV_32F),
+      mBaseline(cv::Mat::eye(4, 4, CV_32F)),
       quantityRelocalizations(mQuantityRelocalizations),
       mRectify(false)
    {
@@ -140,6 +141,8 @@ namespace ORB_SLAM2_TEAM
          {
             bf = bl * fx;
          }
+
+         mBaseline.at<float>(0, 3) = bl;
       }
 
       float thDepth = bl * (float)fSettings["ThDepth"];
@@ -274,10 +277,29 @@ namespace ORB_SLAM2_TEAM
             cv::initUndistortRectifyMap(K_l, D_l, R_l, K, cv::Size(leftWidth, leftHeight), CV_32F, mRectMapLeft1, mRectMapLeft2);
             cv::initUndistortRectifyMap(K_r, D_r, R_r, K, cv::Size(rightWidth, rightHeight), CV_32F, mRectMapRight1, mRectMapRight2);
             mRectify = true;
+
+            // calculate baseline transformation
+            cv::Mat R_l_inv = R_l.inv();
+            cv::Mat RT_l_inv = cv::Mat::eye(4, 4, CV_32F);
+            R_l_inv.copyTo(RT_l_inv(cv::Range(0,3), cv::Range(0,3)));
+            cv::Mat RT_r = cv::Mat::eye(4, 4, CV_32F);
+            R_r.copyTo(RT_r(cv::Range(0,3), cv::Range(0,3)));
+            mBaseline = RT_l_inv * mBaseline * RT_r;
          }
       }
 
+      if (sensor != SensorType::MONOCULAR)
+      {
+         ss << endl << "Baseline Transformation:" << endl;
+         ss << mBaseline << endl;
+      }
+
       Print(ss);
+   }
+
+   cv::Mat Tracking::GetBaseline()
+   {
+      return mBaseline.clone();
    }
 
    /*

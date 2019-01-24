@@ -64,6 +64,9 @@ namespace ORB_SLAM2_TEAM
 
       ~Tracking();
 
+      // transformation from left camera to right camera
+      cv::Mat GetBaseline();
+
       // Preprocess the input and call Track(). Extract features and performs stereo matching.
       cv::Mat GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRectRight, const double &timestamp);
       cv::Mat GrabImageRGBD(const cv::Mat &imRGB, const cv::Mat &imD, const double &timestamp);
@@ -185,6 +188,8 @@ namespace ORB_SLAM2_TEAM
       FrameCalibration mFC;
 
       cv::Mat pivotCal;
+
+      cv::Mat mBaseline;
 
       unsigned int mQuantityRelocalizations;
 
