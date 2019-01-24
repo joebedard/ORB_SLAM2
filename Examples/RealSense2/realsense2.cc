@@ -3,6 +3,8 @@
 *
 * Copyright (C) 2018 Joe Bedard <mr dot joe dot bedard at gmail dot com>
 * For more information see <https://github.com/joebedard/ORB_SLAM2_TEAM>
+* Copyright (C) 2018-2019 Joe Bedard <mr dot joe dot bedard at gmail dot com>
+* For more information see <https://github.com/joebedard/ORB_SLAM2_TEAM>
 *
 * ORB-SLAM2-TEAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,13 +20,13 @@
 * along with ORB-SLAM2-TEAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #include <chrono>
 #include <librealsense2/rs.hpp>
 #include <opencv2/core/core.hpp>
 
 #include <System.h>
 #include <Enums.h>
+#include <Duration.h>
 
 using namespace ORB_SLAM2_TEAM;
 
@@ -126,24 +128,14 @@ int main(int argc, char * argv[]) try
       Mat irMat1(Size(width, height), CV_8UC1, (void*)irFrame1.get_data(), Mat::AUTO_STEP);
       Mat irMat2(Size(width, height), CV_8UC1, (void*)irFrame2.get_data(), Mat::AUTO_STEP);
 
-#ifdef COMPILEDWITHC11
-      std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-#else
-      std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
-#endif
+      time_type t1 = GetNow();
 
       double tframe = std::chrono::duration_cast<std::chrono::duration<double>>(t1 - tStart).count();
 
       // Pass the images to the SLAM system
       SLAM.TrackStereo(irMat1, irMat2, tframe);
 
-#ifdef COMPILEDWITHC11
-      std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-#else
-      std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
-#endif
-
-      double ttrack = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
+      double ttrack = Duration(GetNow(), t1);
 
       vTimesTrack.push_back(ttrack);
    }

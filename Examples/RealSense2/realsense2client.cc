@@ -31,6 +31,7 @@
 #include <MapDrawer.h>
 #include <Mapper.h>
 #include <SyncPrint.h>
+#include <Duration.h>
 
 using namespace ORB_SLAM2_TEAM;
 
@@ -115,7 +116,7 @@ void RunTracker(void * param) try
    // disable the projected IR pattern when using stereo IR images
    sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 0);
 
-   std::chrono::steady_clock::time_point tStart = std::chrono::steady_clock::now();
+   time_type tStart = GetNow();
 
    gOutTrak.Print("while (gShouldRun)");
    while (gShouldRun)
@@ -131,16 +132,10 @@ void RunTracker(void * param) try
       cv::Mat irMat1(cv::Size(width, height), CV_8UC1, (void*)irFrame1.get_data(), cv::Mat::AUTO_STEP);
       cv::Mat irMat2(cv::Size(width, height), CV_8UC1, (void*)irFrame2.get_data(), cv::Mat::AUTO_STEP);
 
-      std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-
-      double tframe = std::chrono::duration_cast<std::chrono::duration<double>>(t1 - tStart).count();
-
+      time_type t1 = GetNow();
+      double tframe = Duration(t1, tStart);
       threadParam->tracker->GrabImageStereo(irMat1, irMat2, tframe);
-
-      std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-
-      double ttrack = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
-
+      double ttrack = Duration(GetNow(), t1);
       threadParam->timesTrack.push_back(ttrack);
    }
 

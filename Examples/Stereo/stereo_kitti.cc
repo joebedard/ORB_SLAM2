@@ -3,6 +3,8 @@
 *
 * Copyright (C) 2014-2016 Raúl Mur-Artal <raulmur at unizar dot es> (University of Zaragoza)
 * For more information see <https://github.com/raulmur/ORB_SLAM2>
+* Copyright (C) 2018-2019 Joe Bedard <mr dot joe dot bedard at gmail dot com>
+* For more information see <https://github.com/joebedard/ORB_SLAM2_TEAM>
 *
 * ORB-SLAM2-TEAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,17 +20,17 @@
 * along with ORB-SLAM2-TEAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <iostream>
+#include <algorithm>
+#include <fstream>
+#include <iomanip>
+#include <chrono>
 
-#include<iostream>
-#include<algorithm>
-#include<fstream>
-#include<iomanip>
-#include<chrono>
+#include <opencv2/core/core.hpp>
 
-#include<opencv2/core/core.hpp>
-
-#include<System.h>
-#include "Sleep.h"
+#include <System.h>
+#include <Sleep.h>
+#include <Duration.h>
 
 using namespace std;
 
@@ -64,7 +66,7 @@ int main(int argc, char **argv) try
 
     // Main loop
     cv::Mat imLeft, imRight;
-    for(int ni=0; ni<nImages; ni++)
+    for(int ni=0; ni<nImages && !SLAM.IsQuitting(); ni++)
     {
         // Read left and right images from file
         imLeft = cv::imread(vstrImageLeft[ni],CV_LOAD_IMAGE_UNCHANGED);
@@ -78,22 +80,12 @@ int main(int argc, char **argv) try
             return 1;
         }
 
-#ifdef COMPILEDWITHC11
-        std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-#else
-        std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
-#endif
+        time_type t1 = GetNow();
 
         // Pass the images to the SLAM system
-        SLAM.TrackStereo(imLeft,imRight,tframe);
+        SLAM.TrackStereo(imLeft, imRight, tframe);
 
-#ifdef COMPILEDWITHC11
-        std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-#else
-        std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
-#endif
-
-        double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+        double ttrack = Duration(GetNow(), t1);
 
         vTimesTrack[ni]=ttrack;
 
