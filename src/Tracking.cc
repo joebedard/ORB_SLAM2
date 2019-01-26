@@ -404,13 +404,14 @@ namespace ORB_SLAM2_TEAM
          cv::remap(imGray, imLeftRect, mRectMapLeft1, mRectMapLeft2, cv::INTER_LINEAR);
          cv::remap(imGrayRight, imRightRect, mRectMapRight1, mRectMapRight2, cv::INTER_LINEAR);
          mCurrentFrame = Frame(imLeftRect, imRightRect, timestamp, mpORBextractorLeft, mpORBextractorRight, &mFC);
+         Track(imLeftRect);
       }
       else
       {
          mCurrentFrame = Frame(imGray, imGrayRight, timestamp, mpORBextractorLeft, mpORBextractorRight, &mFC);
+         Track(imGray);
       }
 
-      Track(imGray);
 
       return mCurrentFrame.mTcw.clone();
    }
