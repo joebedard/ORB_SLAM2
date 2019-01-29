@@ -89,8 +89,8 @@ namespace ORB_SLAM2_TEAM
       mvInvLevelSigma2 = mpORBextractorLeft->GetInverseScaleSigmaSquares();
 
       // ORB extraction
-      thread threadLeft(&Frame::ExtractORB, this, 0, imLeft);
-      thread threadRight(&Frame::ExtractORB, this, 1, imRight);
+      thread threadLeft(&Frame::ExtractORBLeft, this, imLeft);
+      thread threadRight(&Frame::ExtractORBRight, this, imRight);
       threadLeft.join();
       threadRight.join();
 
@@ -128,7 +128,7 @@ namespace ORB_SLAM2_TEAM
       mvInvLevelSigma2 = mpORBextractorLeft->GetInverseScaleSigmaSquares();
 
       // ORB extraction
-      ExtractORB(0, imGray);
+      ExtractORBLeft(imGray);
 
       N = mvKeys.size();
 
@@ -165,7 +165,7 @@ namespace ORB_SLAM2_TEAM
       mvInvLevelSigma2 = mpORBextractorLeft->GetInverseScaleSigmaSquares();
 
       // ORB extraction
-      ExtractORB(0, imGray);
+      ExtractORBLeft(imGray);
 
       N = mvKeys.size();
 
@@ -201,12 +201,14 @@ namespace ORB_SLAM2_TEAM
       }
    }
 
-   void Frame::ExtractORB(int flag, const cv::Mat &im)
+   void Frame::ExtractORBLeft(const cv::Mat &im)
    {
-      if (flag == 0)
-         (*mpORBextractorLeft)(im, cv::Mat(), mvKeys, mDescriptors);
-      else
-         (*mpORBextractorRight)(im, cv::Mat(), mvKeysRight, mDescriptorsRight);
+      mpORBextractorLeft->Extract(im, cv::Mat(), mvKeys, mDescriptors);
+   }
+
+   void Frame::ExtractORBRight(const cv::Mat &im)
+   {
+      mpORBextractorRight->Extract(im, cv::Mat(), mvKeysRight, mDescriptorsRight);
    }
 
    void Frame::SetPose(cv::Mat Tcw)

@@ -1040,8 +1040,8 @@ namespace ORB_SLAM2_TEAM
          computeOrbDescriptor(keypoints[i], image, &pattern[0], descriptors.ptr((int)i));
    }
 
-   void ORBextractor::operator()(InputArray _image, InputArray _mask, vector<KeyPoint>& _keypoints,
-      OutputArray _descriptors)
+   void ORBextractor::Extract(const InputArray & _image, const InputArray & _mask, vector<KeyPoint> & _keypoints,
+      OutputArray & _descriptors)
    {
       if (_image.empty())
          return;

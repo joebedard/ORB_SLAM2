@@ -60,7 +60,8 @@ namespace ORB_SLAM2_TEAM
       Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor, FrameCalibration * FC);
 
       // Extract ORB on the image. 0 for left image and 1 for right image.
-      void ExtractORB(int flag, const cv::Mat &im);
+      void ExtractORBLeft(const cv::Mat &im);
+      void ExtractORBRight(const cv::Mat &im);
 
       // Compute Bag of Words representation.
       void ComputeBoW(ORBVocabulary & vocab);
@@ -182,6 +183,7 @@ namespace ORB_SLAM2_TEAM
       cv::Mat mtcw;
       cv::Mat mRwc;
       cv::Mat mOw; //==mtwc
+
    };
 
 }// namespace ORB_SLAM
