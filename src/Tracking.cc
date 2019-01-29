@@ -363,7 +363,7 @@ namespace ORB_SLAM2_TEAM
       mpViewer = pViewer;
    }
 
-   cv::Mat Tracking::GrabImageStereo(const cv::Mat & imRectLeft, const cv::Mat & imRectRight, const double & timestamp)
+   Frame & Tracking::GrabImageStereo(const cv::Mat & imRectLeft, const cv::Mat & imRectRight, const double & timestamp)
    {
       CheckModeChange();
       CheckReset();
@@ -413,11 +413,11 @@ namespace ORB_SLAM2_TEAM
       }
 
 
-      return mCurrentFrame.mTcw.clone();
+      return mCurrentFrame;
    }
 
 
-   cv::Mat Tracking::GrabImageRGBD(const cv::Mat & imRGB, const cv::Mat & imD, const double & timestamp)
+   Frame & Tracking::GrabImageRGBD(const cv::Mat & imRGB, const cv::Mat & imD, const double & timestamp)
    {
       CheckModeChange();
       CheckReset();
@@ -447,11 +447,11 @@ namespace ORB_SLAM2_TEAM
 
       Track(imGray);
 
-      return mCurrentFrame.mTcw.clone();
+      return mCurrentFrame;
    }
 
 
-   cv::Mat Tracking::GrabImageMonocular(const cv::Mat & im, const double & timestamp)
+   Frame & Tracking::GrabImageMonocular(const cv::Mat & im, const double & timestamp)
    {
       CheckModeChange();
       CheckReset();
@@ -480,7 +480,7 @@ namespace ORB_SLAM2_TEAM
 
       Track(imGray);
 
-      return mCurrentFrame.mTcw.clone();
+      return mCurrentFrame;
    }
 
    void Tracking::Track(cv::Mat & imGray)
@@ -618,7 +618,7 @@ namespace ORB_SLAM2_TEAM
             // pass to the new keyframe, so that bundle adjustment will finally decide
             // if they are outliers or not. We don't want next frame to estimate its position
             // with those points so we discard them in the frame.
-            for (int i = 0; i < mCurrentFrame.N;i++)
+            for (size_t i = 0; i < mCurrentFrame.N;i++)
             {
                if (mCurrentFrame.mvpMapPoints[i] && mCurrentFrame.mvbOutlier[i])
                   mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL);
@@ -682,7 +682,7 @@ namespace ORB_SLAM2_TEAM
 
          // Create MapPoints and associate to KeyFrame
          mvpLocalMapPoints.clear();
-         for (int i = 0; i < mCurrentFrame.N; i++)
+         for (size_t i = 0; i < mCurrentFrame.N; i++)
          {
             float z = mCurrentFrame.mvDepth[i];
             if (z > 0)
@@ -917,7 +917,7 @@ namespace ORB_SLAM2_TEAM
       Print("begin CheckReplacedInLastFrame");
 
       // replace or erase MapPoint matches
-      for (int i = 0; i < mLastFrame.N; i++)
+      for (size_t i = 0; i < mLastFrame.N; i++)
       {
          MapPoint * pMP = mLastFrame.mvpMapPoints[i];
          if (pMP)
@@ -971,7 +971,7 @@ namespace ORB_SLAM2_TEAM
 
       // Discard outliers
       int nmatchesMap = 0;
-      for (int i = 0; i < mCurrentFrame.N; i++)
+      for (size_t i = 0; i < mCurrentFrame.N; i++)
       {
          if (mCurrentFrame.mvpMapPoints[i])
          {
@@ -1038,7 +1038,7 @@ namespace ORB_SLAM2_TEAM
 
       // Discard outliers
       int nmatchesMap = 0;
-      for (int i = 0; i < mCurrentFrame.N; i++)
+      for (size_t i = 0; i < mCurrentFrame.N; i++)
       {
          if (mCurrentFrame.mvpMapPoints[i])
          {
@@ -1081,7 +1081,7 @@ namespace ORB_SLAM2_TEAM
       mnMatchesInliers = 0;
 
       // Update MapPoints Statistics
-      for (int i = 0; i < mCurrentFrame.N; i++)
+      for (size_t i = 0; i < mCurrentFrame.N; i++)
       {
          if (mCurrentFrame.mvpMapPoints[i])
          {
@@ -1154,7 +1154,7 @@ namespace ORB_SLAM2_TEAM
       int nTrackedClose = 0;
       if (mSensor != MONOCULAR)
       {
-         for (int i = 0; i < mCurrentFrame.N; i++)
+         for (size_t i = 0; i < mCurrentFrame.N; i++)
          {
             if (mCurrentFrame.mvDepth[i] > 0 && mCurrentFrame.mvDepth[i] < mFC.thDepth)
             {
@@ -1289,7 +1289,7 @@ namespace ORB_SLAM2_TEAM
    {
       // Each MapPoint votes once for the keyframes in which it has been observed
       map<KeyFrame *, int> keyframeVotes;
-      for (int i = 0; i < mCurrentFrame.N; i++)
+      for (size_t i = 0; i < mCurrentFrame.N; i++)
       {
          MapPoint * pMP = mCurrentFrame.mvpMapPoints[i];
          if (pMP)
@@ -1503,7 +1503,7 @@ namespace ORB_SLAM2_TEAM
                if (nGood < 10)
                   continue;
 
-               for (int io = 0; io < mCurrentFrame.N; io++)
+               for (size_t io = 0; io < mCurrentFrame.N; io++)
                   if (mCurrentFrame.mvbOutlier[io])
                      mCurrentFrame.mvpMapPoints[io] = static_cast<MapPoint*>(NULL);
 
@@ -1521,7 +1521,7 @@ namespace ORB_SLAM2_TEAM
                      if (nGood > 30 && nGood < 50)
                      {
                         sFound.clear();
-                        for (int ip = 0; ip < mCurrentFrame.N; ip++)
+                        for (size_t ip = 0; ip < mCurrentFrame.N; ip++)
                            if (mCurrentFrame.mvpMapPoints[ip])
                               sFound.insert(mCurrentFrame.mvpMapPoints[ip]);
                         nadditional = matcher2.SearchByProjection(mCurrentFrame, vpCandidateKFs[i], sFound, 3, 64);
@@ -1531,7 +1531,7 @@ namespace ORB_SLAM2_TEAM
                         {
                            nGood = Optimizer::PoseOptimization(&mCurrentFrame);
 
-                           for (int io = 0; io < mCurrentFrame.N; io++)
+                           for (size_t io = 0; io < mCurrentFrame.N; io++)
                               if (mCurrentFrame.mvbOutlier[io])
                                  mCurrentFrame.mvpMapPoints[io] = NULL;
                         }
@@ -1648,7 +1648,7 @@ namespace ORB_SLAM2_TEAM
          currentFrame.UpdatePoseMatrices();
 
          vDepthIdx.reserve(currentFrame.N);
-         for (int i = 0; i < currentFrame.N; i++)
+         for (size_t i = 0; i < currentFrame.N; i++)
          {
             float z = currentFrame.mvDepth[i];
             if (z > 0)

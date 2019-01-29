@@ -112,7 +112,7 @@ namespace ORB_SLAM2_TEAM
       FrameCalibration * mFC;
 
       // Number of KeyPoints (features).
-      int N;
+      size_t N;
 
       // Vector of KeyPoints (features) based on original image(s). Used for visualization.
       std::vector<cv::KeyPoint> mvKeys, mvKeysRight;

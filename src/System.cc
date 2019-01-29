@@ -124,13 +124,13 @@ namespace ORB_SLAM2_TEAM
          throw exception("ERROR: you called TrackStereo but input sensor was not set to STEREO.");
       }
 
-      cv::Mat Tcw = mpTracker->GrabImageStereo(imLeft, imRight, timestamp);
+      Frame & f = mpTracker->GrabImageStereo(imLeft, imRight, timestamp);
 
       unique_lock<mutex> lock2(mMutexState);
       //mTrackingState = mpTracker->mState;
       //mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
       //mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
-      return Tcw;
+      return f.mTcw.clone();
    }
 
    cv::Mat System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const double &timestamp)
@@ -140,13 +140,13 @@ namespace ORB_SLAM2_TEAM
          throw exception("ERROR: you called TrackRGBD but input sensor was not set to RGBD.");
       }
 
-      cv::Mat Tcw = mpTracker->GrabImageRGBD(im, depthmap, timestamp);
+      Frame & f = mpTracker->GrabImageRGBD(im, depthmap, timestamp);
 
       unique_lock<mutex> lock2(mMutexState);
       //mTrackingState = mpTracker->mState;
       //mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
       //mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
-      return Tcw;
+      return f.mTcw.clone();
    }
 
    cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
@@ -157,14 +157,13 @@ namespace ORB_SLAM2_TEAM
          exit(-1);
       }
 
-      cv::Mat Tcw = mpTracker->GrabImageMonocular(im, timestamp);
+      Frame & f = mpTracker->GrabImageMonocular(im, timestamp);
 
       unique_lock<mutex> lock2(mMutexState);
       //mTrackingState = mpTracker->mState;
       //mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
       //mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
-
-      return Tcw;
+      return f.mTcw.clone();
    }
 
    bool System::MapChanged()

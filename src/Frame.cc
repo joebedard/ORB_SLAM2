@@ -186,12 +186,12 @@ namespace ORB_SLAM2_TEAM
 
    void Frame::AssignFeaturesToGrid()
    {
-      int nReserve = 0.5f*N / (FRAME_GRID_COLS*FRAME_GRID_ROWS);
+      size_t nReserve = 0.5f*N / (size_t)(FRAME_GRID_COLS*FRAME_GRID_ROWS);
       for (unsigned int i = 0; i < FRAME_GRID_COLS;i++)
          for (unsigned int j = 0; j < FRAME_GRID_ROWS;j++)
             mGrid[i][j].reserve(nReserve);
 
-      for (int i = 0;i < N;i++)
+      for (size_t i = 0;i < N; i++)
       {
          const cv::KeyPoint &kp = mvKeysUn[i];
 
@@ -368,7 +368,7 @@ namespace ORB_SLAM2_TEAM
 
       // Fill matrix with points
       cv::Mat mat(N, 2, CV_32F);
-      for (int i = 0; i < N; i++)
+      for (size_t i = 0; i < N; i++)
       {
          mat.at<float>(i, 0) = mvKeys[i].pt.x;
          mat.at<float>(i, 1) = mvKeys[i].pt.y;
@@ -381,7 +381,7 @@ namespace ORB_SLAM2_TEAM
 
       // Fill undistorted keypoint vector
       mvKeysUn.resize(N);
-      for (int i = 0; i < N; i++)
+      for (size_t i = 0; i < N; i++)
       {
          cv::KeyPoint kp = mvKeys[i];
          kp.pt.x = mat.at<float>(i, 0);
@@ -428,7 +428,7 @@ namespace ORB_SLAM2_TEAM
       vector<pair<int, int> > vDistIdx;
       vDistIdx.reserve(N);
 
-      for (int iL = 0; iL < N; iL++)
+      for (size_t iL = 0; iL < N; iL++)
       {
          const cv::KeyPoint &kpL = mvKeys[iL];
          const int &levelL = kpL.octave;
@@ -575,7 +575,7 @@ namespace ORB_SLAM2_TEAM
       mvuRight = vector<float>(N, -1);
       mvDepth = vector<float>(N, -1);
 
-      for (int i = 0; i < N; i++)
+      for (size_t i = 0; i < N; i++)
       {
          const cv::KeyPoint &kp = mvKeys[i];
          const cv::KeyPoint &kpU = mvKeysUn[i];

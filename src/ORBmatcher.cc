@@ -1377,7 +1377,7 @@ namespace ORB_SLAM2_TEAM
       const bool bForward = tlc.at<float>(2) > CurrentFrame.mFC->bl && !bMono;
       const bool bBackward = -tlc.at<float>(2) > CurrentFrame.mFC->bl && !bMono;
 
-      for (int i = 0; i < LastFrame.N; i++)
+      for (size_t i = 0; i < LastFrame.N; i++)
       {
          MapPoint* pMP = LastFrame.mvpMapPoints[i];
 

@@ -323,7 +323,7 @@ namespace ORB_SLAM2_TEAM
          Print("optimizer.addVertex(vSE3) failed");
 
       // Set MapPoint vertices
-      const int N = pFrame->N;
+      const size_t N = pFrame->N;
 
       vector<g2o::EdgeSE3ProjectXYZOnlyPose*> vpEdgesMono;
       vector<size_t> vnIndexEdgeMono;
