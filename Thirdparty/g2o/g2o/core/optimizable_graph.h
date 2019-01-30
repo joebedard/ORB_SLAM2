@@ -280,7 +280,7 @@ namespace g2o {
         virtual void discardTop() = 0;
 
         //! return the stack size
-        virtual int stackSize() const = 0;
+        virtual size_t stackSize() const = 0;
 
         /**
          * Update the position of the node from the parameters in v.

@@ -82,7 +82,7 @@ namespace ORB_SLAM2_TEAM
       void RequestFinish();
       bool IsFinished();
 
-      int KeyframesInQueue()
+      size_t KeyframesInQueue()
       {
          unique_lock<mutex> lock(mMutexNewKFs);
          return mNewKeyFrames.size();

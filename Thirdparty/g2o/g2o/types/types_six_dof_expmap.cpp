@@ -147,7 +147,7 @@ Vector2d EdgeSE3ProjectXYZ::cam_project(const Vector3d & trans_xyz) const{
 }
 
 
-Vector3d EdgeStereoSE3ProjectXYZ::cam_project(const Vector3d & trans_xyz, const float &bf) const{
+Vector3d EdgeStereoSE3ProjectXYZ::cam_project(const Vector3d & trans_xyz, const double &bf) const{
   const float invz = 1.0f/trans_xyz[2];
   Vector3d res;
   res[0] = trans_xyz[0]*invz*fx + cx;

@@ -119,7 +119,7 @@ public:
    * Returns the number of words in the vocabulary
    * @return number of words
    */
-  virtual inline unsigned int size() const;
+  virtual inline size_t size() const;
   
   /**
    * Returns whether the vocabulary is empty (i.e. it has not been trained)
@@ -658,7 +658,7 @@ void TemplatedVocabulary<TDescriptor,F>::HKmeansStep(NodeId parent_id,
         
   // features associated to each cluster
   vector<TDescriptor> clusters;
-	vector<vector<unsigned int> > groups; // groups[i] = [j1, j2, ...]
+	vector<vector<size_t> > groups; // groups[i] = [j1, j2, ...]
 	// j1, j2, ... indices of descriptors associated to cluster i
 
   clusters.reserve(m_k);
@@ -718,7 +718,7 @@ void TemplatedVocabulary<TDescriptor,F>::HKmeansStep(NodeId parent_id,
           }
           */
           
-          vector<unsigned int>::const_iterator vit;
+          vector<size_t>::const_iterator vit;
           for(vit = groups[c].begin(); vit != groups[c].end(); ++vit)
           {
             cluster_descriptors.push_back(descriptors[*vit]);
@@ -734,7 +734,7 @@ void TemplatedVocabulary<TDescriptor,F>::HKmeansStep(NodeId parent_id,
 
       // calculate distances to cluster centers
       groups.clear();
-      groups.resize(clusters.size(), vector<unsigned int>());
+      groups.resize(clusters.size(), vector<size_t>());
       current_association.resize(descriptors.size());
 
       //assoc.clear();
@@ -816,7 +816,7 @@ void TemplatedVocabulary<TDescriptor,F>::HKmeansStep(NodeId parent_id,
       vector<pDescriptor> child_features;
       child_features.reserve(groups[i].size());
 
-      vector<unsigned int>::const_iterator vit;
+      vector<size_t>::const_iterator vit;
       for(vit = groups[i].begin(); vit != groups[i].end(); ++vit)
       {
         child_features.push_back(descriptors[*vit]);
@@ -864,7 +864,7 @@ void TemplatedVocabulary<TDescriptor,F>::initiateClustersKMpp(
   
   // 1.
   
-  int ifeature = DUtils::Random::RandomInt(0, pfeatures.size()-1);
+  size_t ifeature = DUtils::Random::RandomValue<size_t>(0, pfeatures.size()-1);
   
   // create first cluster
   clusters.push_back(*pfeatures[ifeature]);
@@ -955,8 +955,8 @@ template<class TDescriptor, class F>
 void TemplatedVocabulary<TDescriptor,F>::setNodeWeights
   (const vector<vector<TDescriptor> > &training_features)
 {
-  const unsigned int NWords = m_words.size();
-  const unsigned int NDocs = training_features.size();
+  const size_t NWords = m_words.size();
+  const size_t NDocs = training_features.size();
 
   if(m_weighting == TF || m_weighting == BINARY)
   {
@@ -1010,7 +1010,7 @@ void TemplatedVocabulary<TDescriptor,F>::setNodeWeights
 // --------------------------------------------------------------------------
 
 template<class TDescriptor, class F>
-inline unsigned int TemplatedVocabulary<TDescriptor,F>::size() const
+inline size_t TemplatedVocabulary<TDescriptor,F>::size() const
 {
   return m_words.size();
 }
@@ -1108,7 +1108,7 @@ void TemplatedVocabulary<TDescriptor,F>::transform(
     if(!v.empty() && !must)
     {
       // unnecessary when normalizing
-      const double nd = v.size();
+      const double nd = (double)v.size();
       for(BowVector::iterator vit = v.begin(); vit != v.end(); vit++) 
         vit->second /= nd;
     }
@@ -1176,7 +1176,7 @@ void TemplatedVocabulary<TDescriptor,F>::transform(
     if(!v.empty() && !must)
     {
       // unnecessary when normalizing
-      const double nd = v.size();
+      const double nd = (double)v.size();
       for(BowVector::iterator vit = v.begin(); vit != v.end(); vit++) 
         vit->second /= nd;
     }
@@ -1383,7 +1383,7 @@ bool TemplatedVocabulary<TDescriptor,F>::loadFromTextFile(const std::string &fil
     (int)((pow((double)m_k, (double)m_L + 1) - 1)/(m_k - 1));
     m_nodes.reserve(expected_nodes);
 
-    m_words.reserve(pow((double)m_k, (double)m_L + 1));
+    m_words.reserve((size_t)pow((double)m_k, (double)m_L + 1));
 
     m_nodes.resize(1);
     m_nodes[0].id = 0;
@@ -1394,7 +1394,7 @@ bool TemplatedVocabulary<TDescriptor,F>::loadFromTextFile(const std::string &fil
         stringstream ssnode;
         ssnode << snode;
 
-        int nid = m_nodes.size();
+        size_t nid = m_nodes.size();
         m_nodes.resize(m_nodes.size()+1);
 	m_nodes[nid].id = nid;
 	
@@ -1419,7 +1419,7 @@ bool TemplatedVocabulary<TDescriptor,F>::loadFromTextFile(const std::string &fil
 
         if(nIsLeaf>0)
         {
-            int wid = m_words.size();
+            size_t wid = m_words.size();
             m_words.resize(wid+1);
 
             m_nodes[nid].word_id = wid;
@@ -1476,7 +1476,7 @@ bool TemplatedVocabulary<TDescriptor,F>::loadFromBinaryFile(const std::string &f
    createScoringObject();
 
    m_words.clear();
-   m_words.reserve(pow((double)m_k, (double)m_L + 1));
+   m_words.reserve((size_t)pow((double)m_k, (double)m_L + 1));
    m_nodes.clear();
    m_nodes.resize(nb_nodes+1);
    m_nodes[0].id = 0;
@@ -1494,7 +1494,7 @@ bool TemplatedVocabulary<TDescriptor,F>::loadFromBinaryFile(const std::string &f
       memcpy(m_nodes[nid].descriptor.data, buf+4, F::L);
       m_nodes[nid].weight = *(float*)(buf+4+F::L);
       if (buf[8+F::L]) { // is leaf
-         int wid = m_words.size();
+         size_t wid = m_words.size();
          m_words.resize(wid+1);
          m_nodes[nid].word_id = wid;
          m_words[wid] = &m_nodes[nid];

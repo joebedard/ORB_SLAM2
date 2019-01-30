@@ -135,7 +135,7 @@ public:
 
   virtual void linearizeOplus();
 
-  Vector3d cam_project(const Vector3d & trans_xyz, const float &bf) const;
+  Vector3d cam_project(const Vector3d & trans_xyz, const double &bf) const;
 
   double fx, fy, cx, cy, bf;
 };

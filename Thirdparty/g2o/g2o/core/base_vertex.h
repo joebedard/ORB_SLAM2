@@ -96,7 +96,7 @@ namespace g2o {
     virtual void push() { _backup.push(_estimate);}
     virtual void pop() { assert(!_backup.empty()); _estimate = _backup.top(); _backup.pop(); updateCache();}
     virtual void discardTop() { assert(!_backup.empty()); _backup.pop();}
-    virtual int stackSize() const {return _backup.size();}
+    virtual size_t stackSize() const {return _backup.size();}
 
     //! return the current estimate of the vertex
     const EstimateType& estimate() const { return _estimate;}

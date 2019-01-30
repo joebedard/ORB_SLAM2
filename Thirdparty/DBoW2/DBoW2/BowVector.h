@@ -17,13 +17,13 @@
 namespace DBoW2 {
 
 /// Id of words
-typedef unsigned int WordId;
+typedef size_t WordId;
 
 /// Value of a word
 typedef double WordValue;
 
-/// Id of nodes in the vocabulary treee
-typedef unsigned int NodeId;
+/// Id of nodes in the vocabulary tree
+typedef size_t NodeId;
 
 /// L-norms for normalization
 enum LNorm

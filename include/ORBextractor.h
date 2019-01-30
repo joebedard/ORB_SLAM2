@@ -64,7 +64,7 @@ namespace ORB_SLAM2_TEAM
          return nlevels;
       }
 
-      float inline GetScaleFactor() {
+      double inline GetScaleFactor() {
          return scaleFactor;
       }
 
