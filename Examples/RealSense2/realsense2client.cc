@@ -184,7 +184,7 @@ void printStatistics(vector<float> & vTimesTrack)
 int RunViewer(FrameDrawer & frameDrawer, MapDrawer & mapDrawer, Tracking & tracker, Mapper & mapper) try
 {
    //Initialize and start the Viewer thread
-   Viewer viewer(&frameDrawer, &mapDrawer, &tracker, mapper);
+   Viewer viewer(&frameDrawer, &mapDrawer, &tracker, mapper, true);
    tracker.SetViewer(&viewer);
    viewer.Run(); //ends when window is closed
    gShouldRun = false; //signal tracking threads to stop

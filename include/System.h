@@ -46,7 +46,7 @@ namespace ORB_SLAM2_TEAM
    public:
 
       // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
-      System(const string &vocabFilename, const string &settingsFilename, const SensorType sensor, const bool bUseViewer = true);
+      System(const string &vocabFilename, const string &settingsFilename, const SensorType sensor, const bool bEmbeddedVideo, const bool bUseViewer = true);
 
       ~System();
 

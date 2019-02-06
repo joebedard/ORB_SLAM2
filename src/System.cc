@@ -33,6 +33,7 @@ namespace ORB_SLAM2_TEAM
       const string & vocabFilename,
       const string & settingsFilename,
       const SensorType sensor,
+      const bool bEmbeddedVideo,
       const bool bUseViewer
    ) :
       mSensor(sensor),
@@ -95,7 +96,7 @@ namespace ORB_SLAM2_TEAM
       //Initialize the Viewer thread and launch
       if (bUseViewer)
       {
-         mpViewer = new Viewer(mpFrameDrawer, mpMapDrawer, mpTracker, *mpMapper);
+         mpViewer = new Viewer(mpFrameDrawer, mpMapDrawer, mpTracker, *mpMapper, bEmbeddedVideo);
          mptViewer = new thread(&Viewer::Run, mpViewer);
          mpTracker->SetViewer(mpViewer);
       }

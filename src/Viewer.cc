@@ -321,6 +321,7 @@ namespace ORB_SLAM2_TEAM
             sleep(20000);
          }
 
+         // ShouldQuit() does not detect that the window is closed when using cv::imshow
          if (pangolin::ShouldQuit())
          {
             RequestFinish();
