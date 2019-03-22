@@ -128,6 +128,65 @@ namespace ORB_SLAM2_TEAM
 
       float bl = fSettings["Camera.bl"];
       float bf = fSettings["Camera.bf"];
+
+      stringstream ss;
+
+      // Stereo Rectification
+      if (sensor == SensorType::STEREO)
+      {
+         cv::Mat1d K_l, K_r, D_l, D_r, translation, quaternion, rotation;
+         cv::Mat1d R_l(3, 3), R_r(3, 3), P_l(3, 4, 0.0), P_r(3, 4, 0.0), disparity(4, 4);
+         fSettings["LEFT.K"] >> K_l;
+         fSettings["RIGHT.K"] >> K_r;
+         fSettings["LEFT.D"] >> D_l;
+         fSettings["RIGHT.D"] >> D_r;
+         fSettings["LEFT.R"] >> R_l;
+         fSettings["RIGHT.R"] >> R_r;
+         fSettings["LEFT.P"] >> P_l;
+         fSettings["RIGHT.P"] >> P_r;
+         int leftHeight = fSettings["LEFT.height"];
+         int leftWidth = fSettings["LEFT.width"];
+         int rightHeight = fSettings["RIGHT.height"];
+         int rightWidth = fSettings["RIGHT.width"];
+
+         if (P_l.empty() && P_r.empty())
+         {
+            P_l = K;
+            P_r = K;
+         }
+         else if (P_l.empty() || P_r.empty())
+         {
+            throw exception("LEFT.P and RIGHT.P must both be empty or both be given");
+         }
+
+         if (K_l.empty() && K_r.empty() && R_l.empty() && R_r.empty() && D_l.empty() && D_r.empty() &&
+            leftHeight == 0 && rightHeight == 0 && leftWidth == 0 && rightWidth == 0)
+         {
+            ss << endl << "Stereo Image Rectification is DISABLED" << endl;
+         }
+         else if (K_l.empty() || K_r.empty() || R_l.empty() || R_r.empty() || D_l.empty() || D_r.empty() ||
+            leftHeight == 0 || rightHeight == 0 || leftWidth == 0 || rightWidth == 0)
+         {
+            throw exception("stereo image rectification parameters are incomplete");
+         }
+         else
+         {
+            ss << endl << "Stereo Image Rectification is ENABLED" << endl;
+            Print("cv::initUndistortRectifyMap");
+            cv::initUndistortRectifyMap(K_l, D_l, R_l, P_l, cv::Size(leftWidth, leftHeight), CV_32FC1, mRectMapLeft1, mRectMapLeft2);
+            cv::initUndistortRectifyMap(K_r, D_r, R_r, P_r, cv::Size(rightWidth, rightHeight), CV_32FC1, mRectMapRight1, mRectMapRight2);
+            mRectify = true;
+
+            // calculate baseline transformation
+            cv::Mat R_l_inv = R_l.inv();
+            cv::Mat RT_l_inv = cv::Mat::eye(4, 4, CV_32F);
+            R_l_inv.copyTo(RT_l_inv(cv::Range(0,3), cv::Range(0,3)));
+            cv::Mat RT_r = cv::Mat::eye(4, 4, CV_32F);
+            R_r.copyTo(RT_r(cv::Range(0,3), cv::Range(0,3)));
+            mBaseline = RT_l_inv * mBaseline * RT_r;
+         }
+      }
+
       if (sensor != SensorType::MONOCULAR)
       {
          if (bl == 0.0f && bf == 0.0f)
@@ -143,6 +202,9 @@ namespace ORB_SLAM2_TEAM
          }
 
          mBaseline.at<float>(0, 3) = bl;
+
+         ss << endl << "Baseline Transformation:" << endl;
+         ss << mBaseline << endl;
       }
 
       float thDepth = bl * (float)fSettings["ThDepth"];
@@ -157,7 +219,6 @@ namespace ORB_SLAM2_TEAM
       mMinFrames = 0;
       mMaxFrames = fps;
 
-      stringstream ss;
       ss << endl << "Camera Parameters: " << endl;
       ss << "- fx: " << fx << endl;
       ss << "- fy: " << fy << endl;
@@ -242,57 +303,6 @@ namespace ORB_SLAM2_TEAM
       pivotCal.at<float>(3, 0) = 0.0f;
 
       //ss << "Mat: " << pivotCal << endl;
-
-      // Stereo Rectification
-      if (sensor == SensorType::STEREO)
-      {
-         cv::Mat K_l, K_r, /*P_l, P_r,*/ R_l, R_r, D_l, D_r;
-         fSettings["LEFT.K"] >> K_l;
-         fSettings["RIGHT.K"] >> K_r;
-
-         fSettings["LEFT.R"] >> R_l;
-         fSettings["RIGHT.R"] >> R_r;
-
-         fSettings["LEFT.D"] >> D_l;
-         fSettings["RIGHT.D"] >> D_r;
-
-         int leftHeight = fSettings["LEFT.height"];
-         int leftWidth = fSettings["LEFT.width"];
-         int rightHeight = fSettings["RIGHT.height"];
-         int rightWidth = fSettings["RIGHT.width"];
-
-         if (K_l.empty() && K_r.empty() && R_l.empty() && R_r.empty() && D_l.empty() && D_r.empty() &&
-            leftHeight == 0 && rightHeight == 0 && leftWidth == 0 && rightWidth == 0)
-         {
-            ss << endl << "Stereo Image Rectification is DISABLED" << endl;
-         }
-         else if (K_l.empty() || K_r.empty() || R_l.empty() || R_r.empty() || D_l.empty() || D_r.empty() ||
-            leftHeight == 0 || rightHeight == 0 || leftWidth == 0 || rightWidth == 0)
-         {
-            throw exception("stereo image rectification parameters are incomplete");
-         }
-         else
-         {
-            ss << endl << "Stereo Image Rectification is ENABLED" << endl;
-            cv::initUndistortRectifyMap(K_l, D_l, R_l, K, cv::Size(leftWidth, leftHeight), CV_32F, mRectMapLeft1, mRectMapLeft2);
-            cv::initUndistortRectifyMap(K_r, D_r, R_r, K, cv::Size(rightWidth, rightHeight), CV_32F, mRectMapRight1, mRectMapRight2);
-            mRectify = true;
-
-            // calculate baseline transformation
-            cv::Mat R_l_inv = R_l.inv();
-            cv::Mat RT_l_inv = cv::Mat::eye(4, 4, CV_32F);
-            R_l_inv.copyTo(RT_l_inv(cv::Range(0,3), cv::Range(0,3)));
-            cv::Mat RT_r = cv::Mat::eye(4, 4, CV_32F);
-            R_r.copyTo(RT_r(cv::Range(0,3), cv::Range(0,3)));
-            mBaseline = RT_l_inv * mBaseline * RT_r;
-         }
-      }
-
-      if (sensor != SensorType::MONOCULAR)
-      {
-         ss << endl << "Baseline Transformation:" << endl;
-         ss << mBaseline << endl;
-      }
 
       Print(ss);
    }

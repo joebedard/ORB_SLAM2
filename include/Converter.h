@@ -42,6 +42,8 @@ namespace ORB_SLAM2_TEAM
       static cv::Mat toCvMat(const Eigen::Matrix<double, 4, 4> &m);
       static cv::Mat toCvMat(const Eigen::Matrix3d &m);
       static cv::Mat toCvMat(const Eigen::Matrix<double, 3, 1> &m);
+      static cv::Mat toCvMat(const Eigen::Quaternion<double> &q);
+
       static cv::Mat toCvSE3(const Eigen::Matrix<double, 3, 3> &R, const Eigen::Matrix<double, 3, 1> &t);
 
       static Eigen::Matrix<double, 3, 1> toVector3d(const cv::Mat &cvVector);

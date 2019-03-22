@@ -89,6 +89,17 @@ namespace ORB_SLAM2_TEAM
       return cvMat.clone();
    }
 
+   cv::Mat Converter::toCvMat(const Eigen::Quaternion<double> &q)
+   {
+      Eigen::Matrix3d m = q.matrix();
+      cv::Mat cvMat(3, 3, CV_64F);
+      for (int i = 0; i < 3; i++)
+         for (int j = 0; j < 3; j++)
+            cvMat.at<double>(i) = m(i,j);
+
+      return cvMat.clone();
+   }
+
    cv::Mat Converter::toCvSE3(const Eigen::Matrix<double, 3, 3> &R, const Eigen::Matrix<double, 3, 1> &t)
    {
       cv::Mat cvMat = cv::Mat::eye(4, 4, CV_32F);

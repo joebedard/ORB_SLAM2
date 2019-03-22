@@ -29,7 +29,7 @@
 #include <windows.h>
 #endif
 
-inline void sleep(int microseconds)
+inline void sleep(unsigned long microseconds)
 {
 #ifdef LINUX
    usleep(microseconds);   // usleep takes sleep time in us (1 millionth of a second)

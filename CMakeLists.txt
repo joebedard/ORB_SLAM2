@@ -130,8 +130,10 @@ src/Tracking.cc
 src/Viewer.cc
 )
 
+message("Pangolin_INCLUDE_DIR == ${Pangolin_INCLUDE_DIR}")
+message("BUILD_INTERFACE:Pangolin_INCLUDE_DIR == $<BUILD_INTERFACE:${Pangolin_INCLUDE_DIR}>")
 target_include_directories(${PROJECT_NAME} PRIVATE
-   $<BUILD_INTERFACE:${Pangolin_INCLUDE_DIR}>
+   ${Pangolin_INCLUDE_DIR}
    $<BUILD_INTERFACE:${cppzmq_INCLUDE_DIR}>
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -183,6 +185,10 @@ target_link_libraries(stereo_euroc ${PROJECT_NAME})
 add_executable(stereo_euroc_team
 Examples/Stereo/stereo_euroc_team.cc)
 target_link_libraries(stereo_euroc_team ${PROJECT_NAME})
+
+add_executable(stereo_far_team
+Examples/Stereo/stereo_far_team.cc)
+target_link_libraries(stereo_far_team ${PROJECT_NAME})
 
 add_executable(mono_tum
 Examples/Monocular/mono_tum.cc)

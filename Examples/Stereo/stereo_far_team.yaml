@@ -1,0 +1,40 @@
+%YAML:1.0
+
+#--------------------------------------------------------------------------------------------
+# Master Configuration - reference to all other configuration files
+#--------------------------------------------------------------------------------------------
+
+# vocabulary file and path
+Vocabulary: ""
+
+# mapper yaml configuration file and path
+Mapper: ""
+
+
+#------------------------------------------------------------------------------------------------
+# Each tracker requires: 
+#   + a yaml settings file and path (which is mostly the camera calibration)
+#   + the path to a file (ubitrack) that contains the left camera timestamps and images
+#   + the path to a file (ubitrack) that contains the right camera timestamps and images
+# Note: the first tracker will initialize the map
+# Note: this example will run with FAR test datasets
+#------------------------------------------------------------------------------------------------
+
+# how many trackers?
+Tracker.Quantity: 4
+
+Tracker.Settings.1: ""
+Tracker.LeftImages.1: ""
+Tracker.RightImages.1: ""
+
+Tracker.Settings.2: ""
+Tracker.LeftImages.2: ""
+Tracker.RightImages.2: ""
+
+Tracker.Settings.3: ""
+Tracker.LeftImages.3: ""
+Tracker.RightImages.3: ""
+
+Tracker.Settings.4: ""
+Tracker.LeftImages.4: ""
+Tracker.RightImages.4: ""
