@@ -45,6 +45,8 @@ namespace ORB_SLAM2_TEAM
       Map();
 
       void AddKeyFrame(KeyFrame * pKF);
+      
+      KeyFrame * GetFirstKeyFrame();
 
       void AddMapPoint(MapPoint * pMP);
 
@@ -115,6 +117,7 @@ namespace ORB_SLAM2_TEAM
       // returns a MapPoint if it was replaced, otherwise returns NULL
       MapPoint * LinkWithoutLock(MapPoint & rMP, size_t idx, KeyFrame & rKF);
 
+      KeyFrame * mFirstKeyFrame;
    };
 
 } //namespace ORB_SLAM

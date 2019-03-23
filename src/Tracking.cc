@@ -657,6 +657,7 @@ namespace ORB_SLAM2_TEAM
       {
          cv::Mat Tcr = mCurrentFrame.mTcw*mCurrentFrame.mpReferenceKF->GetPoseInverse();
          mlRelativeFramePoses.push_back(Tcr);
+         mlAbsoluteFramePoses.push_back(mCurrentFrame.mTcw);
          mlpReferenceKFs.push_back(mCurrentFrame.mpReferenceKF);
          mlFrameTimes.push_back(mCurrentFrame.mTimeStamp);
          mlbLost.push_back(mState == TRACKING_LOST);
@@ -667,8 +668,10 @@ namespace ORB_SLAM2_TEAM
          if (!mlRelativeFramePoses.empty())
          {
             mlRelativeFramePoses.push_back(mlRelativeFramePoses.back());
+            mlAbsoluteFramePoses.push_back(mlAbsoluteFramePoses.back());
             mlpReferenceKFs.push_back(mlpReferenceKFs.back());
-            mlFrameTimes.push_back(mlFrameTimes.back());
+            //mlFrameTimes.push_back(mlFrameTimes.back());
+            mlFrameTimes.push_back(mCurrentFrame.mTimeStamp);
             mlbLost.push_back(mState == TRACKING_LOST);
          }
       }
@@ -1786,6 +1789,7 @@ namespace ORB_SLAM2_TEAM
       }
 
       mlRelativeFramePoses.clear();
+      mlAbsoluteFramePoses.clear();
       mlpReferenceKFs.clear();
       mlFrameTimes.clear();
       mlbLost.clear();
@@ -1793,6 +1797,109 @@ namespace ORB_SLAM2_TEAM
       Frame::nNextId = 0;
       mState = NOT_INITIALIZED;
       Print("end HandleMapReset");
+   }
+
+   void Tracking::SaveRunningTrajectoryTUM(const string &filename)
+   {
+      stringstream ss;
+      ss << endl << "Saving running camera trajectory to " << filename << " ...";
+      Print(ss);
+
+      if (mSensor == MONOCULAR)
+      {
+         throw exception("ERROR: SaveRunningTrajectoryTUM cannot be used for monocular.");
+      }
+
+      ofstream f;
+      f.exceptions(f.exceptions() | ofstream::failbit);
+      f.open(filename.c_str());
+      f << fixed;
+
+      // For each frame we have a reference keyframe (lRit), the timestamp (lT) and a flag
+      // which is true when tracking failed (lbL).
+      list<KeyFrame *>::iterator lRit = mlpReferenceKFs.begin();
+      list<double>::iterator lT = mlFrameTimes.begin();
+      list<bool>::iterator lbL = mlbLost.begin();
+      for (list<cv::Mat>::iterator lit = mlAbsoluteFramePoses.begin(),
+         lend = mlRelativeFramePoses.end();lit != lend;lit++, lRit++, lT++, lbL++)
+      {
+         //if (*lbL)
+         //   continue;
+
+         cv::Mat Tcw = *lit;
+         cv::Mat Rwc = Tcw.rowRange(0, 3).colRange(0, 3).t();
+         cv::Mat twc = -Rwc * Tcw.rowRange(0, 3).col(3);
+
+         vector<float> q = Converter::toQuaternion(Rwc);
+
+         f << setprecision(6) << *lT << " " << setprecision(9) << twc.at<float>(0) << " " << twc.at<float>(1) << " " << twc.at<float>(2) << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
+      }
+      f.close();
+   }
+
+   void Tracking::SaveFinalTrajectoryTUM(const string &filename)
+   {
+      stringstream ss;
+      ss << endl << "Saving final camera trajectory to " << filename << " ...";
+      Print(ss);
+
+      if (mSensor == MONOCULAR)
+      {
+         throw exception("ERROR: SaveFinalTrajectoryTUM cannot be used for monocular.");
+      }
+
+      ofstream f;
+      f.exceptions(f.exceptions() | ofstream::failbit);
+      f.open(filename.c_str());
+      f << fixed;
+
+      // Transform all keyframes so that the first keyframe is at the origin.
+      // After a loop closure the first keyframe might not be at the origin.
+      KeyFrame * pKF = mMapper.GetMap().GetFirstKeyFrame();
+      if (NULL == pKF)
+      {
+         f.close();
+         return;
+      }
+      cv::Mat Two = pKF->GetPoseInverse();
+
+      // Frame pose is stored relative to its reference keyframe (which is optimized by BA and pose graph).
+      // We need to get first the keyframe pose and then concatenate the relative transformation.
+      // Frames not localized (tracking failure) are not saved.
+
+      // For each frame we have a reference keyframe (lRit), the timestamp (lT) and a flag
+      // which is true when tracking failed (lbL).
+      list<KeyFrame *>::iterator lRit = mlpReferenceKFs.begin();
+      list<double>::iterator lT = mlFrameTimes.begin();
+      list<bool>::iterator lbL = mlbLost.begin();
+      for (list<cv::Mat>::iterator lit = mlRelativeFramePoses.begin(),
+         lend = mlRelativeFramePoses.end();lit != lend;lit++, lRit++, lT++, lbL++)
+      {
+         //if (*lbL)
+         //   continue;
+
+         KeyFrame* pKF = *lRit;
+
+         cv::Mat Trw = cv::Mat::eye(4, 4, CV_32F);
+
+         // If the reference keyframe was culled, traverse the spanning tree to get a suitable keyframe.
+         while (pKF->IsBad())
+         {
+            Trw = Trw * pKF->Tcp;
+            pKF = pKF->GetParent();
+         }
+
+         Trw = Trw * pKF->GetPose()*Two;
+
+         cv::Mat Tcw = (*lit)*Trw;
+         cv::Mat Rwc = Tcw.rowRange(0, 3).colRange(0, 3).t();
+         cv::Mat twc = -Rwc * Tcw.rowRange(0, 3).col(3);
+
+         vector<float> q = Converter::toQuaternion(Rwc);
+
+         f << setprecision(6) << *lT << " " << setprecision(9) << twc.at<float>(0) << " " << twc.at<float>(1) << " " << twc.at<float>(2) << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
+      }
+      f.close();
    }
 
 } //namespace ORB_SLAM2_TEAM

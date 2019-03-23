@@ -56,9 +56,12 @@ bool gShouldRun = true;
 string gVocabFileName;
 string gMapperFileName;
 size_t gTrackerQuantity = 0;
+bool gNoViewer = false;
 vector<string> gTrackerFileName;
 vector<string> gTrackerLeftImageFileName;
 vector<string> gTrackerRightImageFileName;
+vector<string> gRunningPoseLog;
+vector<string> gFinalPoseLog;
 
 void VerifyString(const string & name, const string & value)
 {
@@ -96,9 +99,13 @@ void ParseParams(int paramc, char * paramv[])
    if (0 == gTrackerQuantity)
       throw exception("Tracker.Quantity must be 1 or more.");
 
+   gNoViewer = (int)config["NoViewer"] > 0 ? true : false;
+
    gTrackerFileName.resize(gTrackerQuantity);
    gTrackerLeftImageFileName.resize(gTrackerQuantity);
    gTrackerRightImageFileName.resize(gTrackerQuantity);
+   gRunningPoseLog.resize(gTrackerQuantity);
+   gFinalPoseLog.resize(gTrackerQuantity);
    for (int i = 0; i < gTrackerQuantity; i++) 
    {
       string paramNum = to_string(i + 1);
@@ -114,6 +121,14 @@ void ParseParams(int paramc, char * paramv[])
       paramName = string("Tracker.RightImages.") + paramNum;
       gTrackerRightImageFileName[i] = config[paramName];
       VerifyString(paramName, gTrackerRightImageFileName[i]);
+
+      paramName = string("Tracker.RunningPoseLog.") + paramNum;
+      gRunningPoseLog[i] = config[paramName];
+      VerifyString(paramName, gRunningPoseLog[i]);
+
+      paramName = string("Tracker.FinalPoseLog.") + paramNum;
+      gFinalPoseLog[i] = config[paramName];
+      VerifyString(paramName, gFinalPoseLog[i]);
    }
 }
 
@@ -163,6 +178,8 @@ void RunTracker(int threadId) try
    int width = gThreadParams[threadId].width;
    string imageLeftFileName = gTrackerLeftImageFileName[threadId];
    string imageRightFileName = gTrackerRightImageFileName[threadId];
+   string runningPoseLog = gRunningPoseLog[threadId];
+   string finalPoseLog = gFinalPoseLog[threadId];
    Tracking * pTracker = gThreadParams[threadId].tracker;
 
    // Retrieve paths to images
@@ -229,8 +246,8 @@ void RunTracker(int threadId) try
    }
 
    // Save camera trajectory
-   //SLAM.SaveTrajectoryTUM("CameraTrajectory.txt");
-   //SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");   
+   pTracker->SaveFinalTrajectoryTUM(runningPoseLog);
+   pTracker->SaveFinalTrajectoryTUM(finalPoseLog);
 
    gThreadParams[threadId].returnCode = EXIT_SUCCESS;
    gOutTrak.Print("end RunTracker");
@@ -300,7 +317,7 @@ catch( cv::Exception & e )
 {
    gShouldRun = false; //signal tracking threads to stop
    string msg = string("RunViewer: cv::Exception: ") + e.what();
-   cerr << "main: " << msg << endl;
+   cerr << "RunViewer: " << msg << endl;
    gOutMain.Print(msg);
    return EXIT_FAILURE;
 }
@@ -308,7 +325,7 @@ catch (const exception & e)
 {
    gShouldRun = false; //signal tracking threads to stop
    string msg = string("RunViewer: exception: ") + e.what();
-   cerr << "main: " << msg << endl;
+   cerr << "RunViewer: " << msg << endl;
    gOutMain.Print(msg);
    return EXIT_FAILURE;
 }
@@ -316,7 +333,7 @@ catch (...)
 {
    gShouldRun = false; //signal tracking threads to stop
    string msg = string("RunViewer: There was an unknown exception in RunViewer");
-   cerr << "main: " << msg << endl;
+   cerr << "RunViewer: " << msg << endl;
    gOutMain.Print(msg);
    return EXIT_FAILURE;
 }
@@ -324,6 +341,7 @@ catch (...)
 
 int main(int paramc, char * paramv[]) try
 {
+   throw exception("test exception");
    FrameDrawer * pFrameDrawer = NULL;
    Tracking * pTracker = NULL;
 
@@ -368,7 +386,9 @@ int main(int paramc, char * paramv[]) try
       gThreadParams[i].threadObj = new thread(RunTracker, i);
    }
 
-   int returnCode = RunViewer(vFrameDrawers, &mapDrawer, vTrackers, mapperServer, true);
+   int returnCode = EXIT_SUCCESS;
+   if (!gNoViewer)
+      returnCode = RunViewer(vFrameDrawers, &mapDrawer, vTrackers, mapperServer, true);
 
    // join threads and check return codes
    for (int i = 0; i < gTrackerQuantity; ++i)

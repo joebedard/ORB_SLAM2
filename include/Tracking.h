@@ -83,6 +83,20 @@ namespace ORB_SLAM2_TEAM
       // Reset the map
       void RequestReset();
 
+      // Save camera trajectory in the TUM RGB-D dataset format. This is the operating trajectory
+      // calculated for each frame while the program is running.
+      // NOTE: Only for stereo and RGB-D. This method does not work for monocular.
+      // NOTE: Call after tracking ends. Not thread-safe!
+      // See format details at: http://vision.in.tum.de/data/datasets/rgbd-dataset
+      void Tracking::SaveRunningTrajectoryTUM(const string &filename);
+
+      // Save camera trajectory in the TUM RGB-D dataset format. This is the final optimized 
+      // trajectory after all loop closures and bundle adjustments.
+      // NOTE: Only for stereo and RGB-D. This method does not work for monocular.
+      // NOTE: Call after tracking ends. Not thread-safe!
+      // See format details at: http://vision.in.tum.de/data/datasets/rgbd-dataset
+      void SaveFinalTrajectoryTUM(const string & filename);
+
    public:
 
       // Input sensor
@@ -98,6 +112,7 @@ namespace ORB_SLAM2_TEAM
       // Lists used to recover the full camera trajectory at the end of the execution.
       // Basically we store the reference keyframe for each frame and its relative transformation
       list<cv::Mat> mlRelativeFramePoses;
+      list<cv::Mat> mlAbsoluteFramePoses;
       list<KeyFrame*> mlpReferenceKFs;
       list<double> mlFrameTimes;
       list<bool> mlbLost;

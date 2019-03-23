@@ -28,7 +28,7 @@ namespace ORB_SLAM2_TEAM
 {
 
    Map::Map()
-      : mnMaxKFid(0), mnBigChangeIdx(0), SyncPrint("Map: ", false)
+      : mnMaxKFid(0), mnBigChangeIdx(0), mFirstKeyFrame(NULL), SyncPrint("Map: ", false)
    {
 
    }
@@ -40,10 +40,20 @@ namespace ORB_SLAM2_TEAM
          throw exception("Map::AddKeyFrame: can not add a NULL KeyFrame *");
 
       unique_lock<mutex> lock(mMutexMap);
+      if (NULL == mFirstKeyFrame)
+         mFirstKeyFrame = pKF;
+
       mKeyFrames[pKF->id] = pKF;
+
       if (pKF->id > mnMaxKFid)
          mnMaxKFid = pKF->id;
+
       //Print("end AddKeyFrame");
+   }
+
+   KeyFrame * Map::GetFirstKeyFrame()
+   {
+      return mFirstKeyFrame;
    }
 
    void Map::AddMapPoint(MapPoint *pMP)
@@ -101,6 +111,8 @@ namespace ORB_SLAM2_TEAM
    {
       unique_lock<mutex> lock(mMutexMap);
       mKeyFrames.erase(pKF->id);
+      if (mFirstKeyFrame->id == pKF->id)
+         mFirstKeyFrame = NULL;
 
       // TODO: This only erase the pointer.
       // Delete the KeyFrame
@@ -110,6 +122,8 @@ namespace ORB_SLAM2_TEAM
    {
       unique_lock<mutex> lock(mMutexMap);
       mKeyFrames.erase(keyFrameId);
+      if (mFirstKeyFrame->id == keyFrameId)
+         mFirstKeyFrame = NULL;
 
       // TODO: This only erase the pointer.
       // Delete the KeyFrame
@@ -226,6 +240,7 @@ namespace ORB_SLAM2_TEAM
       mMapPoints.clear();
       mKeyFrames.clear();
       mnMaxKFid = 0;
+      mFirstKeyFrame = NULL;
       mvpKeyFrameOrigins.clear();
    }
 
