@@ -127,7 +127,8 @@ namespace ORB_SLAM2_TEAM
 
       Frame & f = mpTracker->GrabImageStereo(imLeft, imRight, timestamp);
 
-      unique_lock<mutex> lock2(mMutexState);
+      // this is disabled until it is needed again
+      //unique_lock<mutex> lock2(mMutexState);
       //mTrackingState = mpTracker->mState;
       //mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
       //mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
@@ -143,7 +144,8 @@ namespace ORB_SLAM2_TEAM
 
       Frame & f = mpTracker->GrabImageRGBD(im, depthmap, timestamp);
 
-      unique_lock<mutex> lock2(mMutexState);
+      // this is disabled until it is needed again
+      //unique_lock<mutex> lock2(mMutexState);
       //mTrackingState = mpTracker->mState;
       //mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
       //mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
@@ -160,7 +162,8 @@ namespace ORB_SLAM2_TEAM
 
       Frame & f = mpTracker->GrabImageMonocular(im, timestamp);
 
-      unique_lock<mutex> lock2(mMutexState);
+      // this is disabled until it is needed again
+      //unique_lock<mutex> lock2(mMutexState);
       //mTrackingState = mpTracker->mState;
       //mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
       //mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
