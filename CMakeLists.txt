@@ -130,8 +130,6 @@ src/Tracking.cc
 src/Viewer.cc
 )
 
-message("Pangolin_INCLUDE_DIR == ${Pangolin_INCLUDE_DIR}")
-message("BUILD_INTERFACE:Pangolin_INCLUDE_DIR == $<BUILD_INTERFACE:${Pangolin_INCLUDE_DIR}>")
 target_include_directories(${PROJECT_NAME} PRIVATE
    ${Pangolin_INCLUDE_DIR}
    $<BUILD_INTERFACE:${cppzmq_INCLUDE_DIR}>
@@ -253,9 +251,9 @@ set_property(TARGET ORB_SLAM2_TEAM PROPERTY DEBUG_POSTFIX d)
 # install target
 
 if(RealSense2_FOUND)
-   set(RUNTIME_TARGETS rgbd_tum rgbd_tum_team stereo_kitti stereo_euroc stereo_euroc_team mono_tum mono_kitti mono_euroc realsense2 realsense2dual realsense2client)
+   set(RUNTIME_TARGETS rgbd_tum rgbd_tum_team stereo_kitti stereo_euroc stereo_euroc_team stereo_far_team mono_tum mono_kitti mono_euroc realsense2 realsense2dual realsense2client)
 elseif()
-   set(RUNTIME_TARGETS rgbd_tum rgbd_tum_team stereo_kitti stereo_euroc stereo_euroc_team mono_tum mono_kitti mono_euroc)
+   set(RUNTIME_TARGETS rgbd_tum rgbd_tum_team stereo_kitti stereo_euroc stereo_euroc_team stereo_far_team mono_tum mono_kitti mono_euroc)
 endif()
 
 install(TARGETS ${RUNTIME_TARGETS}
