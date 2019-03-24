@@ -63,6 +63,22 @@ vector<string> gTrackerRightImageFileName;
 vector<string> gRunningPoseLog;
 vector<string> gFinalPoseLog;
 
+void Log(const char * prefix, const char * message)
+{
+   SyncPrint::Print(prefix, message);
+   if (prefix)
+      clog << prefix;
+   if (message)
+      clog << message;
+   if (prefix || message)
+      clog << endl;
+}
+
+void Log(const char * prefix, string & message)
+{
+   Log(prefix, message.c_str());
+}
+
 void VerifyString(const string & name, const string & value)
 {
    if (0 == value.length())
@@ -288,10 +304,10 @@ void PrintStatistics()
          }
 
          stringstream ss;
-         ss << "tracking time statistics for thread " << i << " : " << endl;
+         ss << "tracking time statistics for thread " << i << ": " << endl;
          ss << "   median tracking time: " << vTimesTrack[vTimesTrack.size() / 2] << endl;
-         ss << "   mean tracking time: " << totaltime / vTimesTrack.size() << endl;
-         SyncPrint::Print(NULL, ss);
+         ss << "   mean tracking time: " << totaltime / vTimesTrack.size();
+         Log(NULL, ss.str());
       }
    }
 }
@@ -338,10 +354,8 @@ catch (...)
    return EXIT_FAILURE;
 }
 
-
 int main(int paramc, char * paramv[]) try
 {
-   throw exception("test exception");
    FrameDrawer * pFrameDrawer = NULL;
    Tracking * pTracker = NULL;
 
@@ -352,15 +366,15 @@ int main(int paramc, char * paramv[]) try
    ParseParams(paramc, paramv);
 
    //Load ORB Vocabulary
-   SyncPrint::Print(NULL, "Loading ORB Vocabulary. This could take a while...");
+   Log(NULL, "Loading ORB Vocabulary...");
    ORBVocabulary vocab;
    bool bVocLoad = vocab.loadFromFile(gVocabFileName);
    if (!bVocLoad)
    {
-      SyncPrint::Print("Failed to open vocabulary file at: ", gVocabFileName);
+      Log("Failed to open vocabulary file at: ", gVocabFileName);
       exit(-1);
    }
-   SyncPrint::Print(NULL, "Vocabulary loaded!");
+   Log(NULL, "Running ORB_SLAM2_TEAM...");
 
    cv::FileStorage mapperSettings(gMapperFileName, cv::FileStorage::READ);
    VerifySettings(mapperSettings, gMapperFileName);
@@ -398,6 +412,7 @@ int main(int paramc, char * paramv[]) try
          returnCode = EXIT_FAILURE;
    }
 
+   Log(NULL, "Data sequences completed.");
    PrintStatistics();
 
    // destroy objects
