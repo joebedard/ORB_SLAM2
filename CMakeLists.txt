@@ -229,10 +229,13 @@ target_link_libraries(server ${PROJECT_NAME})
 
 # build tools
 
-add_executable(bin_vocabulary
+add_executable(tools_bin_vocabulary
 tools/bin_vocabulary.cc)
-target_link_libraries(bin_vocabulary ${PROJECT_NAME})
+target_link_libraries(tools_bin_vocabulary ${PROJECT_NAME})
 
+add_executable(tools_resize_images
+tools/resize_images.cc)
+target_link_libraries(tools_resize_images ${OpenCV_LIBS})
 
 # cmake package config
 
