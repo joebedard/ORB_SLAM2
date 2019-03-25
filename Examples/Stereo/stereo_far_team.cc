@@ -360,7 +360,6 @@ int main(int paramc, char * paramv[]) try
    Tracking * pTracker = NULL;
 
    vector<FrameDrawer *> vFrameDrawers;
-   vector<Mapper *> vMapperClients;
    vector<Tracking *> vTrackers;
 
    ParseParams(paramc, paramv);
@@ -380,7 +379,6 @@ int main(int paramc, char * paramv[]) try
    VerifySettings(mapperSettings, gMapperFileName);
 
    MapperServer mapperServer(vocab, false, gTrackerQuantity);
-   vMapperClients.push_back(&mapperServer);
    MapDrawer mapDrawer(mapperSettings, mapperServer);
 
    gThreadParams.resize(gTrackerQuantity);

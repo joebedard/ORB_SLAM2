@@ -89,35 +89,29 @@ namespace ORB_SLAM2_TEAM
 
       SyncPrint(const string & prefix, bool enable = true) {}
 
-      static void Print(const char * prefix, const char * message) {}
+      inline static void Print(const char * prefix, const char * message) {}
 
-      static void Print(const char * prefix, string & message) {}
+      inline static void Print(const char * prefix, string & message) {}
 
-      static void Print(string & prefix, string & message) {}
+      inline static void Print(string & prefix, string & message) {}
 
-      static void Print(const char * prefix, stringstream & message) {}
+      inline static void Print(const char * prefix, stringstream & message) {}
 
-      static void Print(stringstream prefix, stringstream & message) {}
+      inline static void Print(stringstream prefix, stringstream & message) {}
 
-      void Print(const char * message) {}
+      inline void Print(const char * message) {}
 
-      void Print(string & message) {}
+      inline void Print(string & message) {}
 
-      void Print(stringstream & message) {}
+      inline void Print(stringstream & message) {}
 
    protected:
 
-      virtual void PrintPrefix(ostream & out) {}
-
-   private:
-
-      static mutex mMutexOutput;
-
-      const string mPrefix;
+      inline virtual void PrintPrefix(ostream & out) {}
 
    };
 
-#endif // ENABLE_SYNCPRINT
+#endif // !ENABLE_SYNCPRINT
 
 } // namespace ORB_SLAM2_TEAM
 

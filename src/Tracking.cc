@@ -149,16 +149,6 @@ namespace ORB_SLAM2_TEAM
          int rightHeight = fSettings["RIGHT.height"];
          int rightWidth = fSettings["RIGHT.width"];
 
-         if (P_l.empty() && P_r.empty())
-         {
-            P_l = K;
-            P_r = K;
-         }
-         else if (P_l.empty() || P_r.empty())
-         {
-            throw exception("LEFT.P and RIGHT.P must both be empty or both be given");
-         }
-
          if (K_l.empty() && K_r.empty() && R_l.empty() && R_r.empty() && D_l.empty() && D_r.empty() &&
             leftHeight == 0 && rightHeight == 0 && leftWidth == 0 && rightWidth == 0)
          {
@@ -172,7 +162,17 @@ namespace ORB_SLAM2_TEAM
          else
          {
             ss << endl << "Stereo Image Rectification is ENABLED" << endl;
-            Print("cv::initUndistortRectifyMap");
+
+            if (P_l.empty() && P_r.empty())
+            {
+               K.convertTo(P_l, CV_64F);
+               K.convertTo(P_r, CV_64F);
+            }
+            else if (P_l.empty() || P_r.empty())
+            {
+               throw exception("LEFT.P and RIGHT.P must both be empty or both be given");
+            }
+
             cv::initUndistortRectifyMap(K_l, D_l, R_l, P_l, cv::Size(leftWidth, leftHeight), CV_32FC1, mRectMapLeft1, mRectMapLeft2);
             cv::initUndistortRectifyMap(K_r, D_r, R_r, P_r, cv::Size(rightWidth, rightHeight), CV_32FC1, mRectMapRight1, mRectMapRight2);
             mRectify = true;
