@@ -31,6 +31,7 @@
 #include "LocalMapping.h"
 #include "LoopClosing.h"
 #include "Enums.h"
+#include <forward_list>
 
 namespace ORB_SLAM2_TEAM
 {
@@ -89,6 +90,8 @@ namespace ORB_SLAM2_TEAM
       virtual vector<cv::Mat> GetTrackerPoses();
 
       virtual vector<cv::Mat> GetTrackerPivots();
+
+      virtual forward_list<Statistics> GetStatistics();
 
    private:
       const unsigned int mMaxTrackers;

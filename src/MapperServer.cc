@@ -364,4 +364,14 @@ namespace ORB_SLAM2_TEAM
          throw exception(string("Tracker is not logged in! Id=").append(to_string(trackerId)).c_str());
    }
 
+   forward_list<Statistics> MapperServer::GetStatistics()
+   {
+      mLocalMapper.RequestFinish();
+      mLoopCloser.RequestFinish();
+      mptLocalMapping->join();
+      mptLoopClosing->join();
+      forward_list<Statistics> stats(mLoopCloser.GetStatistics());
+      stats.push_front(mLocalMapper.GetStatistics());
+      return stats;
+   }
 }

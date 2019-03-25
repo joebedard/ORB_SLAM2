@@ -26,6 +26,7 @@
 #include "Optimizer.h"
 #include "ORBmatcher.h"
 #include "Sleep.h"
+#include "Duration.h"
 #include <mutex>
 #include <thread>
 
@@ -92,14 +93,19 @@ namespace ORB_SLAM2_TEAM
             while (CheckNewKeyFrames())
             {
                // Detect loop candidates and check covisibility consistency
-               if (DetectLoop())
+               time_type startTime1 = GetNow();
+               bool detected = DetectLoop();
+               mDurationsLoopDetection.push_front(Duration(GetNow(), startTime1));
+               if (detected)
                {
                   // Compute similarity transformation [sR|t]
                   // In the stereo/RGBD case s=1
                   if (ComputeSim3())
                   {
                      // Perform loop fusion and pose graph optimization
+                     time_type startTime2 = GetNow();
                      CorrectLoop();
+                     mDurationsLoopClosure.push_front(Duration(GetNow(), startTime2));
                      mQuantityLoops++;
                   }
                }
@@ -740,6 +746,7 @@ namespace ORB_SLAM2_TEAM
       Print("begin RunGlobalBundleAdjustment");
       Print("Starting Global Bundle Adjustment");
 
+      time_type startTime = GetNow();
       int idx = mnFullBAIdx;
       Optimizer::GlobalBundleAdjustment(mMap, 10, &mbStopGBA, loopKeyFrameId, false);
 
@@ -850,6 +857,8 @@ namespace ORB_SLAM2_TEAM
          mbFinishedGBA = true;
          mbRunningGBA = false;
       }
+
+      mDurationsBundleAdjustment.push_front(Duration(GetNow(), startTime));
       Print("end RunGlobalBundleAdjustment");
    }
    catch(cv::Exception & e) {
@@ -893,6 +902,18 @@ namespace ORB_SLAM2_TEAM
    {
       unique_lock<mutex> lock(mMutexFinish);
       return mbFinished;
+   }
+
+   forward_list<Statistics> LoopClosing::GetStatistics()
+   {
+      forward_list<Statistics> stats;
+      Statistics statsBA("Bundle Adjustment Duration per Loop", mDurationsBundleAdjustment);
+      stats.push_front(statsBA);
+      Statistics statsClosure("Loop Closure Duration per Loop", mDurationsLoopClosure);
+      stats.push_front(statsClosure);
+      Statistics statsDetection("Loop Detection Duration per KeyFrame", mDurationsLoopDetection);
+      stats.push_front(statsDetection);
+      return stats;
    }
 
 } //namespace ORB_SLAM

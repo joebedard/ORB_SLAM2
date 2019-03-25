@@ -287,8 +287,19 @@ catch (...)
    gOutTrak.Print(msg);
 }
 
-void PrintStatistics()
+void PrintStatistics(forward_list<Statistics> & stats)
 {
+   stringstream ss;
+   for (auto it = stats.begin(), endIt = stats.end(); it != endIt; it++)
+   {
+      ss << "   " << it->Name << " (" << it->N << ", " << it->Mean << ", " << it->SD << ")" << endl;
+   }
+   Log(NULL, ss.str());
+}
+
+void PrintStatistics(MapperServer & mapper)
+{
+   // statistics for each tracking thread
    for (int i = 0; i < gTrackerQuantity; ++i)
    {
       vector<float> & vTimesTrack = gThreadParams[i].timesTrack;
@@ -304,12 +315,18 @@ void PrintStatistics()
          }
 
          stringstream ss;
-         ss << "tracking time statistics for thread " << i << ": " << endl;
+         ss << "tracking statistics for thread " << i << ": " << endl;
          ss << "   median tracking time: " << vTimesTrack[vTimesTrack.size() / 2] << endl;
-         ss << "   mean tracking time: " << totaltime / vTimesTrack.size();
+         ss << "   mean tracking time: " << totaltime / vTimesTrack.size() << endl;
+         ss << "   relocalizations: " << gThreadParams[i].tracker->quantityRelocalizations << endl;
          Log(NULL, ss.str());
       }
    }
+
+   // statistics for the mapping thread
+   forward_list<Statistics> mappingStats = mapper.GetStatistics();
+   Log(NULL, "mapping statistics:");
+   PrintStatistics(mappingStats);
 }
 
 int RunViewer(
@@ -411,7 +428,7 @@ int main(int paramc, char * paramv[]) try
    }
 
    Log(NULL, "Data sequences completed.");
-   PrintStatistics();
+   PrintStatistics(mapperServer);
 
    // destroy objects
    for (int i = 0; i < gTrackerQuantity; ++i)

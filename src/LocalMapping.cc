@@ -24,6 +24,7 @@
 #include "ORBmatcher.h"
 #include "Optimizer.h"
 #include "Sleep.h"
+#include "Duration.h"
 
 #include<mutex>
 
@@ -85,6 +86,9 @@ namespace ORB_SLAM2_TEAM
             // Check if there are keyframes in the queue
             if (CheckNewKeyFrames())
             {
+               // begin duration measurement
+               time_type startTime = GetNow();
+
                // Tracking will see that Local Mapping is busy
                SetIdle(false);
 
@@ -123,6 +127,9 @@ namespace ORB_SLAM2_TEAM
                NotifyMapChanged(mMap);
 
                mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
+
+               // end duration measurement
+               mDurations.push_front(Duration(GetNow(), startTime));
             }
             else if (Pause())
             {
@@ -1012,6 +1019,12 @@ namespace ORB_SLAM2_TEAM
       unsigned long temp = mNextMapPointId;
       mNextMapPointId += mMapPointIdSpan;
       return temp;
+   }
+
+   Statistics LocalMapping::GetStatistics()
+   {
+      Statistics stats("Mapping Duration per KeyFrame", mDurations);
+      return stats;
    }
 
 } //namespace ORB_SLAM

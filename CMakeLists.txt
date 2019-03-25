@@ -97,6 +97,7 @@ include/PnPsolver.h
 include/Serializer.h
 include/Sim3Solver.h
 include/Sleep.h
+include/Statistics.h
 include/SyncPrint.h
 include/System.h
 include/Tracking.h

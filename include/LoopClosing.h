@@ -31,6 +31,7 @@
 #include "ORBVocabulary.h"
 #include "KeyFrameDatabase.h"
 #include "SyncPrint.h"
+#include "Statistics.h"
 
 #include <thread>
 #include <mutex>
@@ -90,6 +91,8 @@ namespace ORB_SLAM2_TEAM
       void RequestFinish();
 
       bool IsFinished();
+
+      forward_list<Statistics> GetStatistics();
 
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -160,6 +163,15 @@ namespace ORB_SLAM2_TEAM
       std::mutex & mMutexMapUpdate;
 
       unsigned int mQuantityLoops;
+
+      // durations of loop detection
+      forward_list<double> mDurationsLoopDetection;
+
+      // durations of loop closing
+      forward_list<double> mDurationsLoopClosure;
+
+      // durations for global bundle adjustment
+      forward_list<double> mDurationsBundleAdjustment;
    };
 
 } //namespace ORB_SLAM

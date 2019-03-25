@@ -31,6 +31,7 @@
 #include "KeyFrameDatabase.h"
 #include "MapperSubject.h"
 #include "SyncPrint.h"
+#include "Statistics.h"
 
 #include <mutex>
 
@@ -87,6 +88,8 @@ namespace ORB_SLAM2_TEAM
          unique_lock<mutex> lock(mMutexNewKFs);
          return mNewKeyFrames.size();
       }
+
+      Statistics GetStatistics();
 
    protected:
 
@@ -165,6 +168,8 @@ namespace ORB_SLAM2_TEAM
 
       unsigned long NewMapPointId();
 
+      // durations of processing new keyframes
+      forward_list<double> mDurations;
    };
 
 } //namespace ORB_SLAM
