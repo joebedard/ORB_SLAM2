@@ -86,6 +86,8 @@ namespace ORB_SLAM2_TEAM
             // Check if there are keyframes in the queue
             if (CheckNewKeyFrames())
             {
+               mMetricsKeyFramesInMap.push_back(mMap.KeyFramesInMap());
+               mMetricsMapPointsInMap.push_back(mMap.MapPointsInMap());
                // begin duration measurement
                time_type startTime = GetNow();
 
@@ -129,7 +131,7 @@ namespace ORB_SLAM2_TEAM
                mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
 
                // end duration measurement
-               mDurations.push_front(Duration(GetNow(), startTime));
+               mMetricsDuration.push_back(Duration(GetNow(), startTime));
             }
             else if (Pause())
             {
@@ -1023,8 +1025,20 @@ namespace ORB_SLAM2_TEAM
 
    Statistics LocalMapping::GetStatistics()
    {
-      Statistics stats("Mapping Duration per KeyFrame", mDurations);
-      return stats;
+      return Statistics("Mapping Duration per KeyFrame", mMetricsDuration);
+   }
+
+   void LocalMapping::WriteMetrics(ofstream & ofs)
+   {
+      ofs << "Mapping Duration per KeyFrame (ms), KeyFrames in Map, MapPoints in Map" << endl;
+      auto itDuration = mMetricsDuration.begin();
+      auto itKeyFrames = mMetricsKeyFramesInMap.begin();
+      auto itMapPoints = mMetricsMapPointsInMap.begin();
+      for (auto itEnd = mMetricsDuration.end(); itDuration != itEnd; ++itDuration, ++itKeyFrames, ++itMapPoints)
+      {
+         ofs << *itDuration << ", " << *itKeyFrames << ", " << *itMapPoints << endl;
+      }
+      ofs << endl;
    }
 
 } //namespace ORB_SLAM

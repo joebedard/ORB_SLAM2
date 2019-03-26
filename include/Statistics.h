@@ -19,7 +19,7 @@
 */
 
 #include <string>
-#include <forward_list>
+#include <list>
 
 #ifndef STATISTICS_H
 #define STATISTICS_H
@@ -36,7 +36,7 @@ namespace ORB_SLAM2_TEAM
       const double & Mean;
       const double & SD;
 
-      Statistics(const char * name, forward_list<double> & samples)
+      Statistics(const char * name, list<double> & samples)
          : Name(mName)
          , N(mN)
          , Mean(mMean)

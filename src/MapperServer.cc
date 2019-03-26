@@ -42,6 +42,7 @@ namespace ORB_SLAM2_TEAM
       , mPivotCalib(maxTrackers)
       , mPoseTcw(maxTrackers)
       , mInitialized(false)
+      , mFinalized(false)
       , mLocalMapper(mMap, mKeyFrameDB, mVocab, bMonocular, maxTrackers, mKeyFrameIdSpan, mFirstMapPointIdMapper, mMapPointIdSpan)
       , mLoopCloser(mMap, mKeyFrameDB, mVocab, !bMonocular)
       , mLocalMappingObserver(this)
@@ -64,12 +65,7 @@ namespace ORB_SLAM2_TEAM
    MapperServer::~MapperServer()
    {
       Print("begin ~MapperServer");
-      mLocalMapper.RequestFinish();
-      mLoopCloser.RequestFinish();
-
-      mptLocalMapping->join();
-      mptLoopClosing->join();
-
+      Shutdown();
       delete mptLocalMapping;
       delete mptLoopClosing;
       Print("end ~MapperServer");
@@ -364,14 +360,26 @@ namespace ORB_SLAM2_TEAM
          throw exception(string("Tracker is not logged in! Id=").append(to_string(trackerId)).c_str());
    }
 
-   forward_list<Statistics> MapperServer::GetStatistics()
+   void MapperServer::Shutdown()
    {
+      if (mFinalized) return;
+      mFinalized = true;
       mLocalMapper.RequestFinish();
       mLoopCloser.RequestFinish();
       mptLocalMapping->join();
       mptLoopClosing->join();
-      forward_list<Statistics> stats(mLoopCloser.GetStatistics());
+   }
+
+   list<Statistics> MapperServer::GetStatistics()
+   {
+      list<Statistics> stats(mLoopCloser.GetStatistics());
       stats.push_front(mLocalMapper.GetStatistics());
       return stats;
+   }
+
+   void MapperServer::WriteMetrics(ofstream & ofs)
+   {
+      mLocalMapper.WriteMetrics(ofs);
+      mLoopCloser.WriteMetrics(ofs);
    }
 }

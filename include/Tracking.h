@@ -24,8 +24,8 @@
 #ifndef TRACKING_H
 #define TRACKING_H
 
-#include<opencv2/core/core.hpp>
-#include<opencv2/features2d/features2d.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/features2d/features2d.hpp>
 
 #include "Mapper.h"
 #include "MapChangeEvent.h"
@@ -97,6 +97,12 @@ namespace ORB_SLAM2_TEAM
       // See format details at: http://vision.in.tum.de/data/datasets/rgbd-dataset
       void SaveFinalTrajectoryTUM(const string & filename);
 
+      // NOTE: Call after tracking ends. Not thread-safe!
+      virtual map<const char *, double> GetMetrics();
+
+      // NOTE: Call after tracking ends. Not thread-safe!
+      virtual void WriteMetrics(ofstream & ofs);
+
    public:
 
       // Input sensor
@@ -124,6 +130,9 @@ namespace ORB_SLAM2_TEAM
 
       // quantity of successful relocalizations (after a tracking failure)
       unsigned int & quantityRelocalizations;
+
+      // quantity of image frames processed by Track()
+      unsigned int & quantityFramesProcessed;
 
    protected:
 
@@ -208,6 +217,8 @@ namespace ORB_SLAM2_TEAM
 
       unsigned int mQuantityRelocalizations;
 
+      unsigned int mQuantityFramesProcessed;
+
       // should stereo images be rectified before feature extraction
       bool mRectify;
 
@@ -272,6 +283,11 @@ namespace ORB_SLAM2_TEAM
       // searches mvpLocalMapPoints for matches to keypoints in mCurrentFrame
       // post: matching map points are in mCurrentFrame.mvpMapPoints
       void SearchLocalPoints();
+
+      // Track() metrics
+      list<double> mMetricsTrackDuration;
+      list<double> mMetricsTrackKeyFramesInMap;
+      list<double> mMetricsTrackMapPointsInMap;
 
       void HandleMapReset();
 

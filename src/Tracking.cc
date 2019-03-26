@@ -31,6 +31,7 @@
 #include "Optimizer.h"
 #include "PnPsolver.h"
 #include "Sleep.h"
+#include "Duration.h"
 
 #include <iostream>
 #include <mutex>
@@ -72,6 +73,9 @@ namespace ORB_SLAM2_TEAM
       pivotCal(4, 4, CV_32F),
       mBaseline(cv::Mat::eye(4, 4, CV_32F)),
       quantityRelocalizations(mQuantityRelocalizations),
+      quantityFramesProcessed(mQuantityFramesProcessed),
+      mQuantityRelocalizations(0),
+      mQuantityFramesProcessed(0),
       mRectify(false)
    {
       LoadCameraParameters(fSettings, sensor);
@@ -375,6 +379,7 @@ namespace ORB_SLAM2_TEAM
 
    Frame & Tracking::GrabImageStereo(const cv::Mat & imRectLeft, const cv::Mat & imRectRight, const double & timestamp)
    {
+      time_type startTrack = GetNow();
       CheckModeChange();
       CheckReset();
 
@@ -423,12 +428,16 @@ namespace ORB_SLAM2_TEAM
       }
 
 
+      mMetricsTrackDuration.push_back(Duration(GetNow(), startTrack));
+      mMetricsTrackKeyFramesInMap.push_back(mMapper.GetMap().KeyFramesInMap());
+      mMetricsTrackMapPointsInMap.push_back(mMapper.GetMap().MapPointsInMap());
       return mCurrentFrame;
    }
 
 
    Frame & Tracking::GrabImageRGBD(const cv::Mat & imRGB, const cv::Mat & imD, const double & timestamp)
    {
+      time_type startTrack = GetNow();
       CheckModeChange();
       CheckReset();
 
@@ -457,12 +466,16 @@ namespace ORB_SLAM2_TEAM
 
       Track(imGray);
 
+      mMetricsTrackDuration.push_back(Duration(GetNow(), startTrack));
+      mMetricsTrackKeyFramesInMap.push_back(mMapper.GetMap().KeyFramesInMap());
+      mMetricsTrackMapPointsInMap.push_back(mMapper.GetMap().MapPointsInMap());
       return mCurrentFrame;
    }
 
 
    Frame & Tracking::GrabImageMonocular(const cv::Mat & im, const double & timestamp)
    {
+      time_type startTrack = GetNow();
       CheckModeChange();
       CheckReset();
 
@@ -490,12 +503,16 @@ namespace ORB_SLAM2_TEAM
 
       Track(imGray);
 
+      mMetricsTrackDuration.push_back(Duration(GetNow(), startTrack));
+      mMetricsTrackKeyFramesInMap.push_back(mMapper.GetMap().KeyFramesInMap());
+      mMetricsTrackMapPointsInMap.push_back(mMapper.GetMap().MapPointsInMap());
       return mCurrentFrame;
    }
 
    void Tracking::Track(cv::Mat & imGray)
    {
       Print("begin Track");
+      ++mQuantityFramesProcessed;
 
       // Get Map Mutex -> Map cannot be changed
       Print("waiting to lock map");
@@ -662,18 +679,14 @@ namespace ORB_SLAM2_TEAM
          mlFrameTimes.push_back(mCurrentFrame.mTimeStamp);
          mlbLost.push_back(mState == TRACKING_LOST);
       }
-      else
+      else if (!mlRelativeFramePoses.empty())
       {
          // This can happen if tracking is lost
-         if (!mlRelativeFramePoses.empty())
-         {
-            mlRelativeFramePoses.push_back(mlRelativeFramePoses.back());
-            mlAbsoluteFramePoses.push_back(mlAbsoluteFramePoses.back());
-            mlpReferenceKFs.push_back(mlpReferenceKFs.back());
-            //mlFrameTimes.push_back(mlFrameTimes.back());
-            mlFrameTimes.push_back(mCurrentFrame.mTimeStamp);
-            mlbLost.push_back(mState == TRACKING_LOST);
-         }
+         mlRelativeFramePoses.push_back(mlRelativeFramePoses.back());
+         mlAbsoluteFramePoses.push_back(mlAbsoluteFramePoses.back());
+         mlpReferenceKFs.push_back(mlpReferenceKFs.back());
+         mlFrameTimes.push_back(mCurrentFrame.mTimeStamp);
+         mlbLost.push_back(mState == TRACKING_LOST);
       }
       Print("end Track 4");
    }
@@ -1596,7 +1609,14 @@ namespace ORB_SLAM2_TEAM
 
       mMapper.Reset();
 
-      //Frame::nNextId = 0;
+      mlRelativeFramePoses.clear();
+      mlAbsoluteFramePoses.clear();
+      mlpReferenceKFs.clear();
+      mlFrameTimes.clear();
+      mlbLost.clear();
+      mMetricsTrackDuration.clear();
+      mMetricsTrackKeyFramesInMap.clear();
+      mMetricsTrackMapPointsInMap.clear();
 
       if (mpViewer)
          mpViewer->Resume();
@@ -1900,6 +1920,30 @@ namespace ORB_SLAM2_TEAM
          f << setprecision(6) << *lT << " " << setprecision(9) << twc.at<float>(0) << " " << twc.at<float>(1) << " " << twc.at<float>(2) << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
       }
       f.close();
+   }
+
+   map<const char *, double> Tracking::GetMetrics()
+   {
+      Statistics statsDuration("Track Duration per KeyFrame (ms)", mMetricsTrackDuration);
+      map<const char *, double> stats;
+      stats["Tracking Duration per Frame, Mean"] = statsDuration.Mean;
+      stats["Tracking Duration per Frame, S.D."] = statsDuration.SD;
+      stats["Frames Processed"] = mQuantityFramesProcessed;
+      stats["Relocalizations"] = mQuantityRelocalizations;
+      return stats;
+   }
+
+   void Tracking::WriteMetrics(ofstream & ofs)
+   {
+      ofs << "Track Duration per KeyFrame (ms), KeyFrames in Map, MapPoints in Map" << endl;
+      auto itDuration = mMetricsTrackDuration.begin();
+      auto itKeyFrames = mMetricsTrackKeyFramesInMap.begin();
+      auto itMapPoints = mMetricsTrackMapPointsInMap.begin();
+      for (auto itEnd = mMetricsTrackDuration.end(); itDuration != itEnd; ++itDuration, ++itKeyFrames, ++itMapPoints)
+      {
+         ofs << *itDuration << ", " << *itKeyFrames << ", " << *itMapPoints << endl;
+      }
+      ofs << endl;
    }
 
 } //namespace ORB_SLAM2_TEAM

@@ -89,7 +89,9 @@ namespace ORB_SLAM2_TEAM
          return mNewKeyFrames.size();
       }
 
-      Statistics GetStatistics();
+      virtual Statistics GetStatistics();
+
+      virtual void WriteMetrics(ofstream & ofs);
 
    protected:
 
@@ -168,8 +170,10 @@ namespace ORB_SLAM2_TEAM
 
       unsigned long NewMapPointId();
 
-      // durations of processing new keyframes
-      forward_list<double> mDurations;
+      // process new keyframe metrics
+      list<double> mMetricsDuration;
+      list<double> mMetricsKeyFramesInMap;
+      list<double> mMetricsMapPointsInMap;
    };
 
 } //namespace ORB_SLAM

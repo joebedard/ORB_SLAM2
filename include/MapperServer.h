@@ -31,7 +31,6 @@
 #include "LocalMapping.h"
 #include "LoopClosing.h"
 #include "Enums.h"
-#include <forward_list>
 
 namespace ORB_SLAM2_TEAM
 {
@@ -91,7 +90,13 @@ namespace ORB_SLAM2_TEAM
 
       virtual vector<cv::Mat> GetTrackerPivots();
 
-      virtual forward_list<Statistics> GetStatistics();
+      virtual void Shutdown();
+
+      // NOTE: Call after tracking ends. Not thread-safe! Stops the mapping and loop closing threads.
+      virtual list<Statistics> GetStatistics();
+
+      // NOTE: Call after tracking ends. Not thread-safe! Stops the mapping and loop closing threads.
+      virtual void WriteMetrics(ofstream & ofs);
 
    private:
       const unsigned int mMaxTrackers;
@@ -125,6 +130,8 @@ namespace ORB_SLAM2_TEAM
       Map mMap;
 
       bool mInitialized;
+
+      bool mFinalized;
 
       LocalMapping mLocalMapper;
 

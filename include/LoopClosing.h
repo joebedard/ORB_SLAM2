@@ -92,7 +92,9 @@ namespace ORB_SLAM2_TEAM
 
       bool IsFinished();
 
-      forward_list<Statistics> GetStatistics();
+      virtual list<Statistics> GetStatistics();
+
+      virtual void WriteMetrics(ofstream & ofs);
 
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -164,14 +166,20 @@ namespace ORB_SLAM2_TEAM
 
       unsigned int mQuantityLoops;
 
-      // durations of loop detection
-      forward_list<double> mDurationsLoopDetection;
+      // loop detection metrics
+      list<double> mMetricsLoopDetectionDuration;
+      list<double> mMetricsLoopDetectionKeyFramesInMap;
+      list<double> mMetricsLoopDetectionMapPointsInMap;
 
-      // durations of loop closing
-      forward_list<double> mDurationsLoopClosure;
+      // loop closing metrics
+      list<double> mMetricsLoopCorrectionDuration;
+      list<double> mMetricsLoopCorrectionKeyFramesInMap;
+      list<double> mMetricsLoopCorrectionMapPointsInMap;
 
-      // durations for global bundle adjustment
-      forward_list<double> mDurationsBundleAdjustment;
+      // global bundle adjustment metrics
+      list<double> mMetricsBundleAdjustmentDuration;
+      list<double> mMetricsBundleAdjustmentKeyFramesInMap;
+      list<double> mMetricsBundleAdjustmentMapPointsInMap;
    };
 
 } //namespace ORB_SLAM

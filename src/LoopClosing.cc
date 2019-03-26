@@ -93,9 +93,11 @@ namespace ORB_SLAM2_TEAM
             while (CheckNewKeyFrames())
             {
                // Detect loop candidates and check covisibility consistency
+               mMetricsLoopDetectionKeyFramesInMap.push_back(mMap.KeyFramesInMap());
+               mMetricsLoopDetectionMapPointsInMap.push_back(mMap.MapPointsInMap());
                time_type startTime1 = GetNow();
                bool detected = DetectLoop();
-               mDurationsLoopDetection.push_front(Duration(GetNow(), startTime1));
+               mMetricsLoopDetectionDuration.push_back(Duration(GetNow(), startTime1));
                if (detected)
                {
                   // Compute similarity transformation [sR|t]
@@ -103,9 +105,11 @@ namespace ORB_SLAM2_TEAM
                   if (ComputeSim3())
                   {
                      // Perform loop fusion and pose graph optimization
+                     mMetricsLoopCorrectionKeyFramesInMap.push_back(mMap.KeyFramesInMap());
+                     mMetricsLoopCorrectionMapPointsInMap.push_back(mMap.MapPointsInMap());
                      time_type startTime2 = GetNow();
                      CorrectLoop();
-                     mDurationsLoopClosure.push_front(Duration(GetNow(), startTime2));
+                     mMetricsLoopCorrectionDuration.push_back(Duration(GetNow(), startTime2));
                      mQuantityLoops++;
                   }
                }
@@ -506,7 +510,6 @@ namespace ORB_SLAM2_TEAM
       }
 
       // Wait until Local Mapping has effectively stopped
-      Print("while (!mpLocalMapper->IsPaused())");
       while (!mpLocalMapper->IsPaused())
       {
          sleep(1000);
@@ -528,7 +531,6 @@ namespace ORB_SLAM2_TEAM
          unique_lock<mutex> lock(mMutexMapUpdate);
          Print("map is locked");
 
-         Print("for (vector<KeyFrame*>::iterator vit = mvpCurrentConnectedKFs.begin(), vend = mvpCurrentConnectedKFs.end(); vit != vend; vit++)");
          for (vector<KeyFrame*>::iterator vit = mvpCurrentConnectedKFs.begin(), vend = mvpCurrentConnectedKFs.end(); vit != vend; vit++)
          {
             KeyFrame* pKFi = *vit;
@@ -554,7 +556,6 @@ namespace ORB_SLAM2_TEAM
          }
 
          // Correct all MapPoints obsrved by current keyframe and neighbors, so that they align with the other side of the loop
-         Print("for (KeyFrameAndPose::iterator mit = CorrectedSim3.begin(), mend = CorrectedSim3.end(); mit != mend; mit++)");
          for (KeyFrameAndPose::iterator mit = CorrectedSim3.begin(), mend = CorrectedSim3.end(); mit != mend; mit++)
          {
             KeyFrame* pKFi = mit->first;
@@ -603,7 +604,6 @@ namespace ORB_SLAM2_TEAM
 
          // Start Loop Fusion
          // Update matched map points and replace if duplicated
-         Print("for (size_t i = 0; i < mvpCurrentMatchedPoints.size(); i++)");
          for (size_t i = 0; i < mvpCurrentMatchedPoints.size(); i++)
          {
             if (mvpCurrentMatchedPoints[i])
@@ -633,7 +633,6 @@ namespace ORB_SLAM2_TEAM
       // After the MapPoint fusion, new links in the covisibility graph will appear attaching both sides of the loop
       map<KeyFrame*, set<KeyFrame*> > LoopConnections;
 
-      Print("for (vector<KeyFrame*>::iterator vit = mvpCurrentConnectedKFs.begin(), vend = mvpCurrentConnectedKFs.end(); vit != vend; vit++)");
       for (vector<KeyFrame*>::iterator vit = mvpCurrentConnectedKFs.begin(), vend = mvpCurrentConnectedKFs.end(); vit != vend; vit++)
       {
          KeyFrame* pKFi = *vit;
@@ -746,6 +745,8 @@ namespace ORB_SLAM2_TEAM
       Print("begin RunGlobalBundleAdjustment");
       Print("Starting Global Bundle Adjustment");
 
+      mMetricsBundleAdjustmentKeyFramesInMap.push_back(mMap.KeyFramesInMap());
+      mMetricsBundleAdjustmentMapPointsInMap.push_back(mMap.MapPointsInMap());
       time_type startTime = GetNow();
       int idx = mnFullBAIdx;
       Optimizer::GlobalBundleAdjustment(mMap, 10, &mbStopGBA, loopKeyFrameId, false);
@@ -759,6 +760,7 @@ namespace ORB_SLAM2_TEAM
          unique_lock<mutex> lock(mMutexGBA);
          if (idx != mnFullBAIdx)
          {
+            mMetricsBundleAdjustmentDuration.push_back(Duration(GetNow(), startTime));
             NotifyMapChanged(mMap);
             return;
          }
@@ -858,7 +860,7 @@ namespace ORB_SLAM2_TEAM
          mbRunningGBA = false;
       }
 
-      mDurationsBundleAdjustment.push_front(Duration(GetNow(), startTime));
+      mMetricsBundleAdjustmentDuration.push_back(Duration(GetNow(), startTime));
       Print("end RunGlobalBundleAdjustment");
    }
    catch(cv::Exception & e) {
@@ -904,16 +906,55 @@ namespace ORB_SLAM2_TEAM
       return mbFinished;
    }
 
-   forward_list<Statistics> LoopClosing::GetStatistics()
+   list<Statistics> LoopClosing::GetStatistics()
    {
-      forward_list<Statistics> stats;
-      Statistics statsBA("Bundle Adjustment Duration per Loop", mDurationsBundleAdjustment);
-      stats.push_front(statsBA);
-      Statistics statsClosure("Loop Closure Duration per Loop", mDurationsLoopClosure);
-      stats.push_front(statsClosure);
-      Statistics statsDetection("Loop Detection Duration per KeyFrame", mDurationsLoopDetection);
-      stats.push_front(statsDetection);
+      list<Statistics> stats;
+      Statistics statsDetection("Loop Detection Duration per KeyFrame", mMetricsLoopDetectionDuration);
+      stats.push_back(statsDetection);
+      Statistics statsClosure("Loop Closure Duration per Loop", mMetricsLoopCorrectionDuration);
+      stats.push_back(statsClosure);
+      Statistics statsBA("Bundle Adjustment Duration per Loop", mMetricsBundleAdjustmentDuration);
+      stats.push_back(statsBA);
       return stats;
+   }
+
+   void LoopClosing::WriteMetrics(ofstream & ofs)
+   {
+      {
+         ofs << "Loop Detection per KeyFrame (ms), KeyFrames in Map, MapPoints in Map" << endl;
+         auto itDuration = mMetricsLoopDetectionDuration.begin();
+         auto itKeyFrames = mMetricsLoopDetectionKeyFramesInMap.begin();
+         auto itMapPoints = mMetricsLoopDetectionMapPointsInMap.begin();
+         for (auto itEnd = mMetricsLoopDetectionDuration.end(); itDuration != itEnd; ++itDuration, ++itKeyFrames, ++itMapPoints)
+         {
+            ofs << *itDuration << ", " << *itKeyFrames << ", " << *itMapPoints << endl;
+         }
+         ofs << endl;
+      }
+
+      {
+         ofs << "Loop Closing per Loop (ms), KeyFrames in Map, MapPoints in Map" << endl;
+         auto itDuration = mMetricsLoopCorrectionDuration.begin();
+         auto itKeyFrames = mMetricsLoopCorrectionKeyFramesInMap.begin();
+         auto itMapPoints = mMetricsLoopCorrectionMapPointsInMap.begin();
+         for (auto itEnd = mMetricsLoopCorrectionDuration.end(); itDuration != itEnd; ++itDuration, ++itKeyFrames, ++itMapPoints)
+         {
+            ofs << *itDuration << ", " << *itKeyFrames << ", " << *itMapPoints << endl;
+         }
+         ofs << endl;
+      }
+
+      {
+         ofs << "Global Bundle Adjust per Loop (ms), KeyFrames in Map, MapPoints in Map" << endl;
+         auto itDuration = mMetricsBundleAdjustmentDuration.begin();
+         auto itKeyFrames = mMetricsBundleAdjustmentKeyFramesInMap.begin();
+         auto itMapPoints = mMetricsBundleAdjustmentMapPointsInMap.begin();
+         for (auto itEnd = mMetricsBundleAdjustmentDuration.end(); itDuration != itEnd; ++itDuration, ++itKeyFrames, ++itMapPoints)
+         {
+            ofs << *itDuration << ", " << *itKeyFrames << ", " << *itMapPoints << endl;
+         }
+         ofs << endl;
+      }
    }
 
 } //namespace ORB_SLAM

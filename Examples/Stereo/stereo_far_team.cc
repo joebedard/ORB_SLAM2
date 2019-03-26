@@ -33,6 +33,7 @@
 #include <Mapper.h>
 #include <MapperServer.h>
 #include <SyncPrint.h>
+#include <fstream>
 
 using namespace ORB_SLAM2_TEAM;
 
@@ -46,7 +47,6 @@ struct ThreadParam
    Tracking * tracker;
    int height;
    int width;
-   vector<float> timesTrack;
    thread * threadObj;
 };
 vector<ThreadParam> gThreadParams;
@@ -55,8 +55,9 @@ bool gShouldRun = true;
 // master config settings
 string gVocabFileName;
 string gMapperFileName;
-size_t gTrackerQuantity = 0;
 bool gNoViewer = false;
+string gMetricsLog;
+size_t gTrackerQuantity = 0;
 vector<string> gTrackerFileName;
 vector<string> gTrackerLeftImageFileName;
 vector<string> gTrackerRightImageFileName;
@@ -111,11 +112,14 @@ void ParseParams(int paramc, char * paramv[])
    gMapperFileName = config["Mapper"];
    VerifyString("Mapper file name", gMapperFileName);
 
+   gNoViewer = (int)config["NoViewer"] > 0 ? true : false;
+
+   gMetricsLog = config["MetricsLog"];
+   VerifyString("Metrics Log file name", gMetricsLog);
+
    gTrackerQuantity = (int)config["Tracker.Quantity"];
    if (0 == gTrackerQuantity)
       throw exception("Tracker.Quantity must be 1 or more.");
-
-   gNoViewer = (int)config["NoViewer"] > 0 ? true : false;
 
    gTrackerFileName.resize(gTrackerQuantity);
    gTrackerLeftImageFileName.resize(gTrackerQuantity);
@@ -221,10 +225,6 @@ void RunTracker(int threadId) try
 
    const int nImages = vstrImageFileNamesLeft.size();
 
-   // Vector for tracking time statistics
-   vector<float> & vTimesTrack = gThreadParams[threadId].timesTrack;
-   vTimesTrack.resize(nImages);
-
    // Main loop
    cv::Mat imLeft, imRight;
    for(int ni=0; ni < nImages; ni++)
@@ -248,7 +248,6 @@ void RunTracker(int threadId) try
       time_type t1 = GetNow();
       pTracker->GrabImageStereo(imLeft, imRight, tframe / 1e9);
       double ttrack = Duration(GetNow(), t1);
-      vTimesTrack[ni] = ttrack;
 
       // Wait to load the next frame
       unsigned long long T = 0;
@@ -287,7 +286,7 @@ catch (...)
    gOutTrak.Print(msg);
 }
 
-void PrintStatistics(forward_list<Statistics> & stats)
+void PrintStatistics(list<Statistics> & stats)
 {
    stringstream ss;
    for (auto it = stats.begin(), endIt = stats.end(); it != endIt; it++)
@@ -299,34 +298,31 @@ void PrintStatistics(forward_list<Statistics> & stats)
 
 void PrintStatistics(MapperServer & mapper)
 {
+   ofstream metricsFile;
+   metricsFile.open(gMetricsLog);
+
+   // statistics for the mapping thread
+   mapper.Shutdown();
+   mapper.WriteMetrics(metricsFile);
+   Log(NULL, "mapping statistics:");
+   list<Statistics> mappingStats = mapper.GetStatistics();
+   PrintStatistics(mappingStats);
+
    // statistics for each tracking thread
    for (int i = 0; i < gTrackerQuantity; ++i)
    {
-      vector<float> & vTimesTrack = gThreadParams[i].timesTrack;
-
-      if (vTimesTrack.size() > 0)
+      gThreadParams[i].tracker->WriteMetrics(metricsFile);
+      map<const char *, double> mets = gThreadParams[i].tracker->GetMetrics();
+      stringstream ss;
+      ss << "tracking statistics for thread " << i << ": " << endl;
+      for (auto it : mets)
       {
-         // calculate time statistics
-         sort(vTimesTrack.begin(), vTimesTrack.end());
-         float totaltime = 0;
-         for (int i = 0; i < vTimesTrack.size(); i++)
-         {
-            totaltime += vTimesTrack[i];
-         }
-
-         stringstream ss;
-         ss << "tracking statistics for thread " << i << ": " << endl;
-         ss << "   median tracking time: " << vTimesTrack[vTimesTrack.size() / 2] << endl;
-         ss << "   mean tracking time: " << totaltime / vTimesTrack.size() << endl;
-         ss << "   relocalizations: " << gThreadParams[i].tracker->quantityRelocalizations << endl;
-         Log(NULL, ss.str());
+         ss << "   " << it.first << ": " << it.second << endl;
       }
+      Log(NULL, ss.str());
    }
 
-   // statistics for the mapping thread
-   forward_list<Statistics> mappingStats = mapper.GetStatistics();
-   Log(NULL, "mapping statistics:");
-   PrintStatistics(mappingStats);
+   metricsFile.close();
 }
 
 int RunViewer(
@@ -427,7 +423,7 @@ int main(int paramc, char * paramv[]) try
          returnCode = EXIT_FAILURE;
    }
 
-   Log(NULL, "Data sequences completed.");
+   Log(NULL, "Data sequences completed...");
    PrintStatistics(mapperServer);
 
    // destroy objects

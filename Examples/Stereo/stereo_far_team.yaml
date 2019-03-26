@@ -10,6 +10,12 @@ Vocabulary: ""
 # mapper yaml configuration file and path
 Mapper: ""
 
+# run without the user interface? 1 == yes, 0 == no
+NoViewer: 0
+
+# log file for tracking and mapping statistics
+MetricsLog: ""
+
 
 #------------------------------------------------------------------------------------------------
 # Each tracker requires: 
