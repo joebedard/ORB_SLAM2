@@ -491,8 +491,8 @@ namespace ORB_SLAM2_TEAM
       mpLocalMapper->RequestPause();
 
       // If a Global Bundle Adjustment is running, abort it
-      Print("if (isRunningGBA())");
-      if (isRunningGBA())
+      Print("if (IsRunningGBA())");
+      if (IsRunningGBA())
       {
          unique_lock<mutex> lock(mMutexGBA);
          mbStopGBA = true;

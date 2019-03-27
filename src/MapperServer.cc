@@ -365,6 +365,7 @@ namespace ORB_SLAM2_TEAM
       if (mFinalized) return;
       mFinalized = true;
       mLocalMapper.RequestFinish();
+      mLoopCloser.WaitForFinishGBA();
       mLoopCloser.RequestFinish();
       mptLocalMapping->join();
       mptLoopClosing->join();

@@ -78,14 +78,20 @@ namespace ORB_SLAM2_TEAM
       // This function will run in a separate thread
       void RunGlobalBundleAdjustment(unsigned long loopKeyFrameId);
 
-      bool isRunningGBA() {
+      bool IsRunningGBA() {
          unique_lock<std::mutex> lock(mMutexGBA);
          return mbRunningGBA;
       }
 
-      bool isFinishedGBA() {
+      bool IsFinishedGBA() {
          unique_lock<std::mutex> lock(mMutexGBA);
          return mbFinishedGBA;
+      }
+
+      void WaitForFinishGBA() {
+         mpThreadGBA->join();
+         delete mpThreadGBA;
+         mpThreadGBA = NULL;
       }
 
       void RequestFinish();

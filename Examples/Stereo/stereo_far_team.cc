@@ -198,8 +198,6 @@ void RunTracker(int threadId) try
    int width = gThreadParams[threadId].width;
    string imageLeftFileName = gTrackerLeftImageFileName[threadId];
    string imageRightFileName = gTrackerRightImageFileName[threadId];
-   string runningPoseLog = gRunningPoseLog[threadId];
-   string finalPoseLog = gFinalPoseLog[threadId];
    Tracking * pTracker = gThreadParams[threadId].tracker;
 
    // Retrieve paths to images
@@ -260,10 +258,6 @@ void RunTracker(int threadId) try
          sleep(T/1e3 - ttrack*1e6);
    }
 
-   // Save camera trajectory
-   pTracker->SaveFinalTrajectoryTUM(runningPoseLog);
-   pTracker->SaveFinalTrajectoryTUM(finalPoseLog);
-
    gThreadParams[threadId].returnCode = EXIT_SUCCESS;
    gOutTrak.Print("end RunTracker");
 }
@@ -304,18 +298,21 @@ void PrintStatistics(MapperServer & mapper)
    // statistics for the mapping thread
    mapper.Shutdown();
    mapper.WriteMetrics(metricsFile);
-   Log(NULL, "mapping statistics:");
+   Log(NULL, "mapping metrics:");
    list<Statistics> mappingStats = mapper.GetStatistics();
    PrintStatistics(mappingStats);
 
-   // statistics for each tracking thread
+   // metrics for each tracking thread
    for (int i = 0; i < gTrackerQuantity; ++i)
    {
-      gThreadParams[i].tracker->WriteMetrics(metricsFile);
-      map<const char *, double> mets = gThreadParams[i].tracker->GetMetrics();
+      Tracking * pTracker = gThreadParams[i].tracker;
+      pTracker->SaveFinalTrajectoryTUM(gRunningPoseLog[i]);
+      pTracker->SaveFinalTrajectoryTUM(gFinalPoseLog[i]);
+      pTracker->WriteMetrics(metricsFile);
+
       stringstream ss;
-      ss << "tracking statistics for thread " << i << ": " << endl;
-      for (auto it : mets)
+      ss << "tracking metrics for thread " << i << ": " << endl;
+      for (auto it : pTracker->GetMetrics())
       {
          ss << "   " << it.first << ": " << it.second << endl;
       }
