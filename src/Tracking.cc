@@ -674,7 +674,7 @@ namespace ORB_SLAM2_TEAM
       {
          cv::Mat Tcr = mCurrentFrame.mTcw*mCurrentFrame.mpReferenceKF->GetPoseInverse();
          mlRelativeFramePoses.push_back(Tcr);
-         mlAbsoluteFramePoses.push_back(mCurrentFrame.mTcw);
+         mlAbsoluteFramePoses.push_back(mCurrentFrame.mTcw.clone());
          mlpReferenceKFs.push_back(mCurrentFrame.mpReferenceKF);
          mlFrameTimes.push_back(mCurrentFrame.mTimeStamp);
          mlbLost.push_back(mState == TRACKING_LOST);
@@ -1837,11 +1837,11 @@ namespace ORB_SLAM2_TEAM
 
       // For each frame we have a reference keyframe (lRit), the timestamp (lT) and a flag
       // which is true when tracking failed (lbL).
-      list<KeyFrame *>::iterator lRit = mlpReferenceKFs.begin();
       list<double>::iterator lT = mlFrameTimes.begin();
       list<bool>::iterator lbL = mlbLost.begin();
-      for (list<cv::Mat>::iterator lit = mlAbsoluteFramePoses.begin(),
-         lend = mlRelativeFramePoses.end();lit != lend;lit++, lRit++, lT++, lbL++)
+      list<cv::Mat>::iterator lit = mlAbsoluteFramePoses.begin();
+      list<cv::Mat>::iterator lend = mlAbsoluteFramePoses.end();
+      for (; lit != lend; lit++, lT++, lbL++)
       {
          //if (*lbL)
          //   continue;
@@ -1885,15 +1885,15 @@ namespace ORB_SLAM2_TEAM
 
       // Frame pose is stored relative to its reference keyframe (which is optimized by BA and pose graph).
       // We need to get first the keyframe pose and then concatenate the relative transformation.
-      // Frames not localized (tracking failure) are not saved.
 
       // For each frame we have a reference keyframe (lRit), the timestamp (lT) and a flag
       // which is true when tracking failed (lbL).
       list<KeyFrame *>::iterator lRit = mlpReferenceKFs.begin();
       list<double>::iterator lT = mlFrameTimes.begin();
       list<bool>::iterator lbL = mlbLost.begin();
-      for (list<cv::Mat>::iterator lit = mlRelativeFramePoses.begin(),
-         lend = mlRelativeFramePoses.end();lit != lend;lit++, lRit++, lT++, lbL++)
+      list<cv::Mat>::iterator lit = mlRelativeFramePoses.begin();
+      list<cv::Mat>::iterator lend = mlRelativeFramePoses.end();
+      for (; lit != lend; lit++, lRit++, lT++, lbL++)
       {
          //if (*lbL)
          //   continue;

@@ -290,7 +290,7 @@ void PrintStatistics(list<Statistics> & stats)
    Log(NULL, ss.str());
 }
 
-void PrintStatistics(MapperServer & mapper)
+void PrintMetrics(MapperServer & mapper)
 {
    ofstream metricsFile;
    metricsFile.open(gMetricsLog);
@@ -299,14 +299,13 @@ void PrintStatistics(MapperServer & mapper)
    mapper.Shutdown();
    mapper.WriteMetrics(metricsFile);
    Log(NULL, "mapping metrics:");
-   list<Statistics> mappingStats = mapper.GetStatistics();
-   PrintStatistics(mappingStats);
+   PrintStatistics(mapper.GetStatistics());
 
    // metrics for each tracking thread
    for (int i = 0; i < gTrackerQuantity; ++i)
    {
       Tracking * pTracker = gThreadParams[i].tracker;
-      pTracker->SaveFinalTrajectoryTUM(gRunningPoseLog[i]);
+      pTracker->SaveRunningTrajectoryTUM(gRunningPoseLog[i]);
       pTracker->SaveFinalTrajectoryTUM(gFinalPoseLog[i]);
       pTracker->WriteMetrics(metricsFile);
 
@@ -421,7 +420,7 @@ int main(int paramc, char * paramv[]) try
    }
 
    Log(NULL, "Data sequences completed...");
-   PrintStatistics(mapperServer);
+   PrintMetrics(mapperServer);
 
    // destroy objects
    for (int i = 0; i < gTrackerQuantity; ++i)
