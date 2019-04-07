@@ -1935,7 +1935,7 @@ namespace ORB_SLAM2_TEAM
 
    void Tracking::WriteMetrics(ofstream & ofs)
    {
-      ofs << "Track Duration per KeyFrame (ms), KeyFrames in Map, MapPoints in Map" << endl;
+      ofs << "Track Duration per Frame (ms), KeyFrames in Map, MapPoints in Map" << endl;
       auto itDuration = mMetricsTrackDuration.begin();
       auto itKeyFrames = mMetricsTrackKeyFramesInMap.begin();
       auto itMapPoints = mMetricsTrackMapPointsInMap.begin();
