@@ -118,7 +118,7 @@ void ParseParams(int paramc, char * paramv[])
    VerifyString("Metrics Log file name", gMetricsLog);
 
    gTrackerQuantity = (int)config["Tracker.Quantity"];
-   if (0 == gTrackerQuantity)
+   if (0 >= gTrackerQuantity)
       throw exception("Tracker.Quantity must be 1 or more.");
 
    gTrackerFileName.resize(gTrackerQuantity);
@@ -227,6 +227,8 @@ void RunTracker(int threadId) try
    cv::Mat imLeft, imRight;
    for(int ni=0; ni < nImages; ni++)
    {
+      time_type t1 = GetNow();
+
       // Read left and right images from file
       imLeft = cv::imread(vstrImageFileNamesLeft[ni], CV_LOAD_IMAGE_UNCHANGED);
       imRight = cv::imread(vstrImageFileNamesRight[ni], CV_LOAD_IMAGE_UNCHANGED);
@@ -243,7 +245,6 @@ void RunTracker(int threadId) try
          throw exception(m.c_str());
       }
 
-      time_type t1 = GetNow();
       pTracker->GrabImageStereo(imLeft, imRight, tframe / 1e9);
       double ttrack = Duration(GetNow(), t1);
 
