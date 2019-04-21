@@ -172,8 +172,8 @@ namespace ORB_SLAM2_TEAM
       MapDrawer* mpMapDrawer;
 
       //New KeyFrame rules (according to fps)
-      int mMinFrames;
-      int mMaxFrames;
+      unsigned int mMinFrames;
+      unsigned int mMaxFrames;
 
       // For RGB-D inputs only. For some datasets (e.g. TUM) the depthmap values are scaled.
       float mDepthMapFactor;
@@ -215,6 +215,8 @@ namespace ORB_SLAM2_TEAM
 
       cv::Mat mBaseline;
 
+      unsigned int mQuantityFramesSinceReloc;
+
       unsigned int mQuantityRelocalizations;
 
       unsigned int mQuantityFramesProcessed;
@@ -235,7 +237,7 @@ namespace ORB_SLAM2_TEAM
 
       bool NeedNewKeyFrame();
 
-      KeyFrame * CreateNewKeyFrame(Frame & currentFrame, SensorType sensorType);
+      void CreateNewKeyFrame(Frame & currentFrame, SensorType sensorType);
 
       unsigned long NewKeyFrameId();
 

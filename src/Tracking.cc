@@ -74,6 +74,7 @@ namespace ORB_SLAM2_TEAM
       mBaseline(cv::Mat::eye(4, 4, CV_32F)),
       quantityRelocalizations(mQuantityRelocalizations),
       quantityFramesProcessed(mQuantityFramesProcessed),
+      mQuantityFramesSinceReloc(0),
       mQuantityRelocalizations(0),
       mQuantityFramesProcessed(0),
       mRectify(false)
@@ -513,6 +514,7 @@ namespace ORB_SLAM2_TEAM
    {
       Print("begin Track");
       ++mQuantityFramesProcessed;
+      ++mQuantityFramesSinceReloc;
 
       // Get Map Mutex -> Map cannot be changed
       Print("waiting to lock map");
@@ -540,17 +542,6 @@ namespace ORB_SLAM2_TEAM
                   mCurrentFrame.mvpMapPoints,
                   mCurrentFrame.mvbOutlier);
             }
-
-            if (!mMapper.GetInitialized())
-            {
-               Print("end Track 1");
-               return;
-            }
-         }
-         else
-         {
-            Print("end Track 2");
-            return;
          }
       }
       else
@@ -564,7 +555,7 @@ namespace ORB_SLAM2_TEAM
             // Mapping might have changed some MapPoints tracked in last frame
             CheckReplacedInLastFrame();
 
-            if (mVelocity.empty() || mCurrentFrame.mnId < mnLastRelocFrameId + 2)
+            if (mVelocity.empty() || mQuantityFramesSinceReloc < 2)
             {
                bOK = TrackReferenceKeyFrame();
                //if (!bOK) Print("Tracking Lost 1");
@@ -580,8 +571,6 @@ namespace ORB_SLAM2_TEAM
          else
          {
             bOK = Relocalization();
-            if (bOK)
-               ++mQuantityRelocalizations;
          }
 
          // If we have an initial estimation of the camera pose and matching. Track the local map.
@@ -633,12 +622,7 @@ namespace ORB_SLAM2_TEAM
             // Check if we need to insert a new keyframe
             if (NeedNewKeyFrame())
             {
-               KeyFrame * pKF = CreateNewKeyFrame(mCurrentFrame, mSensor);
-               if (pKF)
-               {
-                  mCurrentFrame.mpReferenceKF = pKF;
-                  mnLastFrameIdMadeIntoKeyFrame = mCurrentFrame.mnId;
-               }
+               CreateNewKeyFrame(mCurrentFrame, mSensor);
             }
 
             // We allow points with high innovation (considererd outliers by the Huber Function)
@@ -1125,7 +1109,7 @@ namespace ORB_SLAM2_TEAM
 
       // Decide if the tracking was succesful
       // More restrictive if there was a relocalization recently
-      if (mCurrentFrame.mnId < mnLastRelocFrameId + mMaxFrames && mnMatchesInliers < 50)
+      if (mQuantityFramesSinceReloc < mMaxFrames && mnMatchesInliers < 50)
       {
          Print("end TrackLocalMap 1");
          return false;
@@ -1160,10 +1144,10 @@ namespace ORB_SLAM2_TEAM
          return false;
       }
 
-      const int nKFs = mMapper.KeyFramesInMap();
+      const unsigned int nKFs = mMapper.KeyFramesInMap();
 
       // Do not insert keyframes if not enough frames have passed from last relocalisation
-      if (mCurrentFrame.mnId < mnLastRelocFrameId + mMaxFrames && nKFs > mMaxFrames)
+      if (mQuantityFramesSinceReloc < mMaxFrames && nKFs > mMaxFrames)
       {
          Print("end NeedNewKeyFrame 3");
          return false;
@@ -1266,7 +1250,7 @@ namespace ORB_SLAM2_TEAM
          if (mSensor == RGBD)
             th = 3;
          // If the camera has been relocalised recently, perform a coarser search
-         if (mCurrentFrame.mnId < mnLastRelocFrameId + 2)
+         if (mQuantityFramesSinceReloc < 2)
             th = 5;
          matcher.SearchByProjection(mCurrentFrame, mvpLocalMapPoints, th);
       }
@@ -1585,6 +1569,8 @@ namespace ORB_SLAM2_TEAM
       {
          Print("end Relocalization 3");
          mnLastRelocFrameId = mCurrentFrame.mnId;
+         mQuantityFramesSinceReloc = 0;
+         ++mQuantityRelocalizations;
          return true;
       }
 
@@ -1663,7 +1649,7 @@ namespace ORB_SLAM2_TEAM
       Print("end CheckReset");
    }
 
-   KeyFrame * Tracking::CreateNewKeyFrame(Frame & currentFrame, SensorType sensorType)
+   void Tracking::CreateNewKeyFrame(Frame & currentFrame, SensorType sensorType)
    {
       Print("begin CreateNewKeyFrame");
       KeyFrame * pKF = new KeyFrame(NewKeyFrameId(), currentFrame);
@@ -1722,8 +1708,9 @@ namespace ORB_SLAM2_TEAM
             if (pMP)
                currentFrame.mvpMapPoints[i] = pMP;
          }
+         mCurrentFrame.mpReferenceKF = pKF;
+         mnLastFrameIdMadeIntoKeyFrame = mCurrentFrame.mnId;
          Print("end CreateNewKeyFrame 1");
-         return pKF;
       }
       else
       {
@@ -1741,7 +1728,6 @@ namespace ORB_SLAM2_TEAM
          Print(to_string(pKF->id) + "=id KeyFrame deleted");
          delete pKF;
          Print("end CreateNewKeyFrame 2");
-         return NULL;
       }
    }
 
@@ -1816,6 +1802,8 @@ namespace ORB_SLAM2_TEAM
 
       Frame::nNextId = 0;
       mState = NOT_INITIALIZED;
+      mVelocity = cv::Mat(); //no velocity
+
       Print("end HandleMapReset");
    }
 

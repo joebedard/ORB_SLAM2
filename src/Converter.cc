@@ -95,7 +95,7 @@ namespace ORB_SLAM2_TEAM
       cv::Mat cvMat(3, 3, CV_64F);
       for (int i = 0; i < 3; i++)
          for (int j = 0; j < 3; j++)
-            cvMat.at<double>(i) = m(i,j);
+            cvMat.at<double>(i, j) = m(i,j);
 
       return cvMat.clone();
    }
