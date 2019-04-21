@@ -89,9 +89,12 @@ namespace ORB_SLAM2_TEAM
       }
 
       void WaitForFinishGBA() {
-         mpThreadGBA->join();
-         delete mpThreadGBA;
-         mpThreadGBA = NULL;
+         if (mpThreadGBA)
+         {
+            mpThreadGBA->join();
+            delete mpThreadGBA;
+            mpThreadGBA = NULL;
+         }
       }
 
       void RequestFinish();
