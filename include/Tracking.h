@@ -290,6 +290,9 @@ namespace ORB_SLAM2_TEAM
       list<double> mMetricsTrackDuration;
       list<double> mMetricsTrackKeyFramesInMap;
       list<double> mMetricsTrackMapPointsInMap;
+      list<double> mMetricsTrackMapPointsInFrame;
+      list<double> mMetricsKeysInLeftFrame;
+      list<double> mMetricsKeysInRightFrame;
 
       void HandleMapReset();
 

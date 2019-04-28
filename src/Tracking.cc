@@ -542,6 +542,9 @@ namespace ORB_SLAM2_TEAM
                   mCurrentFrame.mvpMapPoints,
                   mCurrentFrame.mvbOutlier);
             }
+            mMetricsKeysInLeftFrame.push_back(mCurrentFrame.mvKeys.size());
+            if (mSensor == STEREO)
+               mMetricsKeysInRightFrame.push_back(mCurrentFrame.mvKeysRight.size());
          }
       }
       else
@@ -598,6 +601,9 @@ namespace ORB_SLAM2_TEAM
                mCurrentFrame.mvpMapPoints,
                mCurrentFrame.mvbOutlier);
          }
+         mMetricsKeysInLeftFrame.push_back(mCurrentFrame.mvKeys.size());
+         if (mSensor == STEREO)
+            mMetricsKeysInRightFrame.push_back(mCurrentFrame.mvKeysRight.size());
 
          // If tracking was good, check if we insert a keyframe
          if (bOK)
@@ -712,6 +718,7 @@ namespace ORB_SLAM2_TEAM
          stringstream ss;
          ss << "New map created with " << mvpLocalMapPoints.size() << " points";
          Print(ss.str().c_str());
+         mMetricsTrackMapPointsInFrame.push_back(mvpLocalMapPoints.size());
 
          mCurrentFrame.mpReferenceKF = pKFini;
          mLastFrame = Frame(mCurrentFrame);
@@ -884,6 +891,7 @@ namespace ORB_SLAM2_TEAM
       stringstream ss;
       ss << "New Map created with " << mvpLocalMapPoints.size() << " points";
       Print(ss.str().c_str());
+      mMetricsTrackMapPointsInFrame.push_back(mvpLocalMapPoints.size());
 
       // Scale initial baseline
       cv::Mat Tc2w = pKFcur->GetPose();
@@ -1089,12 +1097,14 @@ namespace ORB_SLAM2_TEAM
       // Optimize Pose
       Optimizer::PoseOptimization(&mCurrentFrame);
       mnMatchesInliers = 0;
+      size_t qntyMapPointMatches = 0;
 
       // Update MapPoints Statistics
       for (size_t i = 0; i < mCurrentFrame.N; i++)
       {
          if (mCurrentFrame.mvpMapPoints[i])
          {
+            ++qntyMapPointMatches;
             if (!mCurrentFrame.mvbOutlier[i])
             {
                mCurrentFrame.mvpMapPoints[i]->IncreaseFound();
@@ -1106,6 +1116,7 @@ namespace ORB_SLAM2_TEAM
 
          }
       }
+      mMetricsTrackMapPointsInFrame.push_back(qntyMapPointMatches);
 
       // Decide if the tracking was succesful
       // More restrictive if there was a relocalization recently
@@ -1603,6 +1614,9 @@ namespace ORB_SLAM2_TEAM
       mMetricsTrackDuration.clear();
       mMetricsTrackKeyFramesInMap.clear();
       mMetricsTrackMapPointsInMap.clear();
+      mMetricsTrackMapPointsInFrame.clear();
+      mMetricsKeysInLeftFrame.clear();
+      mMetricsKeysInRightFrame.clear();
 
       if (mpViewer)
          mpViewer->Resume();
@@ -1912,10 +1926,22 @@ namespace ORB_SLAM2_TEAM
 
    map<const char *, double> Tracking::GetMetrics()
    {
-      Statistics statsDuration("Track Duration per KeyFrame (ms)", mMetricsTrackDuration);
       map<const char *, double> stats;
+      Statistics statsDuration("Track Duration per KeyFrame (ms)", mMetricsTrackDuration);
       stats["Tracking Duration per Frame, Mean"] = statsDuration.Mean;
       stats["Tracking Duration per Frame, S.D."] = statsDuration.SD;
+      Statistics statsMapPoints("Map Points per Frame", mMetricsTrackMapPointsInFrame);
+      stats["Map Points per Frame, Mean"] = statsMapPoints.Mean;
+      stats["Map Points per Frame, S.D."] = statsMapPoints.SD;
+      Statistics statsKeysLeftFrame("Keypoints per Left Frame", mMetricsKeysInLeftFrame);
+      stats["Keypoints per Left Frame, Mean"] = statsKeysLeftFrame.Mean;
+      stats["Keypoints per Left Frame, S.D."] = statsKeysLeftFrame.SD;
+      if (mSensor == STEREO)
+      {
+         Statistics statsKeysRightFrame("Keypoints per Right Frame", mMetricsKeysInRightFrame);
+         stats["Keypoints per Right Frame, Mean"] = statsKeysRightFrame.Mean;
+         stats["Keypoints per Right Frame, S.D."] = statsKeysRightFrame.SD;
+      }
       stats["Frames Processed"] = mQuantityFramesProcessed;
       stats["Relocalizations"] = mQuantityRelocalizations;
       return stats;
@@ -1926,10 +1952,11 @@ namespace ORB_SLAM2_TEAM
       ofs << "Track Duration per Frame (ms), KeyFrames in Map, MapPoints in Map" << endl;
       auto itDuration = mMetricsTrackDuration.begin();
       auto itKeyFrames = mMetricsTrackKeyFramesInMap.begin();
-      auto itMapPoints = mMetricsTrackMapPointsInMap.begin();
-      for (auto itEnd = mMetricsTrackDuration.end(); itDuration != itEnd; ++itDuration, ++itKeyFrames, ++itMapPoints)
+      auto itMapPointsInMap = mMetricsTrackMapPointsInMap.begin();
+      auto itMapPointsInFrame = mMetricsTrackMapPointsInFrame.begin();
+      for (auto itEnd = mMetricsTrackDuration.end(); itDuration != itEnd; ++itDuration, ++itKeyFrames, ++itMapPointsInMap, ++itMapPointsInFrame)
       {
-         ofs << *itDuration << ", " << *itKeyFrames << ", " << *itMapPoints << endl;
+         ofs << *itDuration << ", " << *itKeyFrames << ", " << *itMapPointsInMap << ", " << *itMapPointsInFrame << endl;
       }
       ofs << endl;
    }
