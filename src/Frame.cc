@@ -90,9 +90,8 @@ namespace ORB_SLAM2_TEAM
 
       // ORB extraction
       thread threadLeft(&Frame::ExtractORBLeft, this, imLeft);
-      thread threadRight(&Frame::ExtractORBRight, this, imRight);
+      ExtractORBRight(imRight);
       threadLeft.join();
-      threadRight.join();
 
       N = mvKeys.size();
 
