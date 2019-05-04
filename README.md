@@ -1,4 +1,4 @@
-# ORB-SLAM2-TEAM
+# ORB-SLAM2-team
 **Authors:** [Joe Bedard](https://www.linkedin.com/in/joe-bedard-04b7633/), [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2))
 
 **1 Jan 2019**: Cooperative SLAM is now supported. Distributed (network) SLAM is experimental [more info](https://github.com/joebedard/ORB_SLAM2_TEAM/blob/master/Distributed.md).
@@ -7,12 +7,12 @@
 
 **22 Dec 2016**: Added AR demo (see section 8).
 
-ORB-SLAM2-TEAM is a real-time Cooperative SLAM library for **Monocular**, **Stereo** and **RGB-D** cameras that computes the camera trajectory and a sparse 3D reconstruction (in the stereo and RGB-D case with true scale). It is based on [ORB-SLAM2](https://github.com/raulmur/ORB_SLAM2/). It is able to detect loops and relocalize the camera in real time. We provide examples to run the SLAM system in the [KITTI dataset](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) as stereo or monocular, in the [TUM dataset](http://vision.in.tum.de/data/datasets/rgbd-dataset) as cooperative, RGB-D or monocular, and in the [EuRoC dataset](http://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets) as cooperative, stereo or monocular. Additionally, there are single and cooperative examples for the [Intel RealSense](https://realsense.intel.com/) depth camera. We also provide a ROS node to process live monocular, stereo or RGB-D streams. **The library can be compiled without ROS and Intel RealSense SDK**. ORB-SLAM2-TEAM provides a GUI to change between a *SLAM Mode* and *Localization Mode*, see section 10 of this document.
+ORB-SLAM2-team is a real-time Cooperative SLAM library for **Monocular**, **Stereo** and **RGB-D** cameras that computes the camera trajectory and a sparse 3D reconstruction (in the stereo and RGB-D case with true scale). It is based on [ORB-SLAM2](https://github.com/raulmur/ORB_SLAM2/). It is able to detect loops and relocalize the camera in real time. We provide examples to run the SLAM system in the [KITTI dataset](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) as stereo or monocular, in the [TUM dataset](http://vision.in.tum.de/data/datasets/rgbd-dataset) as cooperative, RGB-D or monocular, and in the [EuRoC dataset](http://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets) as cooperative, stereo or monocular. Additionally, there are single and cooperative examples for the [Intel RealSense](https://realsense.intel.com/) depth camera. We also provide a ROS node to process live monocular, stereo or RGB-D streams. **The library can be compiled without ROS and Intel RealSense SDK**. ORB-SLAM2-team provides a GUI to change between a *SLAM Mode* and *Localization Mode*, see section 10 of this document.
 
 <a href="https://www.youtube.com/embed/W6xuQcryVt4" target="_blank"><img src="http://img.youtube.com/vi/W6xuQcryVt4/1.jpg" 
-alt="ORB-SLAM2-TEAM" width="240" height="180" border="10" /></a>
+alt="ORB-SLAM2-team" width="240" height="180" border="10" /></a>
 <a href="https://www.youtube.com/embed/WcI2K0u8gPw" target="_blank"><img src="http://img.youtube.com/vi/WcI2K0u8gPw/1.jpg" 
-alt="ORB-SLAM2-TEAM" width="240" height="180" border="10" /></a>
+alt="ORB-SLAM2-team" width="240" height="180" border="10" /></a>
 <a href="https://www.youtube.com/embed/ufvPS5wJAx0" target="_blank"><img src="http://img.youtube.com/vi/ufvPS5wJAx0/0.jpg" 
 alt="ORB-SLAM2" width="240" height="180" border="10" /></a>
 <a href="https://www.youtube.com/embed/T-9PYCKhDLM" target="_blank"><img src="http://img.youtube.com/vi/T-9PYCKhDLM/0.jpg" 
@@ -31,11 +31,11 @@ alt="ORB-SLAM2" width="240" height="180" border="10" /></a>
 
 # 1. License
 
-ORB-SLAM2-TEAM is released under a [GPLv3 license](https://github.com/joebedard/ORB_SLAM2_TEAM/blob/master/License-gpl.txt). For a list of all code/library dependencies (and associated licenses), please see [Dependencies.md](https://github.com/joebedard/ORB_SLAM2_TEAM/blob/master/Dependencies.md).
+ORB-SLAM2-team is released under a [GPLv3 license](https://github.com/joebedard/ORB_SLAM2_TEAM/blob/master/License-gpl.txt). For a list of all code/library dependencies (and associated licenses), please see [Dependencies.md](https://github.com/joebedard/ORB_SLAM2_TEAM/blob/master/Dependencies.md).
 
-For a closed-source version of ORB-SLAM2-TEAM (and ORB-SLAM2) for commercial purposes, please contact the authors: [Joe Bedard](https://www.linkedin.com/in/joe-bedard-04b7633/), and orbslam (at) unizar (dot) es.
+For a closed-source version of ORB-SLAM2-team (and ORB-SLAM2) for commercial purposes, please contact the authors: [Joe Bedard](https://www.linkedin.com/in/joe-bedard-04b7633/), and orbslam (at) unizar (dot) es.
 
-If you use ORB-SLAM2-TEAM or ORB-SLAM2 (Monocular) in an academic work, please cite:
+If you use ORB-SLAM2-team or ORB-SLAM2 (Monocular) in an academic work, please cite:
 
     @article{murTRO2015,
       title={{ORB-SLAM}: a Versatile and Accurate Monocular {SLAM} System},
@@ -48,7 +48,7 @@ If you use ORB-SLAM2-TEAM or ORB-SLAM2 (Monocular) in an academic work, please c
       year={2015}
      }
 
-if you use ORB-SLAM2-TEAM or ORB-SLAM2 (Stereo or RGB-D) in an academic work, please cite:
+if you use ORB-SLAM2-team or ORB-SLAM2 (Stereo or RGB-D) in an academic work, please cite:
 
     @article{murORB2,
       title={{ORB-SLAM2}: an Open-Source {SLAM} System for Monocular, Stereo and {RGB-D} Cameras},
@@ -62,7 +62,7 @@ if you use ORB-SLAM2-TEAM or ORB-SLAM2 (Stereo or RGB-D) in an academic work, pl
      }
 
 # 2. Prerequisites
-We have tested the library in **Windows 10**, **Ubuntu 12.04**, **14.04** and **16.04**, but it should be easy to compile in other platforms. A powerful computer (e.g. i7) will ensure real-time performance and provide more stable and accurate results.
+We have tested the library in **Windows 10**, **Ubuntu 12.04**, **14.04** and **16.04**. It should be easy to compile in other platforms. A powerful computer (e.g. i7) will ensure real-time performance and provide more stable and accurate results.
 
 ## C++11 or C++0x Compiler
 We use the new thread and chrono functionalities of C++11.
@@ -71,7 +71,7 @@ We use the new thread and chrono functionalities of C++11.
 We use [Pangolin](https://github.com/stevenlovegrove/Pangolin) for visualization and user interface. Dowload and install instructions can be found at: https://github.com/stevenlovegrove/Pangolin.
 
 ## OpenCV
-We use [OpenCV](http://opencv.org) to manipulate images and features. Dowload and install instructions can be found at: http://opencv.org. **Required at leat 2.4.3. Tested with OpenCV 2.4.11 and OpenCV 3.2**.
+We use [OpenCV](http://opencv.org) to manipulate images and features. Dowload and install instructions can be found at: http://opencv.org. **Required at leat 2.4.3. Tested with OpenCV 2.4.11, 3.2, and 3.4**.
 
 ## Eigen3
 Required by g2o (see below). Download and install instructions can be found at: http://eigen.tuxfamily.org. **Required at least 3.1.0**.
@@ -88,7 +88,7 @@ We provide some examples to process the live input of a monocular, stereo or RGB
 ## Intel RealSense SDK (optional)
 There are examples to process live input of stereo images from Intel RealSense depth cameras (and SDK). Download the SDK from the [Intel RealSense website](https://realsense.intel.com/). Building these examples is optional.
 
-# 3. Building ORB-SLAM2-TEAM library and examples
+# 3. Building ORB-SLAM2-team library and examples
 
 Clone the repository:
 ```
@@ -97,7 +97,7 @@ git clone https://github.com/joebedard/ORB_SLAM2_TEAM.git ORB_SLAM2_TEAM
 
 CMake 3.1 or newer is supported. Start with `CMakeLists.txt`.
 
-There is also a script `build.sh` to build the *Thirdparty* libraries and *ORB-SLAM2-TEAM*. Please make sure you have installed all required dependencies (see section 2). Execute:
+There is also a script `build.sh` to build the *Thirdparty* libraries and *ORB-SLAM2-team*. Please make sure you have installed all required dependencies (see section 2). Execute:
 ```
 cd ORB_SLAM2_TEAM
 chmod +x build.sh
@@ -289,7 +289,7 @@ For a stereo input from topic `/camera/left/image_raw` and `/camera/right/image_
   rosbag play --pause V1_01_easy.bag /cam0/image_raw:=/camera/left/image_raw /cam1/image_raw:=/camera/right/image_raw
   ```
   
-Once ORB-SLAM2-TEAM has loaded the vocabulary, press space in the rosbag tab. Enjoy!. Note: a powerful computer is required to run the most exigent sequences of this dataset.
+Once ORB-SLAM2-team has loaded the vocabulary, press space in the rosbag tab. Enjoy!. Note: a powerful computer is required to run the most exigent sequences of this dataset.
 
 ### Running RGB_D Node
 For an RGB-D input from topics `/camera/rgb/image_raw` and `/camera/depth_registered/image_raw`, run node ORB_SLAM2/RGBD. You will need to provide the vocabulary file and a settings file. See the RGB-D example above.
@@ -299,7 +299,7 @@ For an RGB-D input from topics `/camera/rgb/image_raw` and `/camera/depth_regist
   ```
   
 # 9. Processing your own sequences
-You will need to create a settings file with the calibration of your camera. See the settings file provided for the TUM and KITTI datasets for monocular, stereo and RGB-D cameras. We use the calibration model of OpenCV. See the examples to learn how to create a program that makes use of the ORB-SLAM2-TEAM library and how to pass images to the SLAM system. Stereo input must be synchronized and rectified. RGB-D input must be synchronized and depth registered.
+You will need to create a settings file with the calibration of your camera. See the settings file provided for the TUM and KITTI datasets for monocular, stereo and RGB-D cameras. We use the calibration model of OpenCV. See the examples to learn how to create a program that makes use of the ORB-SLAM2-team library and how to pass images to the SLAM system. Stereo input must be synchronized and rectified. RGB-D input must be synchronized and depth registered.
 
 # 10. SLAM and Localization Modes
 You can change between *SLAM Mode* and *Localization Mode* for each camera using the GUI of the map viewer. Each camera runs in its own thread. The system runs Mapping and Loop Closing threads in the background.
