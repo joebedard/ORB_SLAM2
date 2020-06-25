@@ -9,6 +9,8 @@ using namespace std;
 double gScalingRatio;
 string gSourcePathStr;
 string gDestinPathStr;
+
+// this requires c++ 17
 filesystem::path gSourcePath;
 filesystem::path gDestinPath;
 
