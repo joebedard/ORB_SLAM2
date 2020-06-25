@@ -68,4 +68,4 @@ mark_as_advanced(RealSense2_LIBS)
 
 find_package_handle_standard_args(RealSense2 DEFAULT_MSG RealSense2_INCLUDE_DIRS RealSense2_LIBS)
 
-set(RealSense2_FOUND 1)
+#set(RealSense2_FOUND 1)

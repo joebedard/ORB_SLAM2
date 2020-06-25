@@ -25,30 +25,31 @@ ENDIF(MSVC)
 
 # Check C++11 or C++0x support
 include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
-if(COMPILER_SUPPORTS_CXX11)
-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-   add_definitions(-DCOMPILEDWITHC11)
-   message(STATUS "Using flag -std=c++11.")
-elseif(COMPILER_SUPPORTS_CXX0X)
-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-   add_definitions(-DCOMPILEDWITHC0X)
-   message(STATUS "Using flag -std=c++0x.")
-else()
-   message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
-endif()
+#CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+#CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
+#CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+#if(COMPILER_SUPPORTS_CXX11)
+#   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+#   add_definitions(-DCOMPILEDWITHC11)
+#   message(STATUS "Using flag -std=c++11.")
+#elseif(COMPILER_SUPPORTS_CXX0X)
+#   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+#   add_definitions(-DCOMPILEDWITHC0X)
+#   message(STATUS "Using flag -std=c++0x.")
+#else()
+#   message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+#endif()
 set_property(DIRECTORY PROPERTY CXX_STANDARD 11)
 set_property(DIRECTORY PROPERTY CXX_STANDARD_REQUIRED ON)
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
-find_package(OpenCV 3.0 QUIET)
+find_package(OpenCV 3.0 REQUIRED)
 if(NOT OpenCV_FOUND)
-   find_package(OpenCV 2.4.3 QUIET)
-   if(NOT OpenCV_FOUND)
-      message(FATAL_ERROR "OpenCV > 2.4.3 not found.")
-   endif()
+   find_package(OpenCV 2.4.3 REQUIRED)
+   #if(NOT OpenCV_FOUND)
+   #   message(FATAL_ERROR "OpenCV > 2.4.3 not found.")
+   #endif()
 endif()
 
 find_package(Eigen3 3.1.0 REQUIRED)
@@ -60,12 +61,12 @@ find_package(RealSense2)
 
 # ZeroMQ cpp bindings
 # https://github.com/zeromq/cppzmq
-find_package(cppzmq 3.4 REQUIRED)
+find_package(cppzmq 3.4 QUIET)
 
 add_subdirectory("Thirdparty/DBoW2" ${PROJECT_BINARY_DIR}/Thirdparty/DBoW2)
 add_subdirectory("Thirdparty/g2o" ${PROJECT_BINARY_DIR}/Thirdparty/g2o)
 
-add_library(${PROJECT_NAME} STATIC
+set(PROJECT_FILES 
 include/Converter.h
 include/Duration.h
 include/Enums.h
@@ -84,7 +85,6 @@ include/MapObserver.h
 include/MapPoint.h
 include/MapSubject.h
 include/Mapper.h
-include/MapperClient.h
 include/MapperObserver.h
 include/MapperServer.h
 include/MapperSubject.h
@@ -116,7 +116,6 @@ src/Map.cc
 src/MapChangeEvent.cc
 src/MapDrawer.cc
 src/Mapper.cc
-src/MapperClient.cc
 src/MapperServer.cc
 src/MapPoint.cc
 src/Optimizer.cc
@@ -131,6 +130,16 @@ src/Tracking.cc
 src/Viewer.cc
 )
 
+if(cppzmq_FOUND)
+   set(PROJECT_FILES 
+   ${PROJECT_FILES}
+   include/MapperClient.h
+   src/MapperClient.cc
+   )
+endif()
+
+add_library(${PROJECT_NAME} STATIC ${PROJECT_FILES})
+
 target_include_directories(${PROJECT_NAME} PRIVATE
    ${Pangolin_INCLUDE_DIR}
    $<BUILD_INTERFACE:${cppzmq_INCLUDE_DIR}>
@@ -142,26 +151,32 @@ target_include_directories(${PROJECT_NAME} PUBLIC
    ${EIGEN3_INCLUDE_DIR}
 )
 
+
 IF(WIN32)
-   target_link_libraries(${PROJECT_NAME}
+   set(PROJECT_LIBRARIES
       $<BUILD_INTERFACE:${OpenCV_LIBS}>
       $<BUILD_INTERFACE:${Pangolin_LIBRARIES}>
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/DBoW2.lib> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/Thirdparty/DBoW2/$(Configuration)/DBoW2.lib>
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/g2o.lib> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/Thirdparty/g2o/$(Configuration)/g2o.lib>
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/ORB_SLAM2_TEAM.lib>
-      $<BUILD_INTERFACE:cppzmq-static>
    )
+   if(cppzmq_FOUND)
+      set(PROJECT_LIBRARIES ${PROJECT_LIBRARIES} $<BUILD_INTERFACE:cppzmq-static>)
+   endif()
 ELSE(WIN32)
-   target_link_libraries(${PROJECT_NAME}
+   set(PROJECT_LIBRARIES
       $<BUILD_INTERFACE:${OpenCV_LIBS}>
       $<BUILD_INTERFACE:${Pangolin_LIBRARIES}>
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/DBoW2.lib> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/Thirdparty/DBoW2/$(Configuration)/DBoW2.lib>
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/g2o.lib> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/Thirdparty/g2o/$(Configuration)/g2o.lib>
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/ORB_SLAM2_TEAM.lib>
-      $<BUILD_INTERFACE:cppzmq-static>
    )
+   if(cppzmq_FOUND)
+      set(PROJECT_LIBRARIES ${PROJECT_LIBRARIES} $<BUILD_INTERFACE:cppzmq-static>)
+   endif()
 ENDIF(WIN32)
 
+target_link_libraries(${PROJECT_NAME} ${PROJECT_LIBRARIES})
 
 # Build examples
 
@@ -215,18 +230,18 @@ endif()
 
 
 # experimental client and server
+if(cppzmq_FOUND)
+   if(RealSense2_FOUND)
+      add_executable(realsense2client
+      Examples/RealSense2/realsense2client.cc)
+      target_include_directories(realsense2client PUBLIC ${RealSense2_INCLUDE_DIRS})
+      target_link_libraries(realsense2client ${PROJECT_NAME} ${RealSense2_LIBS})
+   endif()
 
-if(RealSense2_FOUND)
-   add_executable(realsense2client
-   Examples/RealSense2/realsense2client.cc)
-   target_include_directories(realsense2client PUBLIC ${RealSense2_INCLUDE_DIRS})
-   target_link_libraries(realsense2client ${PROJECT_NAME} ${RealSense2_LIBS})
+   add_executable(server
+   src-server/server.cc)
+   target_link_libraries(server ${PROJECT_NAME})
 endif()
-
-add_executable(server
-src-server/server.cc)
-target_link_libraries(server ${PROJECT_NAME})
-
 
 # build tools
 
@@ -237,6 +252,7 @@ target_link_libraries(tools_bin_vocabulary ${PROJECT_NAME})
 add_executable(tools_resize_images
 tools/resize_images.cc)
 target_link_libraries(tools_resize_images ${OpenCV_LIBS})
+set_target_properties(tools_resize_images PROPERTIES CXX_STANDARD 17)
 
 # cmake package config
 
@@ -255,9 +271,17 @@ set_property(TARGET ORB_SLAM2_TEAM PROPERTY DEBUG_POSTFIX d)
 # install target
 
 if(RealSense2_FOUND)
-   set(RUNTIME_TARGETS rgbd_tum rgbd_tum_team stereo_kitti stereo_euroc stereo_euroc_team stereo_far_team mono_tum mono_kitti mono_euroc realsense2 realsense2dual realsense2client)
-elseif()
-   set(RUNTIME_TARGETS rgbd_tum rgbd_tum_team stereo_kitti stereo_euroc stereo_euroc_team stereo_far_team mono_tum mono_kitti mono_euroc)
+   if(cppzmq_FOUND)
+      set(RUNTIME_TARGETS rgbd_tum rgbd_tum_team stereo_kitti stereo_euroc stereo_euroc_team stereo_far_team mono_tum mono_kitti mono_euroc realsense2 realsense2dual realsense2client server)
+   else()
+      set(RUNTIME_TARGETS rgbd_tum rgbd_tum_team stereo_kitti stereo_euroc stereo_euroc_team stereo_far_team mono_tum mono_kitti mono_euroc realsense2 realsense2dual)
+   endif()
+else()
+   if(cppzmq_FOUND)
+      set(RUNTIME_TARGETS rgbd_tum rgbd_tum_team stereo_kitti stereo_euroc stereo_euroc_team stereo_far_team mono_tum mono_kitti mono_euroc server)
+   else()
+      set(RUNTIME_TARGETS rgbd_tum rgbd_tum_team stereo_kitti stereo_euroc stereo_euroc_team stereo_far_team mono_tum mono_kitti mono_euroc)
+   endif()
 endif()
 
 install(TARGETS ${RUNTIME_TARGETS}

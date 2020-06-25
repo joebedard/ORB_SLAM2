@@ -68,7 +68,7 @@ We have tested the library in **Windows 10**, **Ubuntu 12.04**, **14.04** and **
 We use the new thread and chrono functionalities of C++11.
 
 ## Pangolin
-We use [Pangolin](https://github.com/stevenlovegrove/Pangolin) for visualization and user interface. Dowload and install instructions can be found at: https://github.com/stevenlovegrove/Pangolin.
+We use [Pangolin](https://github.com/stevenlovegrove/Pangolin) for visualization and user interface. Dowload and install instructions can be found at: https://github.com/stevenlovegrove/Pangolin. In CMake, disable MSVC_USE_STATIC_CRT.
 
 ## OpenCV
 We use [OpenCV](http://opencv.org) to manipulate images and features. Dowload and install instructions can be found at: http://opencv.org. **Required at leat 2.4.3. Tested with OpenCV 2.4.11, 3.2, and 3.4**.
@@ -79,8 +79,8 @@ Required by g2o (see below). Download and install instructions can be found at: 
 ## DBoW2 and g2o (Included in Thirdparty folder)
 We use modified versions of the [DBoW2](https://github.com/dorian3d/DBoW2) library to perform place recognition and [g2o](https://github.com/RainerKuemmerle/g2o) library to perform non-linear optimizations. Both modified libraries (which are BSD) are included in the *Thirdparty* folder.
 
-## ZeroMQ (cppzmq and libzmq)
-Required for distributed (network) SLAM, but it is currently experimental. Tested with v4.3.0 of [cppzmq](https://github.com/zeromq/cppzmq) and [libzmq](https://github.com/zeromq/libzmq).
+## ZeroMQ (cppzmq and libzmq, optional)
+Required for distributed (network) SLAM, but it is experimental. Tested with v4.3.0 of [cppzmq](https://github.com/zeromq/cppzmq) and [libzmq](https://github.com/zeromq/libzmq).
 
 ## ROS (optional)
 We provide some examples to process the live input of a monocular, stereo or RGB-D camera using [ROS](ros.org). Building these examples is optional. In case you want to use ROS, a version Hydro or newer is needed.
@@ -95,7 +95,7 @@ Clone the repository:
 git clone https://github.com/joebedard/ORB_SLAM2_TEAM.git ORB_SLAM2_TEAM
 ```
 
-CMake 3.1 or newer is supported. Start with `CMakeLists.txt`.
+CMake 3.10 or newer is supported. Start with `CMakeLists.txt`. Note that some executables will only build if you have ZeroMQ, ROS, or Intel RealSense.
 
 There is also a script `build.sh` to build the *Thirdparty* libraries and *ORB-SLAM2-team*. Please make sure you have installed all required dependencies (see section 2). Execute:
 ```
