@@ -23,19 +23,11 @@
 
 #include <chrono>
 
-#ifdef COMPILEDWITHC11
 typedef std::chrono::steady_clock::time_point time_type;
 inline std::chrono::steady_clock::time_point GetNow()
 {
    return std::chrono::steady_clock::now();
 }
-#else
-typedef std::chrono::monotonic_clock::time_point time_type;
-inline std::chrono::monotonic_clock::time_point GetNow()
-{
-   return std::chrono::monotonic_clock::now();
-}
-#endif
 
 inline double Duration(time_type ending, time_type starting)
 {
