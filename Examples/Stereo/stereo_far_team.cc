@@ -182,7 +182,7 @@ void LoadImageNames(const string & strPathFile,
       {
          stringstream ss;
          ss << s;
-         ss >> t;
+         ss >> t; // nanoseconds
          ss >> name;
          vTimestamp.push_back(t);
          vstrImage.push_back(strPath + name.substr(1, name.length()-2));
