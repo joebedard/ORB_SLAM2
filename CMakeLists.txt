@@ -25,20 +25,6 @@ ENDIF(MSVC)
 
 # Check C++11 or C++0x support
 include(CheckCXXCompilerFlag)
-#CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-#CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
-#CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
-#if(COMPILER_SUPPORTS_CXX11)
-#   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-#   add_definitions(-DCOMPILEDWITHC11)
-#   message(STATUS "Using flag -std=c++11.")
-#elseif(COMPILER_SUPPORTS_CXX0X)
-#   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-#   add_definitions(-DCOMPILEDWITHC0X)
-#   message(STATUS "Using flag -std=c++0x.")
-#else()
-#   message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
-#endif()
 set_property(DIRECTORY PROPERTY CXX_STANDARD 11)
 set_property(DIRECTORY PROPERTY CXX_STANDARD_REQUIRED ON)
 
@@ -47,9 +33,6 @@ LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 find_package(OpenCV 3.0 REQUIRED)
 if(NOT OpenCV_FOUND)
    find_package(OpenCV 2.4.3 REQUIRED)
-   #if(NOT OpenCV_FOUND)
-   #   message(FATAL_ERROR "OpenCV > 2.4.3 not found.")
-   #endif()
 endif()
 
 find_package(Eigen3 3.1.0 REQUIRED)
@@ -67,74 +50,74 @@ add_subdirectory("Thirdparty/DBoW2" ${PROJECT_BINARY_DIR}/Thirdparty/DBoW2)
 add_subdirectory("Thirdparty/g2o" ${PROJECT_BINARY_DIR}/Thirdparty/g2o)
 
 set(PROJECT_FILES 
-include/Converter.h
-include/Duration.h
-include/Enums.h
-include/Frame.h
-include/FrameCalibration.h
-include/FrameDrawer.h
-include/Initializer.h
-include/KeyFrame.h
-include/KeyFrameDatabase.h
-include/LocalMapping.h
-include/LoopClosing.h
-include/Map.h
-include/MapChangeEvent.h
-include/MapDrawer.h
-include/MapObserver.h
-include/MapPoint.h
-include/MapSubject.h
-include/Mapper.h
-include/MapperObserver.h
-include/MapperServer.h
-include/MapperSubject.h
-include/Messages.h
-include/Optimizer.h
-include/ORBextractor.h
-include/ORBmatcher.h
-include/ORBVocabulary.h
-include/PnPsolver.h
-include/Serializer.h
-include/Sim3Solver.h
-include/Sleep.h
-include/Statistics.h
-include/SyncPrint.h
-include/System.h
-include/Tracking.h
-include/Typedefs.h
-include/Viewer.h
-src/Converter.cc
-src/Frame.cc
-src/FrameCalibration.cc
-src/FrameDrawer.cc
-src/Initializer.cc
-src/KeyFrame.cc
-src/KeyFrameDatabase.cc
-src/LocalMapping.cc
-src/LoopClosing.cc
-src/Map.cc
-src/MapChangeEvent.cc
-src/MapDrawer.cc
-src/Mapper.cc
-src/MapperServer.cc
-src/MapPoint.cc
-src/Optimizer.cc
-src/ORBextractor.cc
-src/ORBmatcher.cc
-src/PnPsolver.cc
-src/Serializer.cc
-src/Sim3Solver.cc
-src/SyncPrint.cc
-src/System.cc
-src/Tracking.cc
-src/Viewer.cc
+   include/Converter.h
+   include/Duration.h
+   include/Enums.h
+   include/Frame.h
+   include/FrameCalibration.h
+   include/FrameDrawer.h
+   include/Initializer.h
+   include/KeyFrame.h
+   include/KeyFrameDatabase.h
+   include/LocalMapping.h
+   include/LoopClosing.h
+   include/Map.h
+   include/MapChangeEvent.h
+   include/MapDrawer.h
+   include/MapObserver.h
+   include/MapPoint.h
+   include/MapSubject.h
+   include/Mapper.h
+   include/MapperObserver.h
+   include/MapperServer.h
+   include/MapperSubject.h
+   include/Messages.h
+   include/Optimizer.h
+   include/ORBextractor.h
+   include/ORBmatcher.h
+   include/ORBVocabulary.h
+   include/PnPsolver.h
+   include/Serializer.h
+   include/Sim3Solver.h
+   include/Sleep.h
+   include/Statistics.h
+   include/SyncPrint.h
+   include/System.h
+   include/Tracking.h
+   include/Typedefs.h
+   include/Viewer.h
+   src/Converter.cc
+   src/Frame.cc
+   src/FrameCalibration.cc
+   src/FrameDrawer.cc
+   src/Initializer.cc
+   src/KeyFrame.cc
+   src/KeyFrameDatabase.cc
+   src/LocalMapping.cc
+   src/LoopClosing.cc
+   src/Map.cc
+   src/MapChangeEvent.cc
+   src/MapDrawer.cc
+   src/Mapper.cc
+   src/MapperServer.cc
+   src/MapPoint.cc
+   src/Optimizer.cc
+   src/ORBextractor.cc
+   src/ORBmatcher.cc
+   src/PnPsolver.cc
+   src/Serializer.cc
+   src/Sim3Solver.cc
+   src/SyncPrint.cc
+   src/System.cc
+   src/Tracking.cc
+   src/Viewer.cc
 )
 
 if(cppzmq_FOUND)
    set(PROJECT_FILES 
-   ${PROJECT_FILES}
-   include/MapperClient.h
-   src/MapperClient.cc
+      ${PROJECT_FILES}
+      include/MapperClient.h
+      src/MapperClient.cc
    )
 endif()
 
